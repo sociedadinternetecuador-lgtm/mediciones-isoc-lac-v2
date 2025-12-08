@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suite de Análisis de Dominios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
+            border-radius: 50%; width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .check-label { transition: all 0.2s ease-in-out; }
+        .check-label:hover { background-color: #f9fafb; }
+        .result-item .label { min-width: 140px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8 my-8">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Internet Society Uruguay (Mediciones ISOC-LAC)</h1>
+            <p class="text-gray-500 mt-2">Proyecto colaborativo de capítulos de Internet Society para mediciones abiertas de la región LAC.</p>
+            <button id="aboutBtn" class="text-blue-600 underline text-sm mt-2">Acerca de</button>
+            <div id="aboutText" class="hidden mt-4 text-sm text-gray-700">
+                El Capítulo Uruguay de Internet Society, junto a otros capítulos de la región,
+                desarrolló esta herramienta abierta para medir la adopción de tecnologías y buenas prácticas
+                en América Latina y el Caribe. Esta plataforma se integrará con ISOC Pulse para
+                recopilar y compartir información regional.
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="countrySelect" class="block text-sm font-medium text-gray-700 mb-2">Selecciona un país</label>
+            <select id="countrySelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                <option value="" selected disabled>-- País --</option>
+            </select>
+        </div>
+
+        <div class="mb-6">
+            <label for="domains" class="block text-sm font-medium text-gray-700 mb-2">Dominios (separados por coma)</label>
+            <textarea id="domains" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="google.com, nic.uy, lacnic.net"></textarea>
+        </div>
+
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <label class="block text-sm font-medium text-gray-700">Verificaciones a realizar</label>
+                <button id="selectAll" type="button" class="text-blue-600 text-sm">Seleccionar todos</button>
+            </div>
+            <div id="checksContainer" class="space-y-3"></div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center">
+            <button id="checkButton" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.414l2.26-2.26a4 4 0 10-1.15-7.446z" clip-rule="evenodd" /></svg>
+                <span>Analizar Dominios</span>
+            </button>
+            <div class="flex space-x-4 mt-4">
+                <button id="historyButton" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Ver Historial</button>
+                <button id="clearHistoryButton" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">Limpiar Historial</button>
+            </div>
+        </div>
+
+        <div id="history" class="mt-6 hidden"></div>
+        <div id="map" class="w-full h-64 mb-8 hidden"></div>
+        <div id="results-container" class="mt-8 space-y-6">
+            <div id="summary" class="hidden bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-800">Resumen acumulado</h2>
+                    <p class="text-sm text-gray-500">Totales en tiempo real por verificación</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
+                            <tr>
+                                <th class="px-4 py-3">Verificación</th>
+                                <th class="px-4 py-3">Sí</th>
+                                <th class="px-4 py-3">No</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody" class="divide-y divide-gray-200 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="loader" class="hidden items-center justify-center py-4">
+                <div class="loader"></div><p class="ml-3 text-gray-600">Analizando...</p>
+            </div>
+            <div id="results" class="space-y-6"></div>
+        </div>
+    </div>
+
+<script>
+    const checkButton = document.getElementById('checkButton');
+    const domainsInput = document.getElementById('domains');
+    const countrySelect = document.getElementById('countrySelect');
+    const resultsContainer = document.getElementById('results');
+    const loader = document.getElementById('loader');
+    const summarySection = document.getElementById('summary');
+    const summaryBody = document.getElementById('summaryBody');
+    let checkboxes = [];
+    const selectAllBtn = document.getElementById('selectAll');
+    const historyButton = document.getElementById('historyButton');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
+    const historyDiv = document.getElementById('history');
+    const aboutBtn = document.getElementById('aboutBtn');
+    const aboutText = document.getElementById('aboutText');
+    const mapDiv = document.getElementById('map');
+    let map; let mapMarkers = [];
+    let summaryData = {};
+    let summaryElements = {};
+        const API_BASE = 'http://localhost:4000';
+    const headerCache = {};
+    const tlsCache = {};
+
+    const countryTlds = {
+        'Uruguay': ['uy','com.uy','edu.uy','gub.uy','org.uy','net.uy','mil.uy','destinosnaturales.gub.uy','agesic.gub.uy'],
+        'Argentina': ['ar','com.ar','gob.ar','edu.ar','org.ar','net.ar'],
+        'Brasil': ['br','com.br','gov.br','edu.br','org.br','net.br'],
+        'Ecuador': ['ec','com.ec','gob.ec','edu.ec','org.ec','net.ec'],
+        'Bolivia': ['bo','com.bo','gob.bo','edu.bo','org.bo','net.bo'],
+        'Chile': ['cl','com.cl','gob.cl','edu.cl','org.cl','net.cl'],
+        'Paraguay': ['py','com.py','gov.py','edu.py','org.py','net.py'],
+        'Perú': ['pe','com.pe','gob.pe','edu.pe','org.pe','net.pe'],
+        'Colombia': ['co','com.co','gov.co','edu.co','org.co','net.co'],
+        'México': ['mx','com.mx','gob.mx','edu.mx','org.mx','net.mx']
+    };
+
+    for (const country of Object.keys(countryTlds)) {
+        const opt = document.createElement('option');
+        opt.value = country;
+        opt.textContent = country;
+        countrySelect.appendChild(opt);
+    }
+
+    countrySelect.addEventListener('change', () => {
+        const domains = countryTlds[countrySelect.value] || [];
+        domainsInput.value = domains.join(', ');
+    });
+
+    aboutBtn.addEventListener('click', () => {
+        aboutText.classList.toggle('hidden');
+    });
+
+    function initMap() {
+        map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+    }
+    initMap();
+
+    function clearMap() {
+        mapMarkers.forEach(m => map.removeLayer(m));
+        mapMarkers = [];
+    }
+
+    async function updateMap(domains) {
+        if (!domains.length) return;
+        clearMap();
+        mapDiv.classList.remove('hidden');
+        map.invalidateSize();
+        const generics = [];
+        const coords = {};
+        for (const d of domains) {
+            const tld = d.split('.').pop().toLowerCase();
+            if (tld.length === 2) {
+                if (!coords[tld]) {
+                    try {
+                        const info = await fetchWithTimeout(`https://restcountries.com/v3.1/alpha/${tld}`);
+                        const c = info[0];
+                        coords[tld] = { lat: c.latlng[0], lon: c.latlng[1], country: c.name.common, domains: [] };
+                    } catch (e) { generics.push(d); continue; }
+                }
+                coords[tld].domains.push(d);
+            } else generics.push(d);
+        }
+        Object.values(coords).forEach(c => {
+            const marker = L.marker([c.lat, c.lon]).addTo(map).bindPopup(`${c.country}: ${c.domains.join(', ')}`);
+            mapMarkers.push(marker);
+        });
+        if (generics.length) {
+            const marker = L.marker([0, 0]).addTo(map).bindPopup(`Genéricos: ${generics.join(', ')}`);
+            mapMarkers.push(marker);
+        }
+        map.setView([0, 0], 2);
+    }
+
+    const groupDefinitions = [
+        {
+            title: 'IP y Red',
+            checks: [
+                { key: 'ipinfo', label: 'More IP Info', default: true },
+                { key: 'serverlocation', label: 'Server Location', default: true },
+                { key: 'serverinfo', label: 'Server Info', default: true },
+                { key: 'ipv4', label: 'IPv4', default: true },
+                { key: 'ipv6', label: 'IPv6', default: false },
+                { key: 'asn', label: 'ASN', default: true },
+                { key: 'serverstatus', label: 'Server Status', default: true },
+                { key: 'openports', label: 'Open Ports', default: false },
+                { key: 'traceroute', label: 'Traceroute', default: false },
+                { key: 'redirectchain', label: 'Redirect Chain', default: true },
+                { key: 'block', label: 'Block Detection', default: false }
+            ]
+        },
+        {
+            title: 'DNS y Seguridad',
+            checks: [
+                { key: 'dnsrecords', label: 'DNS Records', default: true },
+                { key: 'txtrecords', label: 'TXT Records', default: true },
+                { key: 'dnsserver', label: 'DNS Server', default: true },
+                { key: 'dnssecurity', label: 'DNS Security Extensions', default: true },
+                { key: 'rpki', label: 'RPKI', default: false },
+                { key: 'caa', label: 'CAA', default: false },
+                { key: 'tlsa', label: 'TLSA', default: false }
+            ]
+        },
+        {
+            title: 'Correo y Mensajería',
+            checks: [
+                { key: 'emailconfig', label: 'Email Configuration', default: true },
+                { key: 'mx', label: 'MX', default: false },
+                { key: 'smtputf8', label: 'SMTPUTF8', default: false },
+                { key: 'dmarc', label: 'DMARC', default: true },
+                { key: 'spf', label: 'SPF', default: true },
+                { key: 'dkim', label: 'DKIM', default: false }
+            ]
+        },
+        {
+            title: 'Identidad y Cumplimiento',
+            checks: [
+                { key: 'whois', label: 'Whois Lookup', default: true },
+                { key: 'domaininfo', label: 'Domain Info', default: true },
+                { key: 'securitytxt', label: 'Security.txt', default: false }
+            ]
+        },
+        {
+            title: 'Contenido y Experiencia',
+            checks: [
+                { key: 'sitefeatures', label: 'Site Features', default: false },
+                { key: 'cookies', label: 'Cookies', default: false },
+                { key: 'crawlrules', label: 'Crawl Rules', default: false },
+                { key: 'linkedpages', label: 'Linked Pages', default: false },
+                { key: 'listedpages', label: 'Listed Pages', default: false },
+                { key: 'socialtags', label: 'Social Tags', default: false },
+                { key: 'quality', label: 'Quality Metrics', default: false },
+                { key: 'archive', label: 'Archive History', default: false },
+                { key: 'ranking', label: 'Global Ranking', default: false },
+                { key: 'malware', label: 'Malware & Phishing Detection', default: false },
+                { key: 'screenshot', label: 'Screenshot', default: false }
+            ]
+        },
+        {
+            title: 'Seguridad Web y TLS',
+            checks: [
+                { key: 'https', label: 'HTTPS', default: true },
+                { key: 'redirect', label: 'HTTPS Redirect', default: true },
+                { key: 'hsts', label: 'HTTP Strict Transport Security', default: true },
+                { key: 'csp', label: 'Content Security Policy', default: false },
+                { key: 'xfo', label: 'X-Frame-Options', default: false },
+                { key: 'xcto', label: 'X-Content-Type-Options', default: false },
+                { key: 'referrer', label: 'Referrer-Policy', default: false },
+                { key: 'permissions', label: 'Permissions-Policy', default: false },
+                { key: 'xxss', label: 'X-XSS-Protection', default: false },
+                { key: 'headers', label: 'Headers', default: false },
+                { key: 'server', label: 'Server Header', default: false },
+                { key: 'compression', label: 'HTTP Compression', default: false },
+                { key: 'ocsp', label: 'OCSP Stapling', default: false },
+                { key: 'tls', label: 'TLS Version', default: true },
+                { key: 'key', label: 'Key Exchange', default: false },
+                { key: 'sslchain', label: 'SSL Chain Info', default: false },
+                { key: 'tlsciphers', label: 'TLS Cipher Suites', default: false },
+                { key: 'tlsconfig', label: 'TLS Security Config', default: false },
+                { key: 'tlssimulation', label: 'TLS Handshake Simulation', default: false },
+                { key: 'httpsecurity', label: 'HTTP Security Features', default: false },
+                { key: 'firewall', label: 'Firewall Detection', default: false }
+            ]
+        }
+    ];
+
+    const checkConfig = {};
+    groupDefinitions.forEach(group => {
+        group.checks.forEach(check => {
+            checkConfig[check.key] = { label: check.label };
+        });
+    });
+
+    function renderCheckOptions() {
+        const container = document.getElementById('checksContainer');
+        container.innerHTML = '';
+        groupDefinitions.forEach(group => {
+            const details = document.createElement('details');
+            details.className = 'border rounded-lg bg-white shadow-sm';
+            details.open = true;
+            const summary = document.createElement('summary');
+            summary.className = 'cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between';
+            summary.innerHTML = `<span>${group.title}</span><span class="text-xs text-gray-500">${group.checks.length} checks</span>`;
+            details.appendChild(summary);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 px-3 pb-3';
+            group.checks.forEach(check => {
+                const label = document.createElement('label');
+                label.className = 'check-label flex items-center p-2 border rounded-lg cursor-pointer bg-gray-50';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.dataset.check = check.key;
+                if (check.default) input.checked = true;
+                input.className = 'h-4 w-4 rounded';
+                const span = document.createElement('span');
+                span.className = 'ml-2 text-sm';
+                span.textContent = check.label;
+                label.appendChild(input);
+                label.appendChild(span);
+                wrapper.appendChild(label);
+            });
+            details.appendChild(wrapper);
+            container.appendChild(details);
+        });
+        checkboxes = container.querySelectorAll('input[type="checkbox"][data-check]');
+    }
+
+    renderCheckOptions();
+
+    function loadHistory() {
+        const history = JSON.parse(localStorage.getItem('domainHistory') || '[]');
+        if (!history.length) {
+            historyDiv.innerHTML = '<div class="text-center text-gray-500">Sin historial</div>';
+            return;
+        }
+        let html = '';
+        history.forEach(entry => {
+            html += `<div class="mb-4"><h4 class="font-semibold mb-2">${entry.date}</h4>`;
+            html += '<div class="overflow-auto"><table class="min-w-full text-sm border"><thead><tr><th class="border px-2 py-1">Dominio</th>';
+            entry.checks.forEach(c => { html += `<th class="border px-2 py-1">${checkConfig[c]?.label || c}</th>`; });
+            html += '</tr></thead><tbody>';
+            entry.domains.forEach(d => {
+                html += `<tr><td class="border px-2 py-1">${d.domain}</td>`;
+                entry.checks.forEach(c => {
+                    const val = d.results[c]?.status || '-';
+                    html += `<td class="border px-2 py-1 text-center">${val}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div></div>';
+        });
+        historyDiv.innerHTML = html;
+    }
+
+    function saveHistory(entry) {
+        const history = JSON.parse(localStorage.getItem('domainHistory') || '[]');
+        history.push(entry);
+        localStorage.setItem('domainHistory', JSON.stringify(history));
+    }
+
+    function toASCII(domain) {
+        try { return new URL('http://' + domain).hostname; }
+        catch (e) { return domain; }
+    }
+
+    async function fetchWithTimeout(resource, options = {}, timeout = 20000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(resource, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            if (!response.ok) throw new Error('Servicio no disponible');
+            return response.json();
+        } catch (error) {
+            clearTimeout(id);
+            throw new Error(error.name === 'AbortError' ? 'Timeout' : 'Servicio no disponible');
+        }
+    }
+
+    async function getSecurityHeaders(domain) {
+        const ascii = toASCII(domain);
+        if (headerCache[ascii]) return headerCache[ascii];
+        const data = await fetchWithTimeout(`${API_BASE}/headers/${ascii}`);
+        headerCache[ascii] = data;
+        return data;
+    }
+
+    async function getTlsInfo(domain) {
+        const ascii = toASCII(domain);
+        if (tlsCache[ascii]) return tlsCache[ascii];
+        const data = await fetchWithTimeout(`${API_BASE}/tlsinfo/${ascii}`);
+        tlsCache[ascii] = data;
+        return data;
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function formatDetails(details) {
+        if (details === undefined || details === null) return '';
+        if (Array.isArray(details)) {
+            return details
+                .map(item => {
+                    if (item && typeof item === 'object' && item.html) {
+                        return `<div class="text-xs text-gray-700">${item.html}</div>`;
+                    }
+                    return `<div class="text-xs text-gray-700">${escapeHtml(item)}</div>`;
+                })
+                .join('');
+        }
+        if (details && typeof details === 'object') {
+            if (details.html) return details.html;
+            return `<pre class="text-xs text-gray-700 whitespace-pre-wrap">${escapeHtml(JSON.stringify(details, null, 2))}</pre>`;
+        }
+        return `<span class="text-sm">${escapeHtml(details)}</span>`;
+    }
+
+    function renderTooltipList(items, emptyText, isPositive = false) {
+        if (!items.length) {
+            return `<div class="text-xs text-gray-500">${emptyText}</div>`;
+        }
+        return `<ul class="space-y-1 text-xs text-gray-700">${items.map(item => {
+            if (isPositive) {
+                return `<li>${escapeHtml(item.domain)}</li>`;
+            }
+            const statusText = item.status === 'fail'
+                ? 'falló'
+                : item.status === 'error'
+                    ? 'error'
+                    : item.status || '';
+            const suffix = statusText ? ` (${escapeHtml(statusText)})` : '';
+            return `<li>${escapeHtml(item.domain)}${suffix}</li>`;
+        }).join('')}</ul>`;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString('es-UY', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function initializeSummary(selectedChecks) {
+        summaryData = {};
+        summaryElements = {};
+        summaryBody.innerHTML = '';
+        if (!selectedChecks.length) {
+            summarySection.classList.add('hidden');
+            return;
+        }
+        summarySection.classList.remove('hidden');
+        selectedChecks.forEach(checkKey => {
+            const label = checkConfig[checkKey]?.label || checkKey;
+            summaryData[checkKey] = { label, positive: 0, negative: 0, positives: [], negatives: [] };
+
+            const row = document.createElement('tr');
+            const labelCell = document.createElement('td');
+            labelCell.className = 'px-4 py-3 font-medium text-gray-700';
+            labelCell.textContent = label;
+            row.appendChild(labelCell);
+
+            const positiveCell = document.createElement('td');
+            positiveCell.className = 'px-4 py-3 text-green-600';
+            const positiveWrapper = document.createElement('div');
+            positiveWrapper.className = 'relative group inline-block';
+            const positiveCount = document.createElement('span');
+            positiveCount.className = 'font-semibold cursor-help';
+            positiveCount.textContent = '0';
+            const positiveTooltip = document.createElement('div');
+            positiveTooltip.className = 'summary-tooltip hidden group-hover:block absolute z-20 left-1/2 transform -translate-x-1/2 mt-2 w-56 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg p-3';
+            positiveTooltip.innerHTML = renderTooltipList([], 'Sin resultados positivos', true);
+            positiveWrapper.appendChild(positiveCount);
+            positiveWrapper.appendChild(positiveTooltip);
+            positiveCell.appendChild(positiveWrapper);
+            row.appendChild(positiveCell);
+
+            const negativeCell = document.createElement('td');
+            negativeCell.className = 'px-4 py-3 text-red-600';
+            const negativeWrapper = document.createElement('div');
+            negativeWrapper.className = 'relative group inline-block';
+            const negativeCount = document.createElement('span');
+            negativeCount.className = 'font-semibold cursor-help';
+            negativeCount.textContent = '0';
+            const negativeTooltip = document.createElement('div');
+            negativeTooltip.className = 'summary-tooltip hidden group-hover:block absolute z-20 left-1/2 transform -translate-x-1/2 mt-2 w-56 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg p-3';
+            negativeTooltip.innerHTML = renderTooltipList([], 'Sin resultados negativos');
+            negativeWrapper.appendChild(negativeCount);
+            negativeWrapper.appendChild(negativeTooltip);
+            negativeCell.appendChild(negativeWrapper);
+            row.appendChild(negativeCell);
+
+            summaryBody.appendChild(row);
+            summaryElements[checkKey] = { positiveCount, negativeCount, positiveTooltip, negativeTooltip };
+        });
+    }
+
+    function updateSummary(checkKey, domain, status) {
+        if (!summaryData[checkKey]) return;
+        const entry = summaryData[checkKey];
+        if (status === 'ok') {
+            entry.positive += 1;
+            entry.positives.push({ domain, status });
+        } else {
+            entry.negative += 1;
+            entry.negatives.push({ domain, status });
+        }
+        const elements = summaryElements[checkKey];
+        if (!elements) return;
+        elements.positiveCount.textContent = entry.positive;
+        elements.negativeCount.textContent = entry.negative;
+        elements.positiveTooltip.innerHTML = renderTooltipList(entry.positives, 'Sin resultados positivos', true);
+        elements.negativeTooltip.innerHTML = renderTooltipList(entry.negatives, 'Sin resultados negativos');
+    }
+
+    function getStatusHtml(status, details = '') {
+        let icon, color;
+        switch (status) {
+            case 'ok':
+                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                color = 'text-green-600';
+                break;
+            case 'fail':
+                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                color = 'text-red-600';
+                break;
+            case 'error':
+                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                color = 'text-gray-500';
+                break;
+            case 'info':
+                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                color = 'text-blue-600';
+                break;
+            default:
+                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                color = 'text-yellow-600';
+                break;
+        }
+        return `<div class="flex items-start ${color}"><span class="mr-2 flex-shrink-0">${icon}</span><div class="space-y-1">${formatDetails(details)}</div></div>`;
+    }
+
+    function createResultCard(domain, selectedChecks) {
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-lg bg-gray-50 border border-gray-200 shadow-sm';
+        const title = document.createElement('h3');
+        title.className = 'font-bold text-xl text-gray-800 mb-4 pb-2 border-b';
+        title.textContent = domain;
+        card.appendChild(title);
+
+        const placeholders = {};
+
+        for (const group of groupDefinitions) {
+            const groupKeys = group.checks.map(c => c.key);
+            const filtered = selectedChecks.filter(c => groupKeys.includes(c));
+            if (!filtered.length) continue;
+            const h4 = document.createElement('h4');
+            h4.className = 'text-md font-semibold text-gray-700 mt-4 mb-2';
+            h4.textContent = group.title;
+            card.appendChild(h4);
+            filtered.forEach(c => {
+                const row = document.createElement('div');
+                row.className = 'result-item flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0';
+                const label = document.createElement('span');
+                label.className = 'label text-sm font-medium text-gray-600';
+                label.textContent = checkConfig[c].label;
+                const placeholder = document.createElement('span');
+                placeholder.className = 'text-gray-500 flex items-center';
+                placeholder.innerHTML = '<div class="loader mr-2"></div><span>Cargando...</span>';
+                row.appendChild(label);
+                row.appendChild(placeholder);
+                card.appendChild(row);
+                placeholders[c] = placeholder;
+            });
+        }
+
+        resultsContainer.appendChild(card);
+        return placeholders;
+    }
+
+    async function getCheckResult(checkType, domain) {
+        const { label } = checkConfig[checkType];
+        const ascii = toASCII(domain);
+        try {
+            switch (checkType) {
+                case 'ipinfo': {
+                    const data = await fetchWithTimeout(`${API_BASE}/ipinfo/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [];
+                    if (data.ipv4?.length) lines.push(`IPv4: ${data.ipv4.join(', ')}`);
+                    if (data.ipv6?.length) lines.push(`IPv6: ${data.ipv6.join(', ')}`);
+                    if (data.geo?.length) {
+                        data.geo.forEach(g => {
+                            lines.push(`${g.ip}: ${[g.city, g.region, g.country].filter(Boolean).join(', ')}${g.asn ? ' (AS' + g.asn + ')' : ''}`);
+                        });
+                    }
+                    return { label, status: lines.length ? 'ok' : 'fail', details: lines.length ? lines : 'Sin datos' };
+                }
+                case 'serverlocation': {
+                    const data = await fetchWithTimeout(`${API_BASE}/serverlocation/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const parts = [data.city, data.region, data.country].filter(Boolean).join(', ');
+                    const details = [];
+                    if (parts || data.ip) details.push(parts ? `${parts} (${data.ip})` : data.ip);
+                    if (data.timezone) details.push(`Zona horaria: ${data.timezone}`);
+                    if (data.latitude != null && data.longitude != null) {
+                        details.push(`Coordenadas: ${data.latitude}, ${data.longitude}`);
+                    }
+                    return {
+                        label,
+                        status: data.ip ? 'ok' : 'fail',
+                        details: details.length ? details : 'Sin datos'
+                    };
+                }
+                case 'serverinfo': {
+                    const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [];
+                    if (data.ip) lines.push(`IP analizada: ${data.ip}`);
+                    if (data.asn) lines.push(`ASN: AS${data.asn}`);
+                    if (data.org) lines.push(`Organización: ${data.org}`);
+                    if (data.network) lines.push(`Prefijo: ${data.network}`);
+                    if (data.isp) lines.push(`ISP: ${data.isp}`);
+                    if (data.city || data.country) lines.push(`Ubicación: ${[data.city, data.country].filter(Boolean).join(', ')}`);
+                    return { label, status: lines.length ? 'ok' : 'fail', details: lines.length ? lines : 'Sin datos' };
+                }
+                case 'serverstatus': {
+                    const data = await fetchWithTimeout(`${API_BASE}/serverstatus/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const code = data.statusCode;
+                    if (!code) return { label, status: 'error', details: 'Sin respuesta' };
+                    if (code >= 500) return { label, status: 'fail', details: `HTTP ${code}` };
+                    if (code >= 400) return { label, status: 'fail', details: `HTTP ${code}` };
+                    if (code >= 300) {
+                        const target = data.location ? ` → ${data.location}` : '';
+                        return { label, status: 'info', details: `HTTP ${code} (redirección)${target}` };
+                    }
+                    return { label, status: 'ok', details: `HTTP ${code}` };
+                }
+                case 'openports': {
+                    const data = await fetchWithTimeout(`${API_BASE}/openports/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const open = data.ports?.filter(p => p.open).map(p => p.port) || [];
+                    const expected = new Set([53, 80, 443, 25, 110, 143, 465, 587, 993, 995]);
+                    const unusual = open.filter(port => !expected.has(port));
+                    if (!open.length) {
+                        return { label, status: 'ok', details: 'Sin puertos comunes abiertos' };
+                    }
+                    if (unusual.length) {
+                        const details = [`Puertos no estándar: ${unusual.join(', ')}`];
+                        if (open.length > unusual.length) {
+                            const standard = open.filter(port => expected.has(port));
+                            details.push(`Puertos esperados: ${standard.join(', ')}`);
+                        }
+                        return { label, status: 'fail', details };
+                    }
+                    return { label, status: 'ok', details: `Puertos estándar: ${open.join(', ')}` };
+                }
+                case 'traceroute': {
+                    const data = await fetchWithTimeout(`${API_BASE}/traceroute/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const hops = data.hops?.slice(0, 10) || [];
+                    return { label, status: hops.length ? 'ok' : 'info', details: hops.length ? hops : 'Sin datos' };
+                }
+                case 'redirectchain': {
+                    const data = await fetchWithTimeout(`${API_BASE}/redirectchain/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const chain = (data.chain || []).filter(Boolean);
+                    if (!chain.length) {
+                        return { label, status: 'info', details: 'Sin redirecciones' };
+                    }
+                    const deduped = [];
+                    const seen = new Set();
+                    chain.forEach(step => {
+                        const key = `${step.statusCode}-${step.url}-${step.location || ''}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            deduped.push(step);
+                        }
+                    });
+                    const finalStep = deduped[deduped.length - 1];
+                    const lines = deduped.map((step, index) => {
+                        const code = step.statusCode ? `HTTP ${step.statusCode}` : 'Sin código';
+                        const destination = step.location || step.url;
+                        const note = index === deduped.length - 1 ? 'destino final' : 'redirección';
+                        return `${index + 1}. ${code} → ${destination} (${note})`;
+                    });
+                    const summary = `Cadena de ${deduped.length} pasos. Último destino: ${finalStep.location || finalStep.url}`;
+                    let status = 'info';
+                    if (finalStep.statusCode >= 400) status = 'fail';
+                    else if (deduped.length === 1 && finalStep.statusCode < 300) status = 'ok';
+                    return { label, status, details: [summary, ...lines] };
+                }
+                case 'block': {
+                    const data = await fetchWithTimeout(`${API_BASE}/block/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = data.results?.map(r => `${r.resolver}: ${r.blocked ? 'bloqueado' : 'acceso'}`) || [];
+                    const blocked = data.results?.some(r => r.blocked);
+                    return { label, status: blocked ? 'fail' : 'ok', details: lines.length ? lines : 'Sin datos' };
+                }
+                case 'dnsrecords': {
+                    const data = await fetchWithTimeout(`${API_BASE}/dnsrecords/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const records = [];
+                    Object.entries(data.records || {}).forEach(([type, values]) => {
+                        if (Array.isArray(values) && values.length) {
+                            const formatted = values
+                                .map(v => (typeof v === 'string' ? v : JSON.stringify(v)))
+                                .join(', ');
+                            records.push(`${type}: ${formatted}`);
+                        }
+                    });
+                    return { label, status: records.length ? 'ok' : 'fail', details: records.length ? records : 'Sin registros' };
+                }
+                case 'txtrecords': {
+                    const data = await fetchWithTimeout(`${API_BASE}/txtrecords/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const records = data.records?.map(r => r.join('')) || [];
+                    return { label, status: records.length ? 'ok' : 'fail', details: records.length ? records : 'Sin TXT' };
+                }
+                case 'dnsserver': {
+                    const data = await fetchWithTimeout(`${API_BASE}/dnsserver/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.servers?.length ? 'ok' : 'fail', details: data.servers?.length ? data.servers : 'Sin NS' };
+                }
+                case 'dnssecurity': {
+                    const data = await fetchWithTimeout(`${API_BASE}/dnssecurity/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [];
+                    if (data.algorithms?.length) lines.push(`Algoritmos: ${data.algorithms.join(', ')}`);
+                    if (data.doh) lines.push('DoH activo');
+                    lines.push(data.valid ? 'DNSSEC válido' : 'DNSSEC ausente');
+                    return { label, status: data.valid ? 'ok' : 'fail', details: lines };
+                }
+                case 'emailconfig': {
+                    const data = await fetchWithTimeout(`${API_BASE}/emailconfig/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [
+                        `SPF: ${data.spf ? 'sí' : 'no'}`,
+                        `DMARC: ${data.dmarc ? 'sí' : 'no'}`,
+                        `DKIM: ${data.dkim ? 'sí' : 'no'}`
+                    ];
+                    if (data.mx?.length) lines.push(`MX: ${data.mx.map(m => `${m.exchange} (p${m.priority})`).join(', ')}`);
+                    return { label, status: data.spf || data.dmarc || data.dkim ? 'ok' : 'fail', details: lines };
+                }
+                case 'sitefeatures': {
+                    const data = await fetchWithTimeout(`${API_BASE}/sitefeatures/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const features = data.features || {};
+                    const lines = Object.entries(features).map(([k, v]) => {
+                        const clean = k.replace(/^has/, '').replace(/([A-Z])/g, ' $1').trim();
+                        const formatted = clean.charAt(0).toUpperCase() + clean.slice(1);
+                        return `${formatted}: ${v ? 'sí' : 'no'}`;
+                    });
+                    return { label, status: lines.some(l => /sí$/.test(l)) ? 'ok' : 'info', details: lines };
+                }
+                case 'cookies': {
+                    const data = await fetchWithTimeout(`${API_BASE}/cookies/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const cookies = data.cookies || [];
+                    return { label, status: cookies.length ? 'info' : 'ok', details: cookies.length ? cookies : 'Sin cookies' };
+                }
+                case 'crawlrules': {
+                    const data = await fetchWithTimeout(`${API_BASE}/crawlrules/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (!data.found) return { label, status: 'fail', details: 'No encontrado' };
+                    const snippet = escapeHtml((data.content || '').slice(0, 500));
+                    const html = `<pre class="whitespace-pre-wrap text-xs text-gray-700">${snippet}${data.content && data.content.length > 500 ? '…' : ''}</pre>`;
+                    return { label, status: 'ok', details: { html } };
+                }
+                case 'linkedpages': {
+                    const data = await fetchWithTimeout(`${API_BASE}/linkedpages/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = data.links?.slice(0, 20).map(l => `${l.internal ? 'Interno' : 'Externo'}: ${l.href}`) || [];
+                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin enlaces detectados' };
+                }
+                case 'listedpages': {
+                    const data = await fetchWithTimeout(`${API_BASE}/listedpages/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const pages = data.pages?.slice(0, 20) || [];
+                    return { label, status: pages.length ? 'ok' : 'info', details: pages.length ? pages : 'Sin sitemap' };
+                }
+                case 'socialtags': {
+                    const data = await fetchWithTimeout(`${API_BASE}/socialtags/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const tags = Object.entries(data.tags || {}).map(([k, v]) => `${k}: ${v}`);
+                    return { label, status: tags.length ? 'ok' : 'info', details: tags.length ? tags : 'Sin etiquetas sociales' };
+                }
+                case 'quality': {
+                    const data = await fetchWithTimeout(`${API_BASE}/quality/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [];
+                    if (typeof data.performance === 'number') lines.push(`Performance: ${(data.performance * 100).toFixed(0)}`);
+                    if (typeof data.accessibility === 'number') lines.push(`Accesibilidad: ${(data.accessibility * 100).toFixed(0)}`);
+                    if (typeof data.bestPractices === 'number') lines.push(`Mejores prácticas: ${(data.bestPractices * 100).toFixed(0)}`);
+                    if (typeof data.seo === 'number') lines.push(`SEO: ${(data.seo * 100).toFixed(0)}`);
+                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin datos de Lighthouse' };
+                }
+                case 'archive': {
+                    const data = await fetchWithTimeout(`${API_BASE}/archive/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const entries = data.entries?.map(e => `${e.timestamp}: ${e.original} (${e.status})`) || [];
+                    return { label, status: entries.length ? 'ok' : 'info', details: entries.length ? entries : 'Sin historial' };
+                }
+                case 'ranking': {
+                    const data = await fetchWithTimeout(`${API_BASE}/ranking/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return {
+                        label,
+                        status: data.rank ? 'ok' : 'info',
+                        details: data.rank ? `Ranking global ${data.rank}${data.date ? ` (${data.date})` : ''}` : 'Sin ranking'
+                    };
+                }
+                case 'malware': {
+                    const data = await fetchWithTimeout(`${API_BASE}/malware/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const entries = data.entries?.map(e => `${e.url || e.id} (${e.status || 'listado'})`) || [];
+                    const threat = data.threat && data.threat !== 'ok';
+                    return { label, status: threat ? 'fail' : 'ok', details: entries.length ? entries : 'Sin reportes' };
+                }
+                case 'screenshot': {
+                    const data = await fetchWithTimeout(`${API_BASE}/screenshot/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const link = `<a class="text-blue-600 underline" href="${escapeHtml(data.imageUrl)}" target="_blank" rel="noopener">Ver captura</a>`;
+                    return { label, status: 'info', details: { html: link } };
+                }
+                case 'headers': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const entries = Object.entries(data.headers || {}).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
+                    return { label, status: entries.length ? 'ok' : 'info', details: entries.length ? entries : 'Sin encabezados' };
+                }
+                case 'sslchain': {
+                    const data = await fetchWithTimeout(`${API_BASE}/sslchain/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const chain = data.chain?.map(c => `${c.subject?.CN || 'Certificado'} → ${c.issuer?.CN || 'Emisor'} (${c.valid_from} - ${c.valid_to})`) || [];
+                    return { label, status: chain.length ? 'ok' : 'fail', details: chain.length ? chain : 'Sin cadena SSL' };
+                }
+                case 'tlsciphers': {
+                    const data = await fetchWithTimeout(`${API_BASE}/tlsciphers/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const suites = data.suites?.map(s => `${s.protocol}: ${s.cipher}`) || [];
+                    return { label, status: suites.length ? 'ok' : 'info', details: suites.length ? suites : 'Sin información' };
+                }
+                case 'tlsconfig': {
+                    const data = await fetchWithTimeout(`${API_BASE}/tlsconfig/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.data?.error) return { label, status: 'error', details: data.data.error };
+                    const score = data.data?.score;
+                    const details = [];
+                    if (score !== undefined) details.push(`Puntaje: ${score}`);
+                    if (data.data?.tests) {
+                        Object.entries(data.data.tests).slice(0, 10).forEach(([name, result]) => {
+                            if (result && typeof result === 'object' && result.output) {
+                                details.push(`${name}: ${result.output}`);
+                            }
+                        });
+                    }
+                    return { label, status: score !== undefined ? 'ok' : 'info', details: details.length ? details : 'Sin datos' };
+                }
+                case 'tlssimulation': {
+                    const data = await fetchWithTimeout(`${API_BASE}/tlssimulation/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const scenarios = data.scenarios?.map(s => `${s.client}: ${s.success ? `${s.protocol || 'TLS'} (${s.cipher || 'cifra desconocida'})` : 'falló'}`) || [];
+                    const success = data.scenarios?.every(s => s.success);
+                    return { label, status: success ? 'ok' : 'fail', details: scenarios.length ? scenarios : 'Sin datos' };
+                }
+                case 'httpsecurity': {
+                    const data = await fetchWithTimeout(`${API_BASE}/httpsecurity/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const security = data.security || {};
+                    const lines = Object.entries(security).map(([k, v]) => `${k.toUpperCase()}: ${v ? 'sí' : 'no'}`);
+                    const ok = Object.values(security).some(Boolean);
+                    return { label, status: ok ? 'ok' : 'fail', details: lines.length ? lines : 'Sin cabeceras de seguridad' };
+                }
+                case 'firewall': {
+                    const data = await fetchWithTimeout(`${API_BASE}/firewall/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return {
+                        label,
+                        status: data.detected ? 'ok' : 'info',
+                        details: data.detected ? `Detectado: ${data.waf.join(', ')}` : 'No se identificó WAF'
+                    };
+                }
+                case 'dnssec': {
+                    const data = await fetchWithTimeout(`${API_BASE}/dnssec/${ascii}`);
+                    const ok = data.valid;
+                    const details = ok
+                        ? (data.algorithms?.length ? `Algoritmos: ${data.algorithms.join(', ')}` : 'DNSSEC configurado')
+                        : '¡No tiene DNSSEC!';
+                    return { label, status: ok ? 'ok' : 'fail', details };
+                }
+                case 'ipv4': {
+                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=A`);
+                    const ips = data.Answer?.filter(r => r.type === 1).map(r => r.data) || [];
+                    const geos = [];
+                    for (const ip of ips) {
+                        try {
+                            const info = await fetchWithTimeout(`https://ipapi.co/${ip}/json/`);
+                            geos.push({ ip, country: info.country_name, lat: info.latitude, lon: info.longitude, asn: info.asn });
+                        } catch (e) {}
+                    }
+                    const details = ips.length ? ips.join(', ') : 'No tiene IPv4';
+                    return { label, status: ips.length ? 'ok' : 'fail', details, geos };
+                }
+                case 'ipv6': {
+                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=AAAA`);
+                    const ips = data.Answer?.filter(r => r.type === 28).map(r => r.data) || [];
+                    return { label, status: ips.length ? 'ok' : 'fail', details: ips.length ? ips.join(', ') : 'No tiene IPv6' };
+                }
+                case 'asn': {
+                    const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return {
+                        label,
+                        status: data.asn ? 'ok' : 'fail',
+                        details: data.asn ? `AS${data.asn}${data.org ? ` (${data.org})` : ''}` : 'Sin datos'
+                    };
+                }
+                case 'dmarc': {
+                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=_dmarc.${ascii}&type=TXT`);
+                    const found = data.Answer?.some(r => r.data.includes("v=DMARC1"));
+                    return { label, status: found ? 'ok' : 'fail', details: found ? 'Política encontrada' : 'No permite DMARC' };
+                }
+                case 'spf': {
+                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=TXT`);
+                    const found = data.Answer?.some(r => r.data.includes("v=spf1"));
+                    return { label, status: found ? 'ok' : 'fail', details: found ? 'Registro encontrado' : 'No permite SPF' };
+                }
+                case 'dkim': {
+                    const data = await fetchWithTimeout(`${API_BASE}/dkim/${ascii}?selector=default`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Registro encontrado' : 'No permite DKIM' };
+                }
+                case 'mx': {
+                    const data = await fetchWithTimeout(`${API_BASE}/mx/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const details = data.records?.map(r => `${r.exchange} (p${r.priority})`).join(', ') || 'No permite MX';
+                    return { label, status: data.records?.length ? 'ok' : 'fail', details };
+                }
+                case 'smtputf8': {
+                    const data = await fetchWithTimeout(`${API_BASE}/smtputf8/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const details = data.results?.map(r => {
+                        switch (r.status) {
+                            case 'supports': return `${r.server}: sí`;
+                            case 'no': return `${r.server}: no`;
+                            case 'timeout': return `${r.server}: timeout`;
+                            case 'connection-error': return `${r.server}: sin conexión`;
+                            default: return `${r.server}: sin datos`;
+                        }
+                    }).join('; ') || 'No permite SMTPUTF8';
+                    const ok = data.results?.length && data.results.every(r => r.status === 'supports');
+                    return { label, status: ok ? 'ok' : 'fail', details };
+                }
+                case 'rpki': {
+                    const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (!data.results?.length) return { label, status: 'error', details: 'Sin datos' };
+                    const details = data.results.map(r => {
+                        const state = r.state === 'valid' ? 'válido' : r.state === 'invalid' ? 'inválido' : 'desconocido';
+                        const asn = r.asn ? ` AS${r.asn}` : '';
+                        const prefix = r.prefix ? ` (${r.prefix})` : '';
+                        return `${r.ip}: ${state}${asn}${prefix}`;
+                    });
+                    let status = 'info';
+                    if (data.results.some(r => r.state === 'invalid')) status = 'fail';
+                    else if (data.results.some(r => r.state === 'valid')) status = data.valid ? 'ok' : 'info';
+                    return { label, status, details };
+                }
+                case 'domaininfo': {
+                    const data = await fetchWithTimeout(`${API_BASE}/domaininfo/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const lines = [];
+                    if (data.registry) lines.push(`Registro: ${data.registry}`);
+                    if (Array.isArray(data.status) && data.status.length) {
+                        lines.push(`Estados: ${data.status.join(', ')}`);
+                    }
+                    if (data.creation) lines.push(`Creación: ${formatDate(data.creation)}`);
+                    if (data.expiration) lines.push(`Expira: ${formatDate(data.expiration)}`);
+                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin datos' };
+                }
+                case 'whois': {
+                    const data = await fetchWithTimeout(`${API_BASE}/whois/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const details = data.country ? `${data.name || 'Desconocido'} (${data.country})` : (data.name || 'Desconocido');
+                    return { label, status: data.name ? 'ok' : 'fail', details };
+                }
+                case 'https': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.https ? 'ok' : 'fail', details: data.https ? 'Accesible' : 'No responde HTTPS' };
+                }
+                case 'redirect': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.redirect ? 'ok' : 'fail', details: data.redirect ? 'Redirige a HTTPS' : 'No redirige' };
+                }
+                case 'hsts': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.hsts ? 'ok' : 'fail', details: data.hsts ? 'Cabecera presente' : 'Sin HSTS' };
+                }
+                case 'csp': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.csp ? 'ok' : 'fail', details: data.csp ? 'Cabecera presente' : 'Sin CSP' };
+                }
+                case 'xfo': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.xfo ? 'ok' : 'fail', details: data.xfo ? 'Cabecera presente' : 'Sin X-Frame-Options' };
+                }
+                case 'xcto': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.xcto ? 'ok' : 'fail', details: data.xcto ? 'Cabecera presente' : 'Sin X-Content-Type-Options' };
+                }
+                case 'referrer': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.referrer ? 'ok' : 'fail', details: data.referrer ? 'Cabecera presente' : 'Sin Referrer-Policy' };
+                }
+                case 'permissions': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.permissions ? 'ok' : 'fail', details: data.permissions ? 'Cabecera presente' : 'Sin Permissions-Policy' };
+                }
+                case 'xxss': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.xxss ? 'ok' : 'fail', details: data.xxss ? 'Cabecera presente' : 'Sin X-XSS-Protection' };
+                }
+                case 'server': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.server ? 'fail' : 'ok', details: data.server || 'No expuesto' };
+                }
+                case 'compression': {
+                    const data = await getSecurityHeaders(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.compression ? 'ok' : 'fail', details: data.compression ? 'Compresión habilitada' : 'Sin compresión' };
+                }
+                case 'ocsp': {
+                    const data = await getTlsInfo(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.ocsp ? 'ok' : 'fail', details: data.ocsp ? 'OCSP válido' : 'Sin OCSP' };
+                }
+                case 'tls': {
+                    const data = await getTlsInfo(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const ok = data.protocol === 'TLSv1.3' || data.protocol === 'TLSv1.2';
+                    return { label, status: ok ? 'ok' : 'fail', details: data.protocol || 'Desconocido' };
+                }
+                case 'key': {
+                    const data = await getTlsInfo(domain);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const info = data.key || {};
+                    let ok = false;
+                    if (info.type === 'ECDH') ok = info.size >= 224;
+                    else if (info.type === 'DH') ok = info.size >= 2048;
+                    else ok = true;
+                    const details = info.type ? `${info.type}${info.size ? ' ' + info.size : ''}` : 'Sin datos';
+                    return { label, status: ok ? 'ok' : 'fail', details };
+                }
+                case 'caa': {
+                    const data = await fetchWithTimeout(`${API_BASE}/caa/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.records?.length ? 'ok' : 'fail', details: data.records?.length ? data.records.join(', ') : 'No tiene CAA' };
+                }
+                case 'tlsa': {
+                    const data = await fetchWithTimeout(`${API_BASE}/tlsa/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.records?.length ? 'ok' : 'fail', details: data.records?.length ? data.records.join(', ') : 'No tiene TLSA' };
+                }
+                case 'securitytxt': {
+                    const data = await fetchWithTimeout(`${API_BASE}/securitytxt/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Encontrado' : 'No disponible' };
+                }
+            }
+        } catch (error) {
+            return { label, status: 'error', details: error.message };
+        }
+    }
+
+    async function analyzeDomain(domain, selectedChecks) {
+        const placeholders = createResultCard(domain, selectedChecks);
+        const finalResults = {};
+        const promises = selectedChecks.map(async checkType => {
+            try {
+                const res = await getCheckResult(checkType, domain);
+                finalResults[checkType] = res;
+                placeholders[checkType].innerHTML = getStatusHtml(res.status, res.details);
+                updateSummary(checkType, domain, res.status);
+            } catch (err) {
+                finalResults[checkType] = { label: checkConfig[checkType].label, status: 'error', details: err.message };
+                placeholders[checkType].innerHTML = getStatusHtml('error', err.message);
+                updateSummary(checkType, domain, 'error');
+            }
+        });
+        await Promise.allSettled(promises);
+        return { domain, results: finalResults };
+    }
+
+    async function handleAnalysis() {
+        resultsContainer.innerHTML = '';
+        loader.style.display = 'flex';
+        checkButton.disabled = true;
+        clearMap();
+
+        const domains = domainsInput.value.trim().split(',').map(d => d.trim()).filter(Boolean);
+        const selectedChecks = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.check);
+        initializeSummary(selectedChecks);
+
+        if (!domains.length || !selectedChecks.length) {
+            loader.style.display = 'none';
+            checkButton.disabled = false;
+            resultsContainer.innerHTML = `<div class="text-center text-gray-500 p-4">${!domains.length ? 'Introduce al menos un dominio.' : 'Selecciona al menos una verificación.'}</div>`;
+            initializeSummary([]);
+            return;
+        }
+
+        const historyEntry = { date: new Date().toLocaleString(), checks: selectedChecks, domains: [] };
+        const promises = domains.map(d => analyzeDomain(d, selectedChecks));
+        const results = await Promise.all(promises);
+        historyEntry.domains = results;
+        await updateMap(domains);
+        saveHistory(historyEntry);
+
+        loader.style.display = 'none';
+        checkButton.disabled = false;
+    }
+
+    historyButton.addEventListener('click', () => {
+        const hidden = historyDiv.classList.toggle('hidden');
+        if (!hidden) loadHistory();
+    });
+
+    clearHistoryButton.addEventListener('click', () => {
+        localStorage.removeItem('domainHistory');
+        loadHistory();
+    });
+
+    selectAllBtn.addEventListener('click', () => {
+        checkboxes.forEach(cb => cb.checked = true);
+    });
+
+    checkButton.addEventListener('click', handleAnalysis);
+</script>
+</body>
+</html>
