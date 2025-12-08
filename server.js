@@ -7,6 +7,8 @@ const https = require('https');
 const tls = require('tls');
 const { domainToASCII } = require('url');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -1341,11 +1343,29 @@ async function handleScreenshot(domain, res) {
 
 const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url, 'http://localhost');
+
+  // 👉 Servir la interfaz web en la raíz
+  if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
+    const filePath = path.join(__dirname, 'index.html');
+    return fs.readFile(filePath, (err, data) => {
+      if (err) {
+        return sendJSON(res, 500, { error: 'Index file not found' });
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(data);
+    });
+  }
+
   const segments = parsed.pathname.split('/').filter(Boolean);
+
   if (segments[0] === 'mx' && segments[1]) return handleMx(segments[1], res);
   if (segments[0] === 'smtputf8' && segments[1]) return handleSmtpUtf8(segments[1], res);
   if (segments[0] === 'dnssec' && segments[1]) return handleDnssec(segments[1], res);
-  if (segments[0] === 'dkim' && segments[1]) return handleDkim(segments[1], parsed.searchParams.get('selector') || 'default', res);
+  if (segments[0] === 'dkim' && segments[1])
+    return handleDkim(segments[1], parsed.searchParams.get('selector') || 'default', res);
   if (segments[0] === 'rpki' && segments[1]) return handleRpki(segments[1], res);
   if (segments[0] === 'whois' && segments[1]) return handleWhois(segments[1], res);
   if (segments[0] === 'w3c' && segments[1]) return handleW3C(segments[1], res);
@@ -1401,6 +1421,8 @@ const server = http.createServer(async (req, res) => {
     return handleTlsSimulation(segments[1], res);
   if (segments[0] === 'screenshot' && segments[1])
     return handleScreenshot(segments[1], res);
+
+  // Ruta no encontrada
   sendJSON(res, 404, { error: 'Not found' });
 });
 
