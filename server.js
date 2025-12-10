@@ -1,7 +1,8 @@
 const http = require('http');
 const dns = require('dns').promises;
-const DEFAULT_SERVERS = ['8.8.8.8', '8.8.4.4'];
-dns.setServers(DEFAULT_SERVERS);
+//Desactivado para render, usar DNS del sistema en lugar de los de Google
+//const DEFAULT_SERVERS = ['8.8.8.8', '8.8.4.4'];
+//dns.setServers(DEFAULT_SERVERS);
 const net = require('net');
 const https = require('https');
 const tls = require('tls');
