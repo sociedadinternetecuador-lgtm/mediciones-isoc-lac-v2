@@ -1207,11 +1207,8 @@ function base64UrlEncode(buf) {
     .replace(/\//g, '_')
     .replace(/=+$/g, '');
 }
+//Version consulta Quad9 usando POST
 
-/**
- * Hace una consulta A a Quad9 usando DNS-over-HTTPS (wire format).
- * Devuelve el mensaje DNS decodificado (dns-packet).
- */
 function queryQuad9(domain) {
   return new Promise((resolve, reject) => {
     try {
@@ -1227,31 +1224,45 @@ function queryQuad9(domain) {
         ]
       });
 
-      const dnsParam = base64UrlEncode(query);
-      const url = new URL(`https://dns.quad9.net/dns-query?dns=${dnsParam}`);
-
-      const req = https.request(
-        url,
-        {
-          method: 'GET',
-          headers: {
-            accept: 'application/dns-message'
-          },
-          timeout: 15000
+      const options = {
+        hostname: 'dns.quad9.net',
+        path: '/dns-query',
+        method: 'POST',
+        headers: {
+          'content-type': 'application/dns-message',
+          accept: 'application/dns-message',
+          'content-length': query.length
         },
-        res => {
-          const chunks = [];
-          res.on('data', c => chunks.push(c));
-          res.on('end', () => {
-            try {
-              const buf = Buffer.concat(chunks);
-              const msg = dnsPacket.decode(buf);
-              resolve(msg);
-            } catch (e) {
-              reject(e);
-            }
-          });
-        }
+        timeout: 15000
+      };
+
+      const req = https.request(options, res => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => {
+          try {
+            const buf = Buffer.concat(chunks);
+            const msg = dnsPacket.decode(buf);
+            resolve(msg);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.setTimeout(15000, () => {
+        req.destroy(new Error('Timeout'));
+      });
+
+      // Enviamos el mensaje DNS crudo
+      req.write(query);
+      req.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
       );
 
       req.on('error', reject);
@@ -1312,16 +1323,43 @@ async function handleBlock(domain, res) {
       });
     }
 
-    // Quad9 usando dns-packet + parámetro "dns=" (wire format)
+       // Quad9 usando dns-packet sobre DNS-over-HTTPS (wire format)
     try {
       const qMsg = await queryQuad9(domain);
 
-      let blocked = true;
-      if (qMsg && Array.isArray(qMsg.answers)) {
-        const aRecords = qMsg.answers.filter(
-          a => a.type === 'A' && a.data
-        );
-        blocked = aRecords.length === 0;
+      let blocked = false;
+
+      if (qMsg) {
+        // rcode puede venir como número o como string según la versión de dns-packet
+        const rcodeRaw = qMsg.rcode;
+        let rcodeNum = null;
+        let rcodeName = null;
+
+        if (typeof rcodeRaw === 'number') {
+          rcodeNum = rcodeRaw;
+        } else if (typeof rcodeRaw === 'string') {
+          rcodeName = rcodeRaw.toUpperCase();
+        }
+
+        const answers = Array.isArray(qMsg.answers) ? qMsg.answers : [];
+        const aRecords = answers.filter(a => a.type === 'A' && a.data);
+
+        // Regla de detección:
+        // - Si NXDOMAIN (o código 3): consideramos bloqueado
+        // - Si hay registros A: NO bloqueado
+        // - Si no hay A pero tampoco NXDOMAIN: lo tratamos como "no bloqueado" (no asumimos bloqueo)
+        const isNx =
+          rcodeNum === 3 ||
+          rcodeName === 'NXDOMAIN';
+
+        if (isNx) {
+          blocked = true;
+        } else if (aRecords.length > 0) {
+          blocked = false;
+        } else {
+          // Caso "indeterminado": no marcamos bloqueado para evitar falso positivo
+          blocked = false;
+        }
       }
 
       results.push({
