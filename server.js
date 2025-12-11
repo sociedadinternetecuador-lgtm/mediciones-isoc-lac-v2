@@ -1092,19 +1092,32 @@ async function handleSocialTags(domain, res) {
 
 async function handleEmailConfig(domain, res) {
   domain = normalizeDomain(domain);
+
   try {
-    const [txt, mx] = await Promise.all([
+    // TXT del dominio, MX del dominio y TXT de _dmarc.dominio
+    const [txt, mx, dmarcTxt] = await Promise.all([
       dns.resolveTxt(domain).catch(() => []),
-      dns.resolveMx(domain).catch(() => [])
+      dns.resolveMx(domain).catch(() => []),
+      dns.resolveTxt(`_dmarc.${domain}`).catch(() => [])
     ]);
+
+    // SPF se define normalmente en el dominio raíz
     const flat = txt.map(row => row.join('')).join(' ');
     const spf = /v=spf1/i.test(flat);
-    const dmarc = /v=DMARC1/i.test(flat);
+
+    // DMARC se define en _dmarc.dominio
+    const dmarcFlat = dmarcTxt.map(row => row.join('')).join(' ');
+    const dmarc = /v=DMARC1/i.test(dmarcFlat);
+
+    // DKIM: intentamos "default._domainkey.dominio" (muy usado, pero no único)
     let dkim = false;
     try {
       const def = await dns.resolveTxt(`default._domainkey.${domain}`);
       dkim = def.flat().some(v => /v=DKIM1/i.test(v));
-    } catch (e) {}
+    } catch (e) {
+      // si falla, simplemente dejamos dkim = false
+    }
+
     sendJSON(res, 200, {
       domain,
       spf,
