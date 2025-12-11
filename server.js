@@ -9,7 +9,7 @@ const { domainToASCII } = require('url');
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
-
+const dnsPacket = require('dns-packet'); 
 const htmlCache = new Map();
 const headerCache = new Map();
 
@@ -1198,37 +1198,144 @@ async function handleRanking(domain, res) {
   }
 }
 
+// --- Helpers para Quad9 (DNS-over-HTTPS con formato "dns=") ---
+
+function base64UrlEncode(buf) {
+  return buf
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+/**
+ * Hace una consulta A a Quad9 usando DNS-over-HTTPS (wire format).
+ * Devuelve el mensaje DNS decodificado (dns-packet).
+ */
+function queryQuad9(domain) {
+  return new Promise((resolve, reject) => {
+    try {
+      const query = dnsPacket.encode({
+        type: 'query',
+        id: 1,
+        flags: 256, // RD (recursion desired)
+        questions: [
+          {
+            type: 'A',
+            name: domain
+          }
+        ]
+      });
+
+      const dnsParam = base64UrlEncode(query);
+      const url = new URL(`https://dns.quad9.net/dns-query?dns=${dnsParam}`);
+
+      const req = https.request(
+        url,
+        {
+          method: 'GET',
+          headers: {
+            accept: 'application/dns-message'
+          },
+          timeout: 15000
+        },
+        res => {
+          const chunks = [];
+          res.on('data', c => chunks.push(c));
+          res.on('end', () => {
+            try {
+              const buf = Buffer.concat(chunks);
+              const msg = dnsPacket.decode(buf);
+              resolve(msg);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        }
+      );
+
+      req.on('error', reject);
+      req.setTimeout(15000, () => {
+        req.destroy(new Error('Timeout'));
+      });
+      req.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+
 async function handleBlock(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const resolvers = [
-      {
-        name: 'Google',
-        url: `https://dns.google/resolve?name=${domain}&type=A`
-      },
-      {
-        name: 'Cloudflare',
-        url: `https://cloudflare-dns.com/dns-query?name=${domain}&type=A`,
-        headers: { accept: 'application/dns-json' }
-      },
-      {
-        name: 'Quad9',
-        url: `https://dns.quad9.net/dns-query?name=${domain}&type=A`,
-        headers: { accept: 'application/dns-json' }
-      }
-    ];
     const results = [];
-    for (const resolver of resolvers) {
-      try {
-        const data = await fetchJSON(resolver.url, { headers: resolver.headers });
-        const answers = Array.isArray(data.Answer)
-          ? data.Answer.filter(a => a.type === 1)
-          : [];
-        results.push({ resolver: resolver.name, blocked: answers.length === 0 });
-      } catch (e) {
-        results.push({ resolver: resolver.name, blocked: true });
-      }
+
+    // Google DNS-over-HTTPS (JSON)
+    try {
+      const gData = await fetchJSON(
+        `https://dns.google/resolve?name=${domain}&type=A`
+      );
+      const gAnswers = Array.isArray(gData.Answer)
+        ? gData.Answer.filter(a => a.type === 1)
+        : [];
+      results.push({
+        resolver: 'Google',
+        blocked: gAnswers.length === 0
+      });
+    } catch (e) {
+      results.push({
+        resolver: 'Google',
+        blocked: false,
+        error: errorMessage(e)
+      });
     }
+
+    // Cloudflare DNS-over-HTTPS (JSON)
+    try {
+      const cfData = await fetchJSON(
+        `https://cloudflare-dns.com/dns-query?name=${domain}&type=A`,
+        { headers: { accept: 'application/dns-json' } }
+      );
+      const cfAnswers = Array.isArray(cfData.Answer)
+        ? cfData.Answer.filter(a => a.type === 1)
+        : [];
+      results.push({
+        resolver: 'Cloudflare',
+        blocked: cfAnswers.length === 0
+      });
+    } catch (e) {
+      results.push({
+        resolver: 'Cloudflare',
+        blocked: false,
+        error: errorMessage(e)
+      });
+    }
+
+    // Quad9 usando dns-packet + parámetro "dns=" (wire format)
+    try {
+      const qMsg = await queryQuad9(domain);
+
+      let blocked = true;
+      if (qMsg && Array.isArray(qMsg.answers)) {
+        const aRecords = qMsg.answers.filter(
+          a => a.type === 'A' && a.data
+        );
+        blocked = aRecords.length === 0;
+      }
+
+      results.push({
+        resolver: 'Quad9',
+        blocked
+      });
+    } catch (e) {
+      results.push({
+        resolver: 'Quad9',
+        blocked: false,
+        error: errorMessage(e)
+      });
+    }
+
     sendJSON(res, 200, { domain, results });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e) });
