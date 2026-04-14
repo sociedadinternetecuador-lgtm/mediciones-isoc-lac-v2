@@ -9,6 +9,10 @@ const { domainToASCII } = require('url');
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
+const { validateDomainInput } = require("./logic/validators/domain.validator");
+const { getDnssecAnalysis } = require("./services/dnssec.service");
+const { processDnssecAnalysis } = require("./logic/processors/dnssec.processor");
+const { buildZoneChain } = require("./logic/builders/zoneChain.builder");
 const dnsPacket = require('dns-packet'); 
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -1263,18 +1267,10 @@ function queryQuad9(domain) {
     }
   });
 }
-      );
 
-      req.on('error', reject);
-      req.setTimeout(15000, () => {
-        req.destroy(new Error('Timeout'));
-      });
-      req.end();
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
+
+  
+
 
 
 async function handleBlock(domain, res) {
@@ -1499,8 +1495,1037 @@ async function handleScreenshot(domain, res) {
   sendJSON(res, 200, { domain, imageUrl });
 }
 
-const server = http.createServer(async (req, res) => {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getStatusBadge(status) {
+  switch (status) {
+    case "ok":
+      return {
+        label: "DNSSEC correcto",
+        color: "#166534",
+        bg: "#dcfce7",
+        border: "#86efac"
+      };
+    case "not_implemented":
+    case "ready":
+      return {
+        label: "DNSSEC no implementado",
+        color: "#92400e",
+        bg: "#fef3c7",
+        border: "#fcd34d"
+      };
+    case "non_existent":
+      return {
+        label: "Nombre no existente o no verificable",
+        color: "#7c2d12",
+        bg: "#ffedd5",
+        border: "#fdba74"
+      };
+    case "misconfigured":
+      return {
+        label: "DNSSEC inconsistente",
+        color: "#991b1b",
+        bg: "#fee2e2",
+        border: "#fca5a5"
+      };
+    case "blocked_at_tld":
+    case "blocked_at_parent":
+      return {
+        label: "Bloqueo estructural",
+        color: "#991b1b",
+        bg: "#fee2e2",
+        border: "#fca5a5"
+      };
+    case "indeterminate":
+    default:
+      return {
+        label: "Resultado no concluyente",
+        color: "#1f2937",
+        bg: "#e5e7eb",
+        border: "#cbd5e1"
+      };
+  }
+}
+
+function mapConfidence(value) {
+  if (value === "high") return "Alta";
+  if (value === "medium") return "Media";
+  if (value === "low") return "Baja";
+  return "No determinada";
+}
+
+function mapConfidenceDescription(value) {
+  if (value === "high") {
+    return "Certeza alta: la evidencia disponible es consistente para sustentar la interpretación del resultado.";
+  }
+  if (value === "medium") {
+    return "Certeza media: existen limitaciones estructurales del análisis y el resultado debe leerse con contexto.";
+  }
+  if (value === "low") {
+    return "Certeza baja: la evidencia disponible es insuficiente o inestable para una interpretación fuerte.";
+  }
+  return "No fue posible determinar con claridad el nivel de certeza del análisis.";
+}
+
+function mapBlockingLevel(value) {
+  if (value === "none") return "Sin restricciones estructurales";
+  if (value === "tld") return "Bloqueo en TLD";
+  if (value === "parent") return "Bloqueo en zona padre";
+  if (value === "domain") return "Limitación en el dominio";
+  return "No determinado";
+}
+
+function mapTechnicalStatus(value) {
+  switch (value) {
+    case "ok":
+      return "Correcto";
+    case "not_implemented":
+      return "No implementado";
+    case "ready":
+      return "Listo para implementar";
+    case "non_existent":
+      return "No existente o no verificable";
+    case "misconfigured":
+      return "Inconsistente";
+    case "blocked_at_tld":
+      return "Bloqueado en TLD";
+    case "blocked_at_parent":
+      return "Bloqueado en zona padre";
+    case "indeterminate":
+      return "No concluyente";
+    default:
+      return "No determinado";
+  }
+}
+
+function mapDisplayTitle(finalStatus, execStatus) {
+  switch (finalStatus) {
+    case "ok":
+      return "DNSSEC correctamente implementado";
+    case "not_implemented":
+      return "DNSSEC no implementado";
+    case "ready":
+      return "Dominio listo para implementar DNSSEC";
+    case "non_existent":
+      return "Nombre no existente o no verificable";
+    case "misconfigured":
+      return "DNSSEC presente pero inconsistente";
+    case "blocked_at_tld":
+      return "Bloqueo estructural en TLD";
+    case "blocked_at_parent":
+      return "Bloqueo estructural en zona padre";
+    case "indeterminate":
+      return "Resultado no concluyente";
+    default:
+      return execStatus || "Resultado del análisis";
+  }
+}
+
+
+function getSpecialDnssecNote(finalStatus, currentNote) {
+  if (currentNote && String(currentNote).trim()) {
+    return currentNote;
+  }
+
+  if (finalStatus === "not_implemented" || finalStatus === "ready") {
+    return "La ausencia de registros DNSKEY o DS no permite inferir por sí sola la inexistencia del servicio. En algunos casos, el nombre analizado puede estar operativo sin estar delegado como zona DNS independiente o sin haber implementado DNSSEC.";
+  }
+
+  if (finalStatus === "non_existent") {
+    return "Este resultado combina evidencia de no existencia operativa del nombre consultado con ausencia de despliegue DNSSEC. Aun así, ante configuraciones no convencionales, conviene complementar con validaciones adicionales.";
+  }
+
+  return "Este análisis se basa en evidencia estructural observable en DNS y debe complementarse con validación técnica adicional cuando el caso lo requiera.";
+}
+
+function renderDnssecHtml(result) {
+  const domain = result?.domain || "";
+  const analyzed = result?.analyzed_object?.value || domain;
+  const dnssec = result?.dnssec || {};
+  const human = result?.human || {};
+  const exec = dnssec?.executive_summary || {};
+  const badge = getStatusBadge(dnssec?.final_status);
+
+  const confidenceRaw = human.certainty || dnssec.assessment_meta?.confidence || "unknown";
+  const confidenceLabel = mapConfidence(confidenceRaw);
+  const confidenceDescription = mapConfidenceDescription(confidenceRaw);
+  const blockingLabel = mapBlockingLevel(dnssec.blocking_level);
+  const technicalStatusLabel = mapTechnicalStatus(dnssec.final_status);
+  const displayTitle = mapDisplayTitle(dnssec.final_status, exec.status);
+  const mainSummary = dnssec.summary || human.summary || "";
+  const specialNote = getSpecialDnssecNote(dnssec.final_status, human.note_special);
+
+  const nextSteps = Array.isArray(human?.next_steps) && human.next_steps.length > 0
+    ? human.next_steps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No se registran acciones recomendadas para este caso.</li>";
+
+  const zonesRows = Array.isArray(dnssec?.zones)
+    ? dnssec.zones.map((z) => `
+      <tr>
+        <td>${escapeHtml(z.zone)}</td>
+        <td>${escapeHtml(z.level)}</td>
+        <td>${escapeHtml(z.status)}</td>
+        <td>${escapeHtml(z.query_status)}</td>
+      </tr>
+    `).join("")
+    : "";
+
+  const delegationRows = Array.isArray(dnssec?.delegations)
+    ? dnssec.delegations.map((d) => `
+      <tr>
+        <td>${escapeHtml(d.from)}</td>
+        <td>${escapeHtml(d.to)}</td>
+        <td>${escapeHtml(d.status)}</td>
+        <td>${escapeHtml(d.query_status)}</td>
+      </tr>
+    `).join("")
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Análisis DNSSEC - ${escapeHtml(domain)}</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --line: #374151;
+      --accent: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .title {
+      font-size: 28px;
+      margin: 0 0 8px;
+    }
+    .sub {
+      color: var(--muted);
+      margin: 0 0 14px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: bold;
+      border: 1px solid;
+      margin-bottom: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .mini {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .mini h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: normal;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mini p {
+      margin: 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    h3 {
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    p {
+      margin: 0 0 12px;
+    }
+    ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: normal;
+    }
+    details {
+      margin-top: 10px;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    pre {
+      overflow: auto;
+      background: #020617;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .help-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border: 1px solid #6b7280;
+      border-radius: 999px;
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .help-trigger:hover {
+      background: #243041;
+    }
+    .help-box {
+      display: none;
+      margin-top: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0f172a;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: normal;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+    .help-box.open {
+      display: block;
+    }
+  .hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.disclaimer-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border: 1px solid #7c2d12;
+  background: #1f1720;
+  border-radius: 12px;
+  color: #f3d2c1;
+}
+
+.disclaimer-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 2px;
+}
+
+.disclaimer-text {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.disclaimer-text strong {
+  display: block;
+  color: #fde68a;
+  margin-bottom: 2px;
+}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+  <div class="hero-header">
+    <div>
+      <h1 class="title">Análisis DNSSEC</h1>
+      <p class="sub">Dominio analizado: <strong>${escapeHtml(analyzed)}</strong></p>
+    </div>
+
+    <div class="disclaimer-box">
+      <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3L22 21H2L12 3Z" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.5"></path>
+        <path d="M12 9V14" stroke="#1f2937" stroke-width="2" stroke-linecap="round"></path>
+        <circle cx="12" cy="17.5" r="1.2" fill="#1f2937"></circle>
+      </svg>
+      <div class="disclaimer-text">
+        <strong>Advertencia</strong>
+        Sistema experimental del grupo de trabajo MEDICIONES ISOC LAC. Use con criterio técnico.
+      </div>
+    </div>
+  </div>
+
+  <div class="badge" style="color:${badge.color}; background:${badge.bg}; border-color:${badge.border};">
+    ${escapeHtml(badge.label)}
+  </div>
+  <p><strong>${escapeHtml(displayTitle)}</strong></p>
+  <p>${escapeHtml(mainSummary)}</p>
+</div>
+
+    <div class="grid">
+      <div class="mini">
+        <h3>
+        Estado técnico
+        <button type="button" class="help-trigger" data-target="help-tech">?</button>
+        </h3>
+      <div id="help-tech" class="help-box">
+       Clasificación técnica del estado DNSSEC del dominio basada en la presencia de firmas, registros DNSKEY y DS, y la consistencia de la cadena de confianza.
+      </div>
+        <p>${escapeHtml(technicalStatusLabel)}</p>
+      </div>
+
+      <div class="mini">
+        <h3>
+        Nivel de certeza
+        <button type="button" class="help-trigger" data-target="help-certainty">?</button>
+        </h3>
+        <div id="help-certainty" class="help-box">
+        Indica el nivel de confianza del análisis estructural basado en la evidencia observable en DNS. No corresponde a una validación criptográfica completa mediante resolvers validadores.
+      </div>
+
+<p>${escapeHtml(confidenceLabel)}</p>
+      </div>
+
+      <div class="mini">
+        <h3>
+         Condición estructural
+         <button type="button" class="help-trigger" data-target="help-blocking">?</button>
+        </h3>
+
+      <div id="help-blocking" class="help-box">
+       Describe si existe alguna limitación en la cadena de delegación DNS que impida o condicione la implementación efectiva de DNSSEC en el dominio analizado.
+      </div>
+        <p>${escapeHtml(blockingLabel)}</p>
+      </div>
+
+      <div class="mini">
+        <h3>Requiere acción</h3>
+        <p>${exec.action_required ? "Sí" : "No"}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Interpretación del resultado</h2>
+      <p>${escapeHtml(mainSummary)}</p>
+      <p>${escapeHtml(confidenceDescription)}</p>
+      <p>${escapeHtml(human.note_scope || "Este análisis evalúa evidencia estructural en DNS, no una validación criptográfica completa.")}</p>
+      <p>${escapeHtml(specialNote)}</p>
+    </div>
+
+    <div class="card">
+      <h2>Resumen ejecutivo</h2>
+      <p><strong>Estado:</strong> ${escapeHtml(exec.status || "-")}</p>
+      <p><strong>Riesgo:</strong> ${escapeHtml(exec.risk_level || "-")}</p>
+      <p><strong>Nota de decisión:</strong> ${escapeHtml(exec.decision_note || "-")}</p>
+    </div>
+
+    <div class="card">
+      <h2>Acciones recomendadas</h2>
+      <ul>${nextSteps}</ul>
+    </div>
+
+    <div class="card">
+      <h2>Lectura técnica resumida</h2>
+      <p><strong>Resumen técnico:</strong> ${escapeHtml(dnssec.technical_summary || "-")}</p>
+
+      <h3>Zonas analizadas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Zona</th>
+            <th>Nivel</th>
+            <th>Estado</th>
+            <th>Consulta</th>
+          </tr>
+        </thead>
+        <tbody>${zonesRows}</tbody>
+      </table>
+
+      <h3>Delegaciones</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Desde</th>
+            <th>Hacia</th>
+            <th>Estado</th>
+            <th>Consulta</th>
+          </tr>
+        </thead>
+        <tbody>${delegationRows}</tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Ver JSON técnico completo</summary>
+        <pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+      </details>
+      <p style="margin-top:12px;">
+        Vista JSON directa:
+        <a href="/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json">abrir JSON</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+  document.querySelectorAll(".help-trigger").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      const targetId = button.getAttribute("data-target");
+      const box = document.getElementById(targetId);
+
+      document.querySelectorAll(".help-box").forEach((b) => {
+        if (b !== box) b.classList.remove("open");
+      });
+
+      if (box) {
+        box.classList.toggle("open");
+      }
+    });
+  });
+
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".help-box").forEach((box) => {
+      box.classList.remove("open");
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".help-box").forEach((box) => {
+        box.classList.remove("open");
+      });
+    }
+  });
+</script>
+</body>
+</html>`;
+}
+
+function renderHomeHtml() {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEDICIONES ISOC LAC | Análisis DNSSEC</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #0f766e;
+      --primary-hover: #0d5f59;
+      --border: #dbe3ec;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --warning-bg: #fff8e1;
+      --warning-border: #f0c36d;
+      --warning-text: #7a5a00;
+      --input-bg: #ffffff;
+      --input-focus: #14b8a6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #eef4f8 0%, #f7fafc 100%);
+      color: var(--text);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 14px 0;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+
+    .lead {
+      margin: 0 0 22px 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .form-block {
+      margin-top: 24px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .domain-input {
+      flex: 1 1 420px;
+      min-width: 260px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 16px;
+      background: var(--input-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .domain-input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+    }
+
+    .btn {
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 14px 22px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.05s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .helper-text {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .error-box {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #9f1239;
+      font-size: 14px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .info-item {
+      background: #f8fbfd;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .info-item h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+    }
+
+    .info-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .warning {
+      margin-top: 28px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--warning-text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .footer-links {
+      margin-top: 18px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 24px 18px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      .domain-input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="eyebrow">MEDICIONES ISOC LAC</div>
+      <h1>Análisis estructural de DNSSEC</h1>
+      <p class="lead">
+        Ingrese un dominio para evaluar su estado DNSSEC desde una perspectiva estructural.
+        El sistema revisa la cadena de zonas, delegaciones y señales observables de configuración.
+      </p>
+
+      <form id="dnssec-form" class="form-block" action="/dnssec-analysis" method="GET" novalidate>
+        <label class="label" for="domain">Dominio a analizar</label>
+
+        <div class="input-row">
+          <input
+            id="domain"
+            name="domain"
+            class="domain-input"
+            type="text"
+            inputmode="url"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Ejemplo: isoc.org"
+            aria-describedby="domain-help domain-error"
+            required
+          />
+          <button type="submit" class="btn">Analizar DNSSEC</button>
+        </div>
+
+        <div id="domain-help" class="helper-text">
+          Escriba un dominio como <strong>example.com</strong>, <strong>isoc.org</strong> o <strong>gob.ec</strong>.
+          No es necesario incluir <strong>http://</strong> ni rutas.
+        </div>
+
+        <div id="domain-error" class="error-box" role="alert"></div>
+      </form>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <h3>Qué analiza</h3>
+          <p>
+            Señales estructurales relacionadas con DNSSEC, continuidad de zonas y consistencia observable de la delegación.
+          </p>
+        </div>
+        <div class="info-item">
+          <h3>Qué no analiza</h3>
+          <p>
+            No sustituye una validación criptográfica completa ni una auditoría exhaustiva del DNS autoritativo.
+          </p>
+        </div>
+        <div class="info-item">
+          <h3>Resultado esperado</h3>
+          <p>
+            Un reporte técnico con interpretación, acciones recomendadas y detalle de zonas y delegaciones observadas.
+          </p>
+        </div>
+      </div>
+
+      <div class="warning">
+        <strong>Advertencia:</strong> Sistema experimental del grupo de trabajo MEDICIONES ISOC LAC.
+        Use con criterio técnico.
+      </div>
+
+      <div class="footer-links">
+        <a href="/docs/dnssec-guia.pdf" target="_blank" rel="noopener noreferrer">Guía metodológica PDF</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const form = document.getElementById('dnssec-form');
+      const input = document.getElementById('domain');
+      const errorBox = document.getElementById('domain-error');
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.style.display = 'block';
+      }
+
+      function clearError() {
+        errorBox.textContent = '';
+        errorBox.style.display = 'none';
+      }
+
+      function normalizeDomain(value) {
+        let domain = value.trim().toLowerCase();
+
+        domain = domain.replace(/^https?:\\/\\//, '');
+        domain = domain.replace(/^www\\./, '');
+        domain = domain.split('/')[0];
+        domain = domain.split('?')[0];
+        domain = domain.split('#')[0];
+        domain = domain.replace(/:\\d+$/, '');
+        domain = domain.replace(/\\.$/, '');
+
+        return domain;
+      }
+
+      function isValidDomain(domain) {
+        if (!domain) return false;
+        if (domain.length > 253) return false;
+        if (domain.includes('..')) return false;
+
+        const domainRegex = /^(?=.{1,253}$)(?!-)([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$/i;
+        return domainRegex.test(domain);
+      }
+
+      form.addEventListener('submit', function (event) {
+        clearError();
+
+        const normalized = normalizeDomain(input.value);
+        input.value = normalized;
+
+        if (!normalized) {
+          event.preventDefault();
+          showError('Ingrese un dominio válido.');
+          input.focus();
+          return;
+        }
+
+        if (!isValidDomain(normalized)) {
+          event.preventDefault();
+          showError('El valor ingresado no parece un dominio válido. Use un formato como example.com');
+          input.focus();
+          return;
+        }
+      });
+
+      input.addEventListener('input', function () {
+        clearError();
+      });
+    })();
+  </script>
+</body>
+</html>
+  `;
+}
+
+function getBaseUrl(req) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const host = forwardedHost || req.headers.host || "localhost:8080";
+  const protocol = forwardedProto || (host.includes("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
+
+  const server = http.createServer(async (req, res) => {
+
+  const publicPath = path.join(__dirname, 'public');
+  let filePath = path.join(publicPath, req.url === '/' ? 'index.html' : req.url);
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const ext = path.extname(filePath);
+
+    const contentType = {
+      '.html': 'text/html',
+      '.js': 'text/javascript',
+      '.css': 'text/css',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.svg': 'image/svg+xml',
+      '.pdf': 'application/pdf'
+    }[ext] || 'application/octet-stream';
+
+    res.writeHead(200, { 'Content-Type': contentType });
+    fs.createReadStream(filePath).pipe(res);
+    return;
+  }
+
+
   const parsed = new URL(req.url, 'http://localhost');
+  if (parsed.pathname === "/debug-base-url") {
+  const baseUrl = getBaseUrl(req);
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ baseUrl }, null, 2));
+  return;
+}
+  // DNSSEC endpoint
+  // TEST zone chain
+if (parsed.pathname === "/test-zone-chain") {
+  const domain = parsed.searchParams.get("domain");
+
+  const zones = buildZoneChain(domain);
+
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({
+    input: domain,
+    zones
+  }, null, 2));
+
+  return;
+}
+if (parsed.pathname === "/dnssec-analysis") {
+  try {
+    const domain = validateDomainInput(parsed.searchParams.get("domain"));
+    const raw = await getDnssecAnalysis(domain);
+    const result = processDnssecAnalysis(raw);
+
+    const format = parsed.searchParams.get("format");
+
+    if (format === "json") {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    const html = renderDnssecHtml(result);
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(html);
+    return;
+  } catch (error) {
+    if (error.code === "INVALID_DOMAIN") {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({
+        error: "invalid_domain",
+        message: "El dominio ingresado no es válido."
+      }));
+      return;
+    }
+
+    res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({
+      error: "dnssec_analysis_failed",
+      message: "No se pudo completar el análisis DNSSEC."
+    }));
+    return;
+  }
+}
+
 
   // 👉 Servir la interfaz web en la raíz
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
