@@ -1394,9 +1394,9 @@
         return;
       }
 
-      window.location.href =
-        "http://localhost:8080/dnssec-analysis?domain=" +
-        encodeURIComponent(domain);
+window.location.href =
+  "/dnssec-analysis?domain=" +
+  encodeURIComponent(domain);
     });
 
     input.addEventListener("input", clearError);
