@@ -111,6 +111,71 @@ function getDnssecGuidance(status) {
         call_to_action: "ISOC LAC recomienda usar estos casos como referencia de adopción efectiva y confianza digital."
       };
 
+    case "not_implemented":
+      return {
+        title: "DNSSEC no implementado — acción disponible",
+        diagnosis: "Las capas superiores del DNS permiten DNSSEC, pero el dominio aún no ha firmado su zona ni publicado un registro DS en la zona padre.",
+        why_it_matters: "El dominio puede ser víctima de ataques de envenenamiento de caché DNS o redirección maliciosa sin que el usuario pueda detectarlo.",
+        impact: "La ausencia de DNSSEC en este caso no depende de terceros: es una brecha directamente corregible por el operador del dominio.",
+        policy_angle: "Este tipo de hallazgo refleja una brecha de adopción técnica. Puede abordarse con lineamientos institucionales, incentivos o requisitos de política pública.",
+        standards: [
+          "NIST SP 800-81r3",
+          "RFC 9364",
+          "RFC 4033",
+          "RFC 4034",
+          "RFC 4035"
+        ],
+        recommendations: [
+          "Firmar la zona DNS del dominio con claves DNSSEC (ZSK y KSK).",
+          "Publicar el registro DNSKEY en la zona.",
+          "Registrar el DS correspondiente en la zona padre a través del registrador.",
+          "Verificar la cadena completa de confianza con herramientas como DNSViz o Verisign DNSSEC Debugger.",
+          "Establecer procedimientos de rotación de claves y monitoreo periódico."
+        ],
+        call_to_action: "ISOC LAC recomienda activar DNSSEC como medida prioritaria. Las capas superiores ya lo soportan: la acción correctiva está dentro del alcance directo del operador."
+      };
+
+    case "non_existent":
+      return {
+        title: "Dominio no existente o no verificable",
+        diagnosis: "No se encontró evidencia de que el nombre de dominio exista como zona DNS operativa.",
+        why_it_matters: "Sin existencia confirmada, no es posible evaluar ni implementar DNSSEC.",
+        impact: "El análisis DNSSEC no es aplicable hasta que el dominio esté correctamente registrado y delegado.",
+        policy_angle: "Este caso puede indicar un dominio dado de baja, mal configurado o aún no registrado.",
+        standards: [
+          "RFC 1034",
+          "RFC 1035"
+        ],
+        recommendations: [
+          "Confirmar que el nombre de dominio esté correctamente registrado.",
+          "Verificar la existencia de registros A, AAAA o CNAME.",
+          "Revisar si el dominio está delegado correctamente por el registrador.",
+          "Comprobar si se trata de un subdominio dentro de una zona mayor."
+        ],
+        call_to_action: "ISOC LAC recomienda confirmar la existencia y delegación del dominio antes de realizar cualquier evaluación DNSSEC."
+      };
+
+    case "indeterminate":
+      return {
+        title: "Resultado no concluyente",
+        diagnosis: "La evidencia disponible no permite determinar el estado DNSSEC del dominio con certeza suficiente.",
+        why_it_matters: "Un resultado indeterminado puede ocultar problemas reales de configuración o de infraestructura.",
+        impact: "Sin una clasificación clara, no es posible emitir recomendaciones específicas de acción.",
+        policy_angle: "La indeterminación recurrente puede indicar limitaciones de infraestructura DNS o problemas operativos que requieren atención.",
+        standards: [
+          "RFC 4033",
+          "RFC 4034",
+          "RFC 4035"
+        ],
+        recommendations: [
+          "Verificar el estado DNS con herramientas especializadas como DNSViz.",
+          "Consultar resolutores validadores para confirmar el comportamiento real.",
+          "Revisar manualmente la delegación, DNSKEY y DS del dominio.",
+          "Repetir el análisis en un momento posterior para descartar problemas transitorios."
+        ],
+        call_to_action: "ISOC LAC recomienda complementar este resultado con herramientas de validación externa antes de tomar decisiones basadas en él."
+      };
+
     default:
       return {
         title: "Análisis DNSSEC",

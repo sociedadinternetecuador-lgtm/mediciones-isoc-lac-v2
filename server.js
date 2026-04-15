@@ -1514,7 +1514,6 @@ function getStatusBadge(status) {
         border: "#86efac"
       };
     case "not_implemented":
-    case "ready":
       return {
         label: "DNSSEC no implementado",
         color: "#92400e",
@@ -1530,7 +1529,7 @@ function getStatusBadge(status) {
       };
     case "misconfigured":
       return {
-        label: "DNSSEC inconsistente",
+        label: "DNSSEC mal configurado",
         color: "#991b1b",
         bg: "#fee2e2",
         border: "#fca5a5"
@@ -1569,7 +1568,7 @@ function mapConfidenceDescription(value) {
     return "Certeza media: existen limitaciones estructurales del análisis y el resultado debe leerse con contexto.";
   }
   if (value === "low") {
-    return "Certeza baja: la evidencia disponible es insuficiente o inestable para una interpretación fuerte.";
+    return "Certeza baja: una o más consultas devolvieron timeout, error de red o respuesta inválida. La evidencia es insuficiente para una interpretación confiable. Se recomienda repetir el análisis o verificar con herramientas externas.";
   }
   return "No fue posible determinar con claridad el nivel de certeza del análisis.";
 }
@@ -1588,12 +1587,10 @@ function mapTechnicalStatus(value) {
       return "Correcto";
     case "not_implemented":
       return "No implementado";
-    case "ready":
-      return "Listo para implementar";
     case "non_existent":
       return "No existente o no verificable";
     case "misconfigured":
-      return "Inconsistente";
+      return "Mal configurado";
     case "blocked_at_tld":
       return "Bloqueado en TLD";
     case "blocked_at_parent":
@@ -1611,12 +1608,10 @@ function mapDisplayTitle(finalStatus, execStatus) {
       return "DNSSEC correctamente implementado";
     case "not_implemented":
       return "DNSSEC no implementado";
-    case "ready":
-      return "Dominio listo para implementar DNSSEC";
     case "non_existent":
       return "Nombre no existente o no verificable";
     case "misconfigured":
-      return "DNSSEC presente pero inconsistente";
+      return "DNSSEC presente pero mal configurado";
     case "blocked_at_tld":
       return "Bloqueo estructural en TLD";
     case "blocked_at_parent":
@@ -1634,12 +1629,20 @@ function getSpecialDnssecNote(finalStatus, currentNote) {
     return currentNote;
   }
 
-  if (finalStatus === "not_implemented" || finalStatus === "ready") {
+  if (finalStatus === "not_implemented") {
     return "La ausencia de registros DNSKEY o DS no permite inferir por sí sola la inexistencia del servicio. En algunos casos, el nombre analizado puede estar operativo sin estar delegado como zona DNS independiente o sin haber implementado DNSSEC.";
+  }
+
+  if (finalStatus === "misconfigured") {
+    return "Una configuración DNSSEC incompleta o inconsistente puede generar fallos de validación silenciosos. Esto puede hacer que el dominio sea inaccessible para usuarios detrás de resolvers DNSSEC validadores. Se recomienda corrección prioritaria.";
   }
 
   if (finalStatus === "non_existent") {
     return "Este resultado combina evidencia de no existencia operativa del nombre consultado con ausencia de despliegue DNSSEC. Aun así, ante configuraciones no convencionales, conviene complementar con validaciones adicionales.";
+  }
+
+  if (finalStatus === "indeterminate") {
+    return "Un resultado no concluyente puede deberse a condiciones transitorias de la red o del resolver. Se recomienda repetir el análisis o complementarlo con herramientas especializadas como DNSViz.";
   }
 
   return "Este análisis se basa en evidencia estructural observable en DNS y debe complementarse con validación técnica adicional cuando el caso lo requiera.";
@@ -1662,8 +1665,9 @@ function renderDnssecHtml(result) {
   const mainSummary = dnssec.summary || human.summary || "";
   const specialNote = getSpecialDnssecNote(dnssec.final_status, human.note_special);
 
-  const nextSteps = Array.isArray(human?.next_steps) && human.next_steps.length > 0
-    ? human.next_steps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+  // Fuente única de recomendaciones: guidance.recommendations
+  const nextSteps = Array.isArray(dnssec?.guidance?.recommendations) && dnssec.guidance.recommendations.length > 0
+    ? dnssec.guidance.recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
     : "<li>No se registran acciones recomendadas para este caso.</li>";
 
   const zonesRows = Array.isArray(dnssec?.zones)

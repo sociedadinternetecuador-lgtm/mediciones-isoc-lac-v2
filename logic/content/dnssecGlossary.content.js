@@ -66,12 +66,23 @@ function getGlossaryForStatus(status) {
         glossary.delegation,
         glossary.blocking
       ];
-    case "ready":
+    case "not_implemented":
       return [
         glossary.dnssec,
         glossary.readiness,
         glossary.delegation,
         glossary.ds
+      ];
+    case "non_existent":
+      return [
+        glossary.dnssec,
+        glossary.zone,
+        glossary.delegation
+      ];
+    case "indeterminate":
+      return [
+        glossary.dnssec,
+        glossary.chain_of_trust
       ];
     case "misconfigured":
       return [

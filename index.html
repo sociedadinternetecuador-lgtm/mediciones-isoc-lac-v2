@@ -268,6 +268,26 @@
   <strong>Acciones recomendadas</strong>
   <ul id="dnssec-inline-recommendations" class="mt-2 list-disc pl-6 text-sm text-gray-700 space-y-1"></ul>
 </div>
+
+<div class="mt-6 border-t pt-4">
+  <strong>Guía de contexto</strong>
+  <div id="dnssec-inline-guidance" class="mt-2 text-sm text-gray-700 hidden"></div>
+</div>
+
+<div class="mt-6 border-t pt-4 dnssec-zones-wrap hidden">
+  <strong>Zonas analizadas</strong>
+  <div id="dnssec-inline-zones" class="mt-2 overflow-x-auto"></div>
+</div>
+
+<div class="mt-4 dnssec-delegations-wrap hidden">
+  <strong>Delegaciones</strong>
+  <div id="dnssec-inline-delegations" class="mt-2 overflow-x-auto"></div>
+</div>
+
+<div class="mt-6 border-t pt-4 dnssec-limits-wrap hidden">
+  <strong class="text-xs text-gray-400 uppercase tracking-wide">Limitaciones del análisis</strong>
+  <ul id="dnssec-inline-limitations" class="mt-1 list-disc pl-5 text-xs text-gray-400 space-y-1"></ul>
+</div>
     </div>
 
   </div>
@@ -1166,12 +1186,26 @@
                     };
                 }
                 case 'dnssec': {
-                    const data = await fetchWithTimeout(`${API_BASE}/dnssec/${ascii}`);
-                    const ok = data.valid;
-                    const details = ok
-                        ? (data.algorithms?.length ? `Algoritmos: ${data.algorithms.join(', ')}` : 'DNSSEC configurado')
-                        : '¡No tiene DNSSEC!';
-                    return { label, status: ok ? 'ok' : 'fail', details };
+                    const data = await fetchWithTimeout(`${API_BASE}/dnssec-analysis?domain=${ascii}&format=json`);
+                    const status = data?.dnssec?.final_status || "indeterminate";
+                    const statusLabels = {
+                      ok: "DNSSEC correcto",
+                      not_implemented: "Sin DNSSEC",
+                      misconfigured: "Mal configurado",
+                      blocked_at_tld: "Bloqueado en TLD",
+                      blocked_at_parent: "Bloqueado en zona padre",
+                      non_existent: "Dominio no encontrado",
+                      indeterminate: "No concluyente"
+                    };
+                    const okStatuses = ["ok"];
+                    const warnStatuses = ["not_implemented", "blocked_at_tld", "blocked_at_parent"];
+                    const errStatuses = ["misconfigured"];
+                    const statusLabel = statusLabels[status] || status;
+                    const uiStatus = okStatuses.includes(status) ? "ok"
+                      : errStatuses.includes(status) ? "fail"
+                      : warnStatuses.includes(status) ? "warn"
+                      : "info";
+                    return { label, status: uiStatus, details: statusLabel };
                 }
                 case 'ipv4': {
                     const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=A`);
@@ -1565,9 +1599,8 @@ const finalStatus = dnssec.final_status || "indeterminate";
 
 const badgeMap = {
   ok: { text: "DNSSEC correcto", cls: "bg-green-100 text-green-800" },
-  misconfigured: { text: "DNSSEC inconsistente", cls: "bg-red-100 text-red-800" },
+  misconfigured: { text: "DNSSEC mal configurado", cls: "bg-red-100 text-red-800" },
   not_implemented: { text: "DNSSEC no implementado", cls: "bg-yellow-100 text-yellow-800" },
-  ready: { text: "DNSSEC no implementado", cls: "bg-yellow-100 text-yellow-800" },
   blocked_at_tld: { text: "Bloqueado en TLD", cls: "bg-orange-100 text-orange-800" },
   blocked_at_parent: { text: "Bloqueado en zona padre", cls: "bg-orange-100 text-orange-800" },
   non_existent: { text: "No existente", cls: "bg-gray-200 text-gray-800" },
@@ -1609,20 +1642,107 @@ document.getElementById("dnssec-inline-note-special").textContent =
 
   document.getElementById("dnssec-inline-decision").textContent =
     exec.decision_note || "";
+
+  // Recomendaciones: usar guidance.recommendations si existen, si no next_steps
+  const recList = document.getElementById("dnssec-inline-recommendations");
+  if (recList) {
+    const items = (dnssec.guidance?.recommendations?.length)
+      ? dnssec.guidance.recommendations
+      : (human.next_steps || []);
+    recList.innerHTML = items.length
+      ? items.map(i => `<li>${i}</li>`).join("")
+      : "<li>No se registran acciones recomendadas para este caso.</li>";
+  }
+
+  // Guidance completo
+  const guidanceEl = document.getElementById("dnssec-inline-guidance");
+  if (guidanceEl && dnssec.guidance) {
+    const g = dnssec.guidance;
+    guidanceEl.innerHTML = "";
+    if (g.diagnosis) {
+      guidanceEl.innerHTML += `<p class="mb-2"><strong>Diagnóstico:</strong> ${g.diagnosis}</p>`;
+    }
+    if (g.why_it_matters) {
+      guidanceEl.innerHTML += `<p class="mb-2"><strong>Por qué importa:</strong> ${g.why_it_matters}</p>`;
+    }
+    if (g.impact) {
+      guidanceEl.innerHTML += `<p class="mb-2"><strong>Impacto:</strong> ${g.impact}</p>`;
+    }
+    if (g.call_to_action) {
+      guidanceEl.innerHTML += `<p class="mt-2 text-teal-800 font-medium">${g.call_to_action}</p>`;
+    }
+    if (Array.isArray(g.standards) && g.standards.length) {
+      guidanceEl.innerHTML += `<p class="mt-2 text-xs text-gray-500">Estándares: ${g.standards.join(", ")}</p>`;
+    }
+    guidanceEl.classList.remove("hidden");
+  }
+
+  // Zonas analizadas
+  const zonesEl = document.getElementById("dnssec-inline-zones");
+  if (zonesEl && Array.isArray(dnssec.zones) && dnssec.zones.length) {
+    const rows = dnssec.zones.map(z => `
+      <tr class="border-t border-gray-100">
+        <td class="py-1 pr-3 font-mono text-xs">${z.zone || "-"}</td>
+        <td class="py-1 pr-3 text-xs">${z.status || "-"}</td>
+        <td class="py-1 text-xs text-gray-500">${z.query_status || "-"}</td>
+      </tr>`).join("");
+    zonesEl.innerHTML = `
+      <table class="w-full text-sm mt-1">
+        <thead><tr class="text-left text-gray-400 text-xs">
+          <th class="pb-1 pr-3 font-normal">Zona</th>
+          <th class="pb-1 pr-3 font-normal">Estado</th>
+          <th class="pb-1 font-normal">Consulta</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    zonesEl.closest(".dnssec-zones-wrap")?.classList.remove("hidden");
+  }
+
+  // Delegaciones
+  const delegationsEl = document.getElementById("dnssec-inline-delegations");
+  if (delegationsEl && Array.isArray(dnssec.delegations) && dnssec.delegations.length) {
+    const rows = dnssec.delegations.map(d => `
+      <tr class="border-t border-gray-100">
+        <td class="py-1 pr-3 font-mono text-xs">${d.from || "-"}</td>
+        <td class="py-1 pr-3 font-mono text-xs">${d.to || "-"}</td>
+        <td class="py-1 pr-3 text-xs">${d.status || "-"}</td>
+        <td class="py-1 text-xs text-gray-500">${d.ds_present === true ? "Sí" : d.ds_present === false ? "No" : "-"}</td>
+      </tr>`).join("");
+    delegationsEl.innerHTML = `
+      <table class="w-full text-sm mt-1">
+        <thead><tr class="text-left text-gray-400 text-xs">
+          <th class="pb-1 pr-3 font-normal">Desde</th>
+          <th class="pb-1 pr-3 font-normal">Hacia</th>
+          <th class="pb-1 pr-3 font-normal">Estado</th>
+          <th class="pb-1 font-normal">DS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    delegationsEl.closest(".dnssec-delegations-wrap")?.classList.remove("hidden");
+  }
+
+  // Limitaciones del análisis
+  const limitsEl = document.getElementById("dnssec-inline-limitations");
+  if (limitsEl) {
+    const limits = dnssec.assessment_meta?.limitations || [];
+    if (limits.length) {
+      limitsEl.innerHTML = limits.map(l => `<li>${l}</li>`).join("");
+      limitsEl.closest(".dnssec-limits-wrap")?.classList.remove("hidden");
+    }
+  }
 }
 
 function mapTechnicalStatus(status) {
   const map = {
     ok: "Correcto",
-    misconfigured: "Inconsistente",
+    misconfigured: "Mal configurado",
     not_implemented: "No implementado",
-    ready: "No implementado",
     blocked_at_tld: "Bloqueado en TLD",
     blocked_at_parent: "Bloqueado en zona padre",
     non_existent: "No existente",
-    indeterminate: "Indeterminado"
+    indeterminate: "No concluyente"
   };
-  return map[status] || status || "Indeterminado";
+  return map[status] || status || "No determinado";
 }
 
 function mapCertainty(value) {
