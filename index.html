@@ -117,9 +117,21 @@
 >
   <div class="mb-4">
     <div class="flex items-center justify-between gap-3 flex-wrap">
-      <h2 class="text-xl font-semibold text-gray-800">
-        Análisis DNSSEC experimental
-      </h2>
+      <div class="flex items-center gap-2">
+  <h2 class="text-xl font-semibold text-gray-800">
+    Análisis DNSSEC experimental
+  </h2>
+
+  <div class="relative group cursor-pointer">
+    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gray-400 rounded-full">
+      ?
+    </span>
+
+    <div class="absolute left-6 top-0 w-72 p-3 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+      Nota metodológica: dominios reservados para documentación o pruebas (p. ej., definidos en la RFC 2606) pueden mostrar resultados válidos sin ser representativos de despliegues reales. Interpretar con cautela.
+    </div>
+  </div>
+</div>
 
       <span class="text-xs font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
         Experimental
@@ -182,7 +194,84 @@
     </div>
   </form>
 </section>
+<div id="dnssec-inline-result" class="mt-6 hidden">
+  <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
+    <!-- Loading -->
+    <div id="dnssec-inline-loading" class="hidden text-sm text-gray-500">
+      Analizando DNSSEC...
+    </div>
+
+    <!-- Error -->
+    <div id="dnssec-inline-error" class="hidden text-red-600 text-sm"></div>
+
+    <!-- Content -->
+    <div id="dnssec-inline-content" class="hidden">
+
+      <!-- Header -->
+      <h3 id="dnssec-inline-title" class="text-xl font-bold mb-2"></h3>
+      <p id="dnssec-inline-summary" class="mb-4 text-gray-700"></p>
+<div class="mb-4">
+  <span id="dnssec-inline-badge" class="inline-block rounded-full px-4 py-2 text-sm font-semibold"></span>
+</div>
+
+<div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+  <div class="font-semibold text-amber-800">Advertencia</div>
+  <div class="text-sm text-amber-700">
+    Sistema experimental del grupo de trabajo MEDICIONES ISOC LAC. Use con criterio técnico.
+  </div>
+</div>
+      <!-- Badges -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+        <div>
+          <div class="text-xs text-gray-500">Estado técnico</div>
+          <div id="dnssec-inline-status" class="font-bold"></div>
+        </div>
+
+        <div>
+          <div class="text-xs text-gray-500">Nivel de certeza del resultado</div>
+          <div id="dnssec-inline-certainty" class="font-bold"></div>
+        </div>
+
+        <div>
+          <div class="text-xs text-gray-500">Condición estructural</div>
+          <div id="dnssec-inline-blocking" class="font-bold"></div>
+        </div>
+
+        <div>
+          <div class="text-xs text-gray-500">Requiere acción</div>
+          <div id="dnssec-inline-action" class="font-bold"></div>
+        </div>
+
+      </div>
+
+      <!-- Interpretación -->
+<div class="mb-4">
+  <strong>Interpretación del resultado</strong>
+  <p id="dnssec-inline-human-summary" class="mt-1 text-gray-700 mb-2"></p>
+  <p id="dnssec-inline-certainty-text" class="text-gray-700 mb-2"></p>
+  <p id="dnssec-inline-note-scope" class="text-gray-700 mb-2"></p>
+  <p id="dnssec-inline-note-special" class="text-gray-700"></p>
+</div>
+
+      <!-- Resumen ejecutivo -->
+      <div class="mt-6 border-t pt-4">
+        <strong>Resumen ejecutivo</strong>
+        <div class="mt-2 text-sm text-gray-700">
+          <div><strong>Estado:</strong> <span id="dnssec-inline-exec-status"></span></div>
+          <div><strong>Riesgo:</strong> <span id="dnssec-inline-risk"></span></div>
+          <div><strong>Nota de decisión:</strong> <span id="dnssec-inline-decision"></span></div>
+        </div>
+      </div>
+<div class="mt-6 border-t pt-4">
+  <strong>Acciones recomendadas</strong>
+  <ul id="dnssec-inline-recommendations" class="mt-2 list-disc pl-6 text-sm text-gray-700 space-y-1"></ul>
+</div>
+    </div>
+
+  </div>
+</div>
 <section
   id="tabPanelMediciones"
   class="tab-panel block mt-2"
@@ -1394,9 +1483,7 @@
         return;
       }
 
-window.location.href =
-  "/dnssec-analysis?domain=" +
-  encodeURIComponent(domain);
+analyzeDnssecInline(domain);
     });
 
     input.addEventListener("input", clearError);
@@ -1429,6 +1516,134 @@ window.location.href =
 
     activateTab("mediciones");
   })();
+async function analyzeDnssecInline(domain) {
+  const wrapper = document.getElementById("dnssec-inline-result");
+  const loading = document.getElementById("dnssec-inline-loading");
+  const errorBox = document.getElementById("dnssec-inline-error");
+  const content = document.getElementById("dnssec-inline-content");
+
+  wrapper.classList.remove("hidden");
+  loading.classList.remove("hidden");
+  errorBox.classList.add("hidden");
+  content.classList.add("hidden");
+  errorBox.textContent = "";
+
+  try {
+    const res = await fetch(`/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json`, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderDnssecInlineResult(data);
+    content.classList.remove("hidden");
+  } catch (err) {
+    errorBox.textContent = `No fue posible obtener el análisis DNSSEC. ${err.message}`;
+    errorBox.classList.remove("hidden");
+  } finally {
+    loading.classList.add("hidden");
+    wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function renderDnssecInlineResult(data) {
+  const dnssec = data?.dnssec || {};
+  const human = data?.human || {};
+  const exec = dnssec?.executive_summary || {};
+
+  document.getElementById("dnssec-inline-title").textContent =
+    human.title || "Resultado DNSSEC";
+
+  document.getElementById("dnssec-inline-summary").textContent =
+    dnssec.summary || "";
+const badge = document.getElementById("dnssec-inline-badge");
+const finalStatus = dnssec.final_status || "indeterminate";
+
+const badgeMap = {
+  ok: { text: "DNSSEC correcto", cls: "bg-green-100 text-green-800" },
+  misconfigured: { text: "DNSSEC inconsistente", cls: "bg-red-100 text-red-800" },
+  not_implemented: { text: "DNSSEC no implementado", cls: "bg-yellow-100 text-yellow-800" },
+  ready: { text: "DNSSEC no implementado", cls: "bg-yellow-100 text-yellow-800" },
+  blocked_at_tld: { text: "Bloqueado en TLD", cls: "bg-orange-100 text-orange-800" },
+  blocked_at_parent: { text: "Bloqueado en zona padre", cls: "bg-orange-100 text-orange-800" },
+  non_existent: { text: "No existente", cls: "bg-gray-200 text-gray-800" },
+  indeterminate: { text: "Resultado no concluyente", cls: "bg-gray-200 text-gray-800" }
+};
+
+const picked = badgeMap[finalStatus] || badgeMap.indeterminate;
+if (badge) {
+  badge.className = `inline-block rounded-full px-4 py-2 text-sm font-semibold ${picked.cls}`;
+  badge.textContent = picked.text;
+}
+  document.getElementById("dnssec-inline-status").textContent =
+    mapTechnicalStatus(dnssec.final_status || "");
+
+  document.getElementById("dnssec-inline-certainty").textContent =
+    mapCertainty(human.certainty || dnssec?.assessment_meta?.confidence || "");
+
+  document.getElementById("dnssec-inline-blocking").textContent =
+    mapBlockingLevel(dnssec.blocking_level || "");
+
+  document.getElementById("dnssec-inline-action").textContent =
+    exec.action_required ? "Sí" : "No";
+
+  document.getElementById("dnssec-inline-human-summary").textContent =
+    human.summary || "";
+document.getElementById("dnssec-inline-certainty-text").textContent =
+  human.certainty_text || "";
+
+document.getElementById("dnssec-inline-note-scope").textContent =
+  human.note_scope || "";
+
+document.getElementById("dnssec-inline-note-special").textContent =
+  human.note_special || "";
+  document.getElementById("dnssec-inline-exec-status").textContent =
+    exec.status || "";
+
+  document.getElementById("dnssec-inline-risk").textContent =
+    exec.risk_level || "";
+
+  document.getElementById("dnssec-inline-decision").textContent =
+    exec.decision_note || "";
+}
+
+function mapTechnicalStatus(status) {
+  const map = {
+    ok: "Correcto",
+    misconfigured: "Inconsistente",
+    not_implemented: "No implementado",
+    ready: "No implementado",
+    blocked_at_tld: "Bloqueado en TLD",
+    blocked_at_parent: "Bloqueado en zona padre",
+    non_existent: "No existente",
+    indeterminate: "Indeterminado"
+  };
+  return map[status] || status || "Indeterminado";
+}
+
+function mapCertainty(value) {
+  const map = {
+    high: "Alta",
+    medium: "Media",
+    low: "Baja"
+  };
+  return map[value] || value || "";
+}
+
+function mapBlockingLevel(value) {
+  const map = {
+    none: "Sin restricciones estructurales",
+    domain: "Limitación en el dominio",
+    parent: "Limitación en la zona padre",
+    tld: "Limitación en el TLD",
+    unknown: "No determinado"
+  };
+  return map[value] || value || "No determinado";
+}
 </script>
 </body>
 </html>
