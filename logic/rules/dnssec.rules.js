@@ -53,7 +53,6 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
   ].filter(Boolean);
 
   const hasHardErrors = allQueryStatuses.some(isHardQueryError);
-  const hasServfailAnywhere = allQueryStatuses.some(isServfail);
 
   const hasSignedTld = hasStatus(tldZone?.status, ["signed"]);
   const hasSignedParent = hasStatus(parentZone?.status, ["signed"]);
@@ -75,6 +74,11 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
 
   const dsMissing = lastDelegation?.ds_present === false;
 
+  // 🔥 NUEVO: evidencia explícita de fallo DNSSEC
+  const hasDnssecValidationFailure =
+    domainZone?.validation_problem === "dnssec_validation_failure" ||
+    nameExistence?.error_cause === "dnssec_validation_failure";
+
   const hasStructuralEvidenceOfExistence =
     nameExists ||
     zoneList.some((z) =>
@@ -86,8 +90,7 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
     zoneList.some((z) => hasStatus(z?.status, ["signed", "unsigned"])) ||
     delegationList.some((d) => hasStatus(d?.status, ["secure", "insecure"]));
 
-  // 1) Errores duros de red o respuestas no confiables
-  // Ojo: servfail NO se trata aquí porque puede significar DNSSEC roto.
+  // 1) Errores duros
   if (hasHardErrors) {
     return {
       final_status: DNSSEC_FINAL_STATUS.INDETERMINATE,
@@ -98,18 +101,18 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
     };
   }
 
-  // 2) Bloqueo estructural en TLD
+  // 2) Bloqueo en TLD
   if (hasStatus(tldZone?.status, ["unsigned"])) {
     return {
       final_status: DNSSEC_FINAL_STATUS.BLOCKED_AT_TLD,
       readiness: DNSSEC_READINESS.BLOCKED_BY_TLD,
       blocking_level: "tld",
       summary: "El dominio no puede implementar DNSSEC porque la capa superior no está firmada.",
-      technical_summary: `La zona ${tldZone.zone} no está firmada, lo que impide la continuidad de la cadena de confianza.`
+      technical_summary: `La zona ${tldZone.zone} no está firmada.`
     };
   }
 
-  // 3) Bloqueo estructural en la zona padre inmediata
+  // 3) Bloqueo en parent
   if (
     parentZone &&
     parentZone.zone !== domain &&
@@ -119,86 +122,65 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
       final_status: DNSSEC_FINAL_STATUS.BLOCKED_AT_PARENT,
       readiness: DNSSEC_READINESS.BLOCKED_BY_PARENT,
       blocking_level: "parent",
-      summary: "El dominio no puede implementar DNSSEC porque su zona padre inmediata no está firmada.",
-      technical_summary: `La zona padre inmediata ${parentZone.zone} no está firmada.`
+      summary: "El dominio no puede implementar DNSSEC porque su zona padre no está firmada.",
+      technical_summary: `La zona padre ${parentZone.zone} no está firmada.`
     };
   }
 
-  // 4) Caso OK: DNSKEY en zona final + delegación segura
+  // 4) OK
   if (domainSigned && secureDelegation) {
     return {
       final_status: DNSSEC_FINAL_STATUS.OK,
       readiness: DNSSEC_READINESS.ALREADY_ENABLED,
       blocking_level: "none",
-      summary: "El dominio cuenta con una cadena válida o potencialmente válida de confianza DNSSEC.",
-      technical_summary: `Se detecta firma DNSSEC en ${domainZone.zone} y una delegación segura desde ${lastDelegation.from} hacia ${lastDelegation.to}.`
+      summary: "El dominio cuenta con una cadena válida de confianza DNSSEC.",
+      technical_summary: `DNSSEC activo en ${domainZone.zone} con delegación segura.`
     };
   }
 
-  // 5) Caso MISCONFIGURED:
-  // La zona final muestra firma, pero la delegación no es segura
+  // 5) MISCONFIGURED (delegación rota)
   if (domainSigned && lastDelegation && !secureDelegation) {
     return {
       final_status: DNSSEC_FINAL_STATUS.MISCONFIGURED,
       readiness: DNSSEC_READINESS.ALREADY_ENABLED,
       blocking_level: "domain",
-      summary: "El dominio presenta señales de DNSSEC, pero la delegación segura no está completa.",
-      technical_summary: `Se detectó DNSSEC en ${domainZone.zone}, pero la delegación desde ${lastDelegation.from} hacia ${lastDelegation.to} no aparece como segura.`
+      summary: "El dominio presenta DNSSEC, pero la delegación no es segura.",
+      technical_summary: `DNSSEC detectado pero la delegación no es segura.`
     };
   }
 
-  // 6) Caso MISCONFIGURED por fallo de validación:
-  // Si la capa superior está firmada y aparece SERVFAIL, no debe tratarse como inexistencia.
-  if (hasSignedUpperLayer && hasServfailAnywhere) {
+  // 6) MISCONFIGURED (🔥 CORREGIDO: evidencia real)
+  if (hasSignedUpperLayer && hasDnssecValidationFailure) {
     return {
       final_status: DNSSEC_FINAL_STATUS.MISCONFIGURED,
       readiness: DNSSEC_READINESS.ALREADY_ENABLED,
       blocking_level: "domain",
       summary: "El dominio muestra señales de validación DNSSEC inconsistente o fallida.",
-      technical_summary: "La jerarquía superior permite DNSSEC, pero una o más consultas devolvieron SERVFAIL, lo que sugiere una cadena DNSSEC inconsistente o rota."
+      technical_summary: "Se detectó evidencia explícita de fallo de validación DNSSEC."
     };
   }
 
-  // 7) Caso NOT_IMPLEMENTED:
-  // La capa superior permite DNSSEC, pero el nombre analizado no muestra despliegue propio.
+  // 7) NOT IMPLEMENTED (🔥 unificado)
   if (
     hasSignedParent &&
     lastDelegation &&
-    ["no_data", "nxdomain"].includes(normalizeStatus(lastDelegation?.query_status)) &&
     dsMissing &&
     domainUnsigned &&
-    zoneList.length > 2
+    (
+      delegationQueryNoData ||
+      ["nxdomain", "no_data"].includes(normalizeStatus(lastDelegation?.query_status))
+    )
   ) {
     return {
       final_status: DNSSEC_FINAL_STATUS.NOT_IMPLEMENTED,
       readiness: DNSSEC_READINESS.READY_TO_ENABLE,
       blocking_level: "domain",
-      summary: "Las capas superiores permiten DNSSEC, pero el dominio no lo ha implementado.",
-      technical_summary: `Las capas superiores (${parentZone.zone} y superiores) soportan DNSSEC, pero ${domainZone.zone} no muestra evidencia estructural de despliegue DNSSEC ni DS en la delegación inmediata.`
+      summary: "El dominio no ha implementado DNSSEC.",
+      technical_summary: `Las capas superiores permiten DNSSEC, pero ${domainZone.zone} no tiene DS ni firma.`
     };
   }
 
-  // 8) Caso READY legado: ausencia limpia de DNSSEC en la capa final sin errores ambiguos
-  if (
-    domainUnsigned &&
-    domainQueryNoData &&
-    hasSignedParent &&
-    lastDelegation &&
-    delegationQueryNoData &&
-    dsMissing
-  ) {
-    return {
-      final_status: DNSSEC_FINAL_STATUS.READY,
-      readiness: DNSSEC_READINESS.READY_TO_ENABLE,
-      blocking_level: "domain",
-      summary: "La infraestructura superior permite DNSSEC, pero el dominio aún no lo ha activado.",
-      technical_summary: `Las zonas superiores permiten DNSSEC, pero ${domainZone.zone} no publica evidencia estructural de DNSSEC y su delegación no muestra DS.`
-    };
-  }
-
-  // 9) Caso NON_EXISTENT:
-  // Solo cuando no exista evidencia operativa ni estructural de existencia
-  // y además no estemos en un contexto que sugiera validación DNSSEC fallida.
+  // 8) NON EXISTENT
   if (
     zoneList.length === 2 &&
     domainQueryNx &&
@@ -214,35 +196,18 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
       final_status: DNSSEC_FINAL_STATUS.NON_EXISTENT,
       readiness: DNSSEC_READINESS.UNKNOWN,
       blocking_level: "unknown",
-      summary: "El nombre consultado no presenta evidencia suficiente de existencia como zona DNS delegada independiente.",
-      technical_summary: `La consulta estructural para ${domainZone.zone} devolvió NXDOMAIN y tampoco se observó existencia operativa del nombre mediante A, AAAA o CNAME.`
+      summary: "El dominio no existe.",
+      technical_summary: "No hay evidencia estructural ni operativa del dominio."
     };
   }
 
-  // 10) Si la capa superior está firmada y el resultado parece inexistente,
-  // pero no podemos confirmar inexistencia real, es más seguro clasificar como inconcluso.
-  if (
-    zoneList.length === 2 &&
-    domainQueryNx &&
-    delegationQueryNx &&
-    hasSignedUpperLayer
-  ) {
-    return {
-      final_status: DNSSEC_FINAL_STATUS.INDETERMINATE,
-      readiness: DNSSEC_READINESS.UNKNOWN,
-      blocking_level: "domain",
-      summary: "El dominio no pudo clasificarse con certeza entre inexistencia y fallo de validación DNSSEC.",
-      technical_summary: "La jerarquía superior está firmada, pero el nombre analizado devolvió respuestas compatibles tanto con inexistencia como con una posible validación DNSSEC fallida."
-    };
-  }
-
-  // 11) Caso residual: inconcluso
+  // 9) fallback
   return {
     final_status: DNSSEC_FINAL_STATUS.INDETERMINATE,
     readiness: DNSSEC_READINESS.UNKNOWN,
     blocking_level: "unknown",
-    summary: "No fue posible clasificar el estado DNSSEC de forma concluyente.",
-    technical_summary: "Los datos estructurales obtenidos no permiten distinguir con suficiente certeza entre ausencia de DNSSEC, configuración inconsistente o condición no aplicable."
+    summary: "No fue posible clasificar el estado DNSSEC.",
+    technical_summary: "La evidencia no permite una conclusión clara."
   };
 }
 
