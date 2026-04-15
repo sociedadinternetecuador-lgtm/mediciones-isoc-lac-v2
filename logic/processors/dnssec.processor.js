@@ -13,7 +13,6 @@ function buildExecutiveSummary(finalStatus, readiness, confidence) {
         decision_note: "El dominio muestra evidencia estructural consistente de implementación DNSSEC."
       };
 
-    case "ready":
     case "not_implemented":
       return {
         status: "DNSSEC no implementado",
@@ -25,22 +24,22 @@ function buildExecutiveSummary(finalStatus, readiness, confidence) {
     case "blocked_at_tld":
       return {
         status: "Bloqueo estructural en capa superior",
-        risk_level: "alto",
+        risk_level: "estructural",
         action_required: true,
-        decision_note: "La barrera no está en el nombre final, sino en la infraestructura superior."
+        decision_note: "La barrera no está en el dominio analizado sino en la infraestructura superior. El operador debe escalar al registry o TLD correspondiente."
       };
 
     case "blocked_at_parent":
       return {
         status: "Bloqueo en la zona padre inmediata",
-        risk_level: "alto",
+        risk_level: "estructural",
         action_required: true,
-        decision_note: "La implementación depende de una capa intermedia que actualmente no soporta la cadena de confianza."
+        decision_note: "La implementación depende de una capa intermedia que no soporta DNSSEC. Debe coordinarse con el operador de esa zona."
       };
 
     case "misconfigured":
       return {
-        status: "DNSSEC presente pero inconsistente",
+        status: "DNSSEC presente pero mal configurado",
         risk_level: "alto",
         action_required: true,
         decision_note: "El nombre muestra despliegue parcial o inconsistente que requiere corrección técnica."
@@ -48,10 +47,10 @@ function buildExecutiveSummary(finalStatus, readiness, confidence) {
 
     case "non_existent":
       return {
-        status: "Nombre no existente o no verificable como zona independiente",
-        risk_level: "medio",
+        status: "Nombre no existente o no verificable",
+        risk_level: "no aplicable",
         action_required: false,
-        decision_note: "La evidencia disponible no confirma existencia operativa ni despliegue DNSSEC del nombre analizado."
+        decision_note: "El dominio no existe como zona DNS operativa. El análisis DNSSEC no es aplicable hasta confirmar existencia y delegación."
       };
 
     case "indeterminate":
@@ -72,82 +71,52 @@ function buildHumanReadable(result, context = {}) {
   const finalStatus = dnssec?.final_status || "indeterminate";
   const certainty = dnssec?.assessment_meta?.confidence || result?.assessment_meta?.confidence || "medium";
 
-  let title = "";
-  let summary = "";
-  let certainty_text = "";
-  let next_steps = [];
+  // Fuente única de recomendaciones: guidance.recommendations
+  // next_steps se deriva de ella para mantener una sola fuente de verdad
+  const next_steps = Array.isArray(dnssec?.guidance?.recommendations)
+    ? dnssec.guidance.recommendations
+    : [];
 
-  if (certainty === "high") {
-    certainty_text = "Certeza alta: la evidencia es consistente.";
-  } else if (certainty === "medium") {
-    certainty_text = "Certeza media: existen limitaciones estructurales del análisis.";
-  } else {
-    certainty_text = "Certeza baja: el resultado debe interpretarse con cautela.";
-  }
+  // human.summary toma el summary de rules (ya específico por caso) para evitar doble redacción
+  const summary = dnssec?.summary || "";
+
+  const certainty_text =
+    certainty === "high" ? "Certeza alta: la evidencia es consistente." :
+    certainty === "medium" ? "Certeza media: existen limitaciones estructurales del análisis." :
+    "Certeza baja: el resultado debe interpretarse con cautela.";
+
+  let title = "";
 
   switch (finalStatus) {
-    case "ok":
-      title = "DNSSEC correctamente implementado";
-      summary = `El dominio ${domain} muestra evidencia consistente de implementación DNSSEC, incluyendo firma y delegación segura.`;
-      next_steps = ["Mantener monitoreo periódico", "Verificar continuidad de firmas y delegación segura"];
-      break;
-
-    case "ready":
-    case "not_implemented":
-      title = "DNSSEC no implementado";
-      summary = `Las capas superiores permiten DNSSEC, pero ${domain} no muestra evidencia de despliegue propio.`;
-      next_steps = ["Evaluar implementación de DNSSEC", "Revisar firma de zona y publicación de DS"];
-      break;
-
-    case "non_existent":
-      title = "Nombre no existente o no verificable";
-      summary = `No se encontró evidencia de existencia operativa ni de despliegue DNSSEC para ${domain}.`;
-      next_steps = ["Confirmar que el nombre exista", "Verificar registros A, AAAA o CNAME", "Comprobar si se trata de una zona independiente"];
-      break;
-
-    case "misconfigured":
-      title = "DNSSEC presente pero inconsistente";
-      summary = `El dominio ${domain} muestra señales de DNSSEC, pero con evidencia estructural inconsistente o incompleta.`;
-      next_steps = [
-        "Revisar si el DS en la zona padre corresponde al DNSKEY del dominio",
-        "Revisar firmas, claves y tiempos de vigencia",
-        "Validar nuevamente la cadena completa"
-      ];
-      break;
-
-    case "blocked_at_tld":
-      title = "Bloqueo estructural en capa superior";
-      summary = `El dominio ${domain} no puede implementar DNSSEC porque la capa superior no está firmada.`;
-      next_steps = ["Verificar estado DNSSEC del TLD", "Escalar el hallazgo como limitación estructural"];
-      break;
-
-    case "blocked_at_parent":
-      title = "Bloqueo en la zona padre inmediata";
-      summary = `El dominio ${domain} depende de una zona padre inmediata que no soporta adecuadamente la cadena de confianza.`;
-      next_steps = ["Revisar la zona padre inmediata", "Confirmar firma y publicación de DS en la capa intermedia"];
-      break;
-
+    case "ok":              title = "DNSSEC correctamente implementado"; break;
+    case "not_implemented": title = "DNSSEC no implementado"; break;
+    case "non_existent":    title = "Nombre no existente o no verificable"; break;
+    case "misconfigured":   title = "DNSSEC presente pero mal configurado"; break;
+    case "blocked_at_tld":  title = "Bloqueo estructural en capa superior"; break;
+    case "blocked_at_parent": title = "Bloqueo en la zona padre inmediata"; break;
     case "indeterminate":
-    default:
-      title = "Resultado no concluyente";
-      summary = `No es posible determinar con certeza el estado DNSSEC de ${domain}.`;
-      next_steps = [
-        "Verificar con herramientas DNSSEC especializadas",
-        "Consultar resolutores validadores",
-        "Confirmar existencia con registros A, AAAA o CNAME"
-      ];
-      break;
+    default:                title = "Resultado no concluyente"; break;
   }
+
+  const noteSpecialMap = {
+    ok: "La cadena de confianza verificada es estructural, no criptográfica completa. Se recomienda complementar con herramientas validadoras como DNSViz para confirmar la firma activa.",
+    not_implemented: "La ausencia de DNSKEY o DS no implica inexistencia del servicio. El dominio puede estar operativo sin haber implementado DNSSEC. Esta es una oportunidad de mejora directamente accionable.",
+    misconfigured: "Una configuración DNSSEC incompleta puede provocar fallos de resolución silenciosos para usuarios detrás de resolvers validadores. Es recomendable corregir antes de que afecte la disponibilidad.",
+    blocked_at_tld: "Esta limitación no es atribuible al operador del dominio analizado. La acción correctiva debe realizarse en la capa superior (TLD o registry), lo que puede requerir coordinación institucional.",
+    blocked_at_parent: "La barrera está en una zona intermedia, no en el dominio final. La corrección requiere coordinación con el operador de esa zona padre, lo que puede estar fuera del control directo del titular del dominio.",
+    non_existent: "Si el nombre es un subdominio de uso interno o una zona delegada de forma no convencional, es posible que no aparezca como zona independiente en el DNS público. Verificar con el administrador del dominio padre.",
+    indeterminate: "Los errores de consulta pueden ser transitorios. Se recomienda repetir el análisis en un momento distinto antes de tomar decisiones basadas en este resultado."
+  };
+
+  const note_special = noteSpecialMap[finalStatus] || "Este análisis evalúa evidencia estructural en DNS y debe complementarse con validación técnica adicional cuando el caso lo requiera.";
 
   return {
     title,
     summary,
     certainty,
     certainty_text,
-    note_scope:
-      "Este análisis evalúa evidencia estructural en DNS, no validación criptográfica completa.",
-    note_special:
-      "En nombres de dominio que no están delegados como zonas DNS independientes, la ausencia de registros DNSKEY o DS no implica necesariamente la inexistencia del servicio, sino que puede responder a la forma en que está estructurada la delegación o a la ausencia de implementación de DNSSEC. Esto puede ocurrir, por ejemplo, en subdominios utilizados para portales o aplicaciones dentro de dominios mayores.",
+    note_scope: "Este análisis evalúa evidencia estructural en DNS, no validación criptográfica completa.",
+    note_special,
     next_steps
   };
 }

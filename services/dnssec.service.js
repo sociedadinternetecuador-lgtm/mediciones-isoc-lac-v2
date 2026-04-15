@@ -55,6 +55,9 @@ function mapDelegationStatus(secure, dsPresent, queryStatus) {
  *   Evidencia insuficiente o afectada por problemas operativos
  *   (timeout, network_error, invalid_response).
  *
+ * Nota: network_error e invalid_response se tratan igual que timeout
+ * porque implican ausencia total de datos confiables.
+ *
  * Regla crítica DNSSEC:
  * SERVFAIL en presencia de DS NO se interpreta como error genérico,
  * sino como evidencia fuerte de fallo de validación DNSSEC.
@@ -72,8 +75,12 @@ function computeConfidence(zones, delegations, nameExistence) {
     zones.some((z) => z.validation_problem === "dnssec_validation_failure") ||
     nameExistence?.error_cause === "dnssec_validation_failure";
 
-  // Timeout real o degradación operativa fuerte
-  if (timeoutCount > 0) {
+  // Timeout real o degradación operativa fuerte (sin datos fiables)
+  const hardDegradationCount = allStatuses.filter((s) =>
+    ["timeout", "invalid_response", "network_error"].includes(s)
+  ).length;
+
+  if (hardDegradationCount > 0) {
     return "low";
   }
 
@@ -82,10 +89,9 @@ function computeConfidence(zones, delegations, nameExistence) {
     return "high";
   }
 
-  // Errores reales de consulta, excluyendo SERVFAIL cuando ya representa
-  // evidencia de fallo DNSSEC
+  // Errores de consulta moderados (SERVFAIL sin contexto DNSSEC claro)
   const errorCount = allStatuses.filter((s) =>
-    ["error", "network_error", "invalid_response"].includes(s)
+    ["error"].includes(s)
   ).length;
 
   if (errorCount > 0) {
@@ -110,6 +116,7 @@ function buildAssessmentMeta(confidence) {
     query_timeout_ms: QUERY_TIMEOUT_MS,
     limitations: [
       "Este análisis verifica evidencia estructural observable en DNS, no una validación criptográfica completa.",
+      "La cadena de confianza se verifica desde el TLD, sin incluir la zona raíz ('.'). Se asume implícitamente que el TLD es confiable.",
       "La ausencia de DNSKEY o DS no siempre equivale por sí sola a una falla definitiva; puede requerir análisis más profundo.",
       "Timeouts, SERVFAIL u otros errores de resolución pueden impedir conclusiones definitivas."
     ]
