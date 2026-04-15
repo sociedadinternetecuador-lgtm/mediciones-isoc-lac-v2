@@ -68,10 +68,14 @@ function buildExecutiveSummary(finalStatus, readiness, confidence) {
 function buildHumanReadable(result, context = {}) {
   const { domain } = context;
 
+  const dnssec = result?.dnssec || result || {};
+  const finalStatus = dnssec?.final_status || "indeterminate";
+  const certainty = dnssec?.assessment_meta?.confidence || result?.assessment_meta?.confidence || "medium";
+
   let title = "";
   let summary = "";
-  const certainty = result.assessment_meta?.confidence || "medium";
   let certainty_text = "";
+  let next_steps = [];
 
   if (certainty === "high") {
     certainty_text = "Certeza alta: la evidencia es consistente.";
@@ -81,45 +85,58 @@ function buildHumanReadable(result, context = {}) {
     certainty_text = "Certeza baja: el resultado debe interpretarse con cautela.";
   }
 
-  switch (result.final_status) {
+  switch (finalStatus) {
     case "ok":
       title = "DNSSEC correctamente implementado";
       summary = `El dominio ${domain} muestra evidencia consistente de implementación DNSSEC, incluyendo firma y delegación segura.`;
+      next_steps = ["Mantener monitoreo periódico", "Verificar continuidad de firmas y delegación segura"];
       break;
 
+    case "ready":
     case "not_implemented":
       title = "DNSSEC no implementado";
       summary = `Las capas superiores permiten DNSSEC, pero ${domain} no muestra evidencia de despliegue propio.`;
+      next_steps = ["Evaluar implementación de DNSSEC", "Revisar firma de zona y publicación de DS"];
       break;
 
     case "non_existent":
       title = "Nombre no existente o no verificable";
       summary = `No se encontró evidencia de existencia operativa ni de despliegue DNSSEC para ${domain}.`;
-      break;
-
-    case "indeterminate":
-      title = "Resultado no concluyente";
-      summary = `No es posible determinar con certeza el estado DNSSEC de ${domain}.`;
+      next_steps = ["Confirmar que el nombre exista", "Verificar registros A, AAAA o CNAME", "Comprobar si se trata de una zona independiente"];
       break;
 
     case "misconfigured":
       title = "DNSSEC presente pero inconsistente";
       summary = `El dominio ${domain} muestra señales de DNSSEC, pero con evidencia estructural inconsistente o incompleta.`;
+      next_steps = [
+        "Revisar si el DS en la zona padre corresponde al DNSKEY del dominio",
+        "Revisar firmas, claves y tiempos de vigencia",
+        "Validar nuevamente la cadena completa"
+      ];
       break;
 
     case "blocked_at_tld":
       title = "Bloqueo estructural en capa superior";
       summary = `El dominio ${domain} no puede implementar DNSSEC porque la capa superior no está firmada.`;
+      next_steps = ["Verificar estado DNSSEC del TLD", "Escalar el hallazgo como limitación estructural"];
       break;
 
     case "blocked_at_parent":
       title = "Bloqueo en la zona padre inmediata";
       summary = `El dominio ${domain} depende de una zona padre inmediata que no soporta adecuadamente la cadena de confianza.`;
+      next_steps = ["Revisar la zona padre inmediata", "Confirmar firma y publicación de DS en la capa intermedia"];
       break;
 
+    case "indeterminate":
     default:
-      title = "Estado desconocido";
-      summary = "No se pudo clasificar el resultado.";
+      title = "Resultado no concluyente";
+      summary = `No es posible determinar con certeza el estado DNSSEC de ${domain}.`;
+      next_steps = [
+        "Verificar con herramientas DNSSEC especializadas",
+        "Consultar resolutores validadores",
+        "Confirmar existencia con registros A, AAAA o CNAME"
+      ];
+      break;
   }
 
   return {
@@ -131,11 +148,7 @@ function buildHumanReadable(result, context = {}) {
       "Este análisis evalúa evidencia estructural en DNS, no validación criptográfica completa.",
     note_special:
       "En nombres de dominio que no están delegados como zonas DNS independientes, la ausencia de registros DNSKEY o DS no implica necesariamente la inexistencia del servicio, sino que puede responder a la forma en que está estructurada la delegación o a la ausencia de implementación de DNSSEC. Esto puede ocurrir, por ejemplo, en subdominios utilizados para portales o aplicaciones dentro de dominios mayores.",
-    next_steps: [
-      "Verificar con herramientas DNSSEC especializadas",
-      "Consultar resolutores validadores",
-      "Confirmar existencia con registros A, AAAA o CNAME"
-    ]
+    next_steps
   };
 }
 
@@ -181,9 +194,7 @@ function processDnssecAnalysis(raw) {
     }
   });
 
-  final_result.human = buildHumanReadable(final_result, {
-    domain
-  });
+  final_result.human = buildHumanReadable(final_result, { domain });
 
   return final_result;
 }
