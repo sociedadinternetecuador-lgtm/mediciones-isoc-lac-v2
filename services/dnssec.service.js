@@ -14,6 +14,13 @@ const {
 function mapZoneStatus(found, queryStatus) {
   if (found === true) return DNSSEC_ZONE_STATUS.SIGNED;
   if (found === false && queryStatus === "no_data") return DNSSEC_ZONE_STATUS.UNSIGNED;
+
+  // SERVFAIL en una zona hija no debe mezclarse con no existencia.
+  // Lo dejamos como UNKNOWN a nivel de constantes actuales,
+  // pero agregamos metadata adicional para que reglas posteriores
+  // puedan interpretarlo como fallo DNSSEC.
+  if (queryStatus === "servfail") return DNSSEC_ZONE_STATUS.UNKNOWN;
+
   return DNSSEC_ZONE_STATUS.UNKNOWN;
 }
 
@@ -24,22 +31,70 @@ function mapDelegationStatus(secure, dsPresent, queryStatus) {
   return DNSSEC_DELEGATION_STATUS.UNKNOWN;
 }
 
+/**
+ * ISOC LAC DNSSEC Measurement Model
+ *
+ * Indicador: Nivel de certeza del resultado
+ *
+ * Este indicador mide qué tan confiable es la interpretación generada por el sistema
+ * a partir de la evidencia estructural observable en DNS.
+ *
+ * NO mide el estado del dominio directamente ni reemplaza una validación criptográfica
+ * completa con resolvers validadores.
+ *
+ * Reglas:
+ *
+ * - Alta:
+ *   Evidencia consistente o patrón técnico claro.
+ *   Incluye detección de fallo DNSSEC (SERVFAIL + DS presente + validation_problem).
+ *
+ * - Media:
+ *   Evidencia parcial o con limitaciones, pero interpretable.
+ *
+ * - Baja:
+ *   Evidencia insuficiente o afectada por problemas operativos
+ *   (timeout, network_error, invalid_response).
+ *
+ * Regla crítica DNSSEC:
+ * SERVFAIL en presencia de DS NO se interpreta como error genérico,
+ * sino como evidencia fuerte de fallo de validación DNSSEC.
+ *
+ * Este criterio forma parte del modelo de medición DNSSEC ISOC LAC.
+ */
 function computeConfidence(zones, delegations, nameExistence) {
   const zoneStatuses = zones.map((z) => z.query_status);
   const delegationStatuses = delegations.map((d) => d.query_status);
   const allStatuses = [...zoneStatuses, ...delegationStatuses, nameExistence?.query_status].filter(Boolean);
 
   const timeoutCount = allStatuses.filter((s) => s === "timeout").length;
+
+  const dnssecFailureDetected =
+    zones.some((z) => z.validation_problem === "dnssec_validation_failure") ||
+    nameExistence?.error_cause === "dnssec_validation_failure";
+
+  // Timeout real o degradación operativa fuerte
+  if (timeoutCount > 0) {
+    return "low";
+  }
+
+  // Fallo DNSSEC detectado de forma consistente
+  if (dnssecFailureDetected) {
+    return "high";
+  }
+
+  // Errores reales de consulta, excluyendo SERVFAIL cuando ya representa
+  // evidencia de fallo DNSSEC
   const errorCount = allStatuses.filter((s) =>
-    ["error", "servfail", "network_error", "invalid_response"].includes(s)
+    ["error", "network_error", "invalid_response"].includes(s)
   ).length;
+
+  if (errorCount > 0) {
+    return "medium";
+  }
+
   const unknownCount =
     zones.filter((z) => z.status === "unknown").length +
     delegations.filter((d) => d.status === "unknown").length;
-
-  if (timeoutCount > 0 || errorCount > 0) {
-    return "low";
-  }
 
   if (unknownCount > 0) {
     return "medium";
@@ -61,45 +116,128 @@ function buildAssessmentMeta(confidence) {
   };
 }
 
+function hasSecureDelegation(delegations = [], zoneName) {
+  return delegations.some((d) =>
+    d.to === zoneName &&
+    (d.ds_present === true || d.secure === true || d.status === DNSSEC_DELEGATION_STATUS.SECURE)
+  );
+}
+
+function normalizeZone(zoneItem, dnskey, secureDelegation) {
+  const base = {
+    zone: zoneItem.zone,
+    level: zoneItem.level,
+    signed: dnskey.found,
+    dnskey_present: dnskey.found,
+    status: mapZoneStatus(dnskey.found, dnskey.query_status),
+    query_status: dnskey.query_status,
+    dnskey_error: dnskey.error_code || null
+  };
+
+  if (secureDelegation && dnskey.query_status === "servfail") {
+    return {
+      ...base,
+      validation_problem: "dnssec_validation_failure",
+      failure_scope: "zone_dnskey_lookup"
+    };
+  }
+
+  if (dnskey.query_status === "nxdomain") {
+    return {
+      ...base,
+      existence_problem: "zone_not_found"
+    };
+  }
+
+  return base;
+}
+
+function normalizeNameExistence(nameExistence, secureDelegation) {
+  const records = Array.isArray(nameExistence?.records) ? nameExistence.records : [];
+
+  const anyFound = records.some((r) => r?.found === true);
+  const allNxdomain = records.length > 0 && records.every((r) =>
+    r?.query_status === "nxdomain" || r?.error_code === "NXDOMAIN"
+  );
+  const anyServfail = records.some((r) =>
+    r?.query_status === "servfail" || r?.error_code === "SERVFAIL"
+  );
+
+  if (anyFound) {
+    return {
+      ...nameExistence,
+      exists: true,
+      query_status: "ok"
+    };
+  }
+
+  if (allNxdomain) {
+    return {
+      ...nameExistence,
+      exists: false,
+      query_status: "nxdomain"
+    };
+  }
+
+  if (secureDelegation && anyServfail) {
+    return {
+      ...nameExistence,
+      exists: true,
+      query_status: "servfail",
+      error_cause: "dnssec_validation_failure"
+    };
+  }
+
+  return nameExistence;
+}
+
 async function getDnssecAnalysis(domain) {
   const baseZones = buildZoneChain(domain);
 
-  const zonePromises = baseZones.map(async (zoneItem) => {
-    const dnskey = await queryDnskey(zoneItem.zone);
+  const rawZoneResults = await Promise.all(
+    baseZones.map(async (zoneItem) => {
+      const dnskey = await queryDnskey(zoneItem.zone);
+      return { zoneItem, dnskey };
+    })
+  );
 
-    return {
-      zone: zoneItem.zone,
-      level: zoneItem.level,
-      signed: dnskey.found,
-      dnskey_present: dnskey.found,
-      status: mapZoneStatus(dnskey.found, dnskey.query_status),
-      query_status: dnskey.query_status,
-      dnskey_error: dnskey.error_code || null
-    };
+  const preliminaryZones = rawZoneResults.map(({ zoneItem, dnskey }) => ({
+    zone: zoneItem.zone,
+    level: zoneItem.level,
+    signed: dnskey.found,
+    dnskey_present: dnskey.found,
+    status: mapZoneStatus(dnskey.found, dnskey.query_status),
+    query_status: dnskey.query_status,
+    dnskey_error: dnskey.error_code || null
+  }));
+
+  const baseDelegations = buildDelegationsFromZones(preliminaryZones);
+
+  const delegations = await Promise.all(
+    baseDelegations.map(async (delegation) => {
+      const ds = await queryDs(delegation.to);
+      const secure = ds.found === true;
+
+      return {
+        from: delegation.from,
+        to: delegation.to,
+        ds_present: ds.found,
+        secure,
+        status: mapDelegationStatus(secure, ds.found, ds.query_status),
+        query_status: ds.query_status,
+        ds_error: ds.error_code || null
+      };
+    })
+  );
+
+  const zones = rawZoneResults.map(({ zoneItem, dnskey }) => {
+    const secureDelegation = hasSecureDelegation(delegations, zoneItem.zone);
+    return normalizeZone(zoneItem, dnskey, secureDelegation);
   });
 
-  const zones = await Promise.all(zonePromises);
-
-  const baseDelegations = buildDelegationsFromZones(zones);
-
-  const delegationPromises = baseDelegations.map(async (delegation) => {
-    const ds = await queryDs(delegation.to);
-    const secure = ds.found === true;
-
-    return {
-      from: delegation.from,
-      to: delegation.to,
-      ds_present: ds.found,
-      secure,
-      status: mapDelegationStatus(secure, ds.found, ds.query_status),
-      query_status: ds.query_status,
-      ds_error: ds.error_code || null
-    };
-  });
-
-  const delegations = await Promise.all(delegationPromises);
-
-  const name_existence = await queryNameExistence(domain);
+  const rawNameExistence = await queryNameExistence(domain);
+  const secureDelegationToDomain = hasSecureDelegation(delegations, domain);
+  const name_existence = normalizeNameExistence(rawNameExistence, secureDelegationToDomain);
 
   const confidence = computeConfidence(zones, delegations, name_existence);
   const assessment_meta = buildAssessmentMeta(confidence);
