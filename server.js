@@ -1263,18 +1263,7 @@ function queryQuad9(domain) {
     }
   });
 }
-      );
-
-      req.on('error', reject);
-      req.setTimeout(15000, () => {
-        req.destroy(new Error('Timeout'));
-      });
-      req.end();
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
+ }
 
 
 async function handleBlock(domain, res) {
