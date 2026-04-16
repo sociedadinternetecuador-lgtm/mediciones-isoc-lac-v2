@@ -2115,9 +2115,10 @@ const STATUS_LABELS = {
 };
 
 const SEMAPHORE_CFG = {
-  green:  { dot: '#16a34a', border: '#bbf7d0', bg: '#f0fdf4', label: 'Madurez verde — adopción sólida',   desc: 'Adopción ≥ 40% y barreras estructurales < 20%' },
-  yellow: { dot: '#ca8a04', border: '#fde68a', bg: '#fffbeb', label: 'Madurez amarilla — adopción parcial', desc: 'Adopción 10–39% o barreras mixtas' },
-  red:    { dot: '#dc2626', border: '#fecaca', bg: '#fff1f2', label: 'Madurez roja — adopción crítica',    desc: 'Adopción < 10% o bloqueo estructural dominante' }
+  green:       { dot: '#16a34a', border: '#bbf7d0', bg: '#f0fdf4', label: 'Madurez verde — adopción sólida',    desc: 'Adopción ≥ 40% y barreras estructurales < 20%' },
+  yellow:      { dot: '#ca8a04', border: '#fde68a', bg: '#fffbeb', label: 'Madurez amarilla — adopción parcial', desc: 'Adopción 10–39% o barreras mixtas' },
+  red:         { dot: '#dc2626', border: '#fecaca', bg: '#fff1f2', label: 'Madurez roja — adopción crítica',     desc: 'Adopción < 10% o bloqueo estructural dominante' },
+  insufficient:{ dot: '#9ca3af', border: '#e5e7eb', bg: '#f9fafb', label: 'Muestra insuficiente',               desc: 'Se necesitan al menos 10 dominios para un resultado indicativo' },
 };
 
 const POLICY_RECS = {
@@ -2187,49 +2188,151 @@ const POLICY_RECS = {
   }
 };
 
+// Muestra mínima para emitir criterio de madurez
+const MIN_SAMPLE_RELIABLE   = 30;   // semáforo y perfil confiables
+const MIN_SAMPLE_INDICATIVE = 10;   // indicativo, con advertencia
+// Dominios genéricos (no institucionales) — se excluyen del análisis de madurez país
+const GENERIC_TLDS = ['com','net','org','io','co','info','biz','edu','int','gov','mil','mobi','name','pro','aero','coop','museum','travel','jobs','tel'];
+
+function classifyDomain(domain) {
+  const parts = domain.split('.');
+  if (parts.length < 2) return 'unknown';
+  const tld = parts[parts.length - 1].toLowerCase();
+  // ccTLD de 2 letras = dominio de país
+  if (tld.length === 2) return 'country';
+  // TLDs genéricos
+  if (GENERIC_TLDS.includes(tld)) return 'generic';
+  return 'other';
+}
+
 function computeAggregate(results, errors, country) {
   const counts = { ok:0, not_implemented:0, misconfigured:0, blocked_at_tld:0, blocked_at_parent:0, indeterminate:0, non_existent:0 };
+
+  // Separar dominios por tipo
+  let countryDomains = 0, genericDomains = 0;
   for (const r of results) {
     const s = r?.dnssec?.final_status;
     if (s && counts[s] !== undefined) counts[s]++;
     else counts.indeterminate++;
+    const tipo = classifyDomain(r?.domain || '');
+    if (tipo === 'country') countryDomains++;
+    else if (tipo === 'generic') genericDomains++;
   }
+
+  const total = results.length;
   const eligible = counts.ok + counts.not_implemented + counts.misconfigured + counts.blocked_at_tld + counts.blocked_at_parent;
   const adoptionRate = eligible > 0 ? Math.round(counts.ok / eligible * 1000) / 10 : null;
   const structural = counts.blocked_at_tld + counts.blocked_at_parent;
   const actionable = counts.not_implemented + counts.misconfigured;
-  const structuralPct = results.length > 0 ? Math.round(structural / results.length * 1000) / 10 : 0;
+  const structuralPct = total > 0 ? Math.round(structural / total * 1000) / 10 : 0;
 
+  // Advertencias de muestra y composición
+  const warnings = [];
+  if (total < MIN_SAMPLE_INDICATIVE) {
+    warnings.push(`Muestra insuficiente (${total} dominios). Se necesitan al menos ${MIN_SAMPLE_INDICATIVE} para un resultado indicativo y ${MIN_SAMPLE_RELIABLE} para un resultado confiable. No se emite criterio de madurez.`);
+  } else if (total < MIN_SAMPLE_RELIABLE) {
+    warnings.push(`Muestra pequeña (${total} dominios). El resultado es indicativo, no concluyente. Se recomiendan al menos ${MIN_SAMPLE_RELIABLE} dominios para emitir un criterio de madurez confiable.`);
+  }
+  if (genericDomains > 0 && countryDomains > 0) {
+    const genericPct = Math.round(genericDomains / total * 100);
+    warnings.push(`La lista mezcla ${countryDomains} dominios de país (ccTLD) con ${genericDomains} dominios genéricos (.com, .net, .org, etc. — ${genericPct}% del total). Los dominios genéricos no son representativos de la infraestructura nacional y pueden distorsionar las métricas de madurez.`);
+  } else if (genericDomains > 0 && countryDomains === 0) {
+    warnings.push(`Todos los dominios analizados son genéricos (.com, .net, .org, etc.). Este análisis no refleja el estado DNSSEC de un país — los dominios genéricos no tienen dependencia de la infraestructura ccTLD nacional.`);
+  }
+
+  // Semáforo — solo si muestra es suficiente
   let semaphore = 'red';
-  if (adoptionRate !== null && adoptionRate >= 40 && structuralPct < 20) semaphore = 'green';
-  else if (adoptionRate !== null && adoptionRate >= 10 && structuralPct <= 60) semaphore = 'yellow';
+  let semaphoreReliable = true;
+  if (total < MIN_SAMPLE_INDICATIVE) {
+    semaphore = 'insufficient';
+    semaphoreReliable = false;
+  } else {
+    if (adoptionRate !== null && adoptionRate >= 40 && structuralPct < 20) semaphore = 'green';
+    else if (adoptionRate !== null && adoptionRate >= 10 && structuralPct <= 60) semaphore = 'yellow';
+    if (total < MIN_SAMPLE_RELIABLE) semaphoreReliable = false;
+  }
 
+  // Perfil — solo si muestra mínima indicativa
   let profile = 'mixed';
-  if (counts.blocked_at_tld > actionable) profile = 'tld_blocked';
-  else if (semaphore === 'green') profile = 'leader';
-  else if (adoptionRate !== null && adoptionRate < 5 && actionable > structural) profile = 'low_capacity';
-  else if (actionable >= structural && semaphore !== 'green') profile = 'ready_to_adopt';
+  if (total >= MIN_SAMPLE_INDICATIVE) {
+    if (counts.blocked_at_tld > actionable) profile = 'tld_blocked';
+    else if (semaphore === 'green' && semaphoreReliable) profile = 'leader';
+    else if (adoptionRate !== null && adoptionRate < 5 && actionable > structural) profile = 'low_capacity';
+    else if (actionable >= structural && semaphore !== 'green') profile = 'ready_to_adopt';
+  }
 
-  return { country, counts, adoptionRate, structural, actionable, structuralPct, semaphore, profile, total: results.length, errors: errors.length };
+  return {
+    country, counts, adoptionRate, structural, actionable, structuralPct,
+    semaphore, semaphoreReliable, profile,
+    total, errors: errors.length,
+    countryDomains, genericDomains,
+    warnings,
+    sampleStatus: total < MIN_SAMPLE_INDICATIVE ? 'insufficient'
+                : total < MIN_SAMPLE_RELIABLE   ? 'indicative'
+                : 'reliable'
+  };
 }
 
 function renderBatchResults(agg, results) {
   document.getElementById('batch-results-wrap').classList.remove('hidden');
 
+  // Advertencias de muestra y composición — van primero
+  const wrapEl = document.getElementById('batch-results-wrap');
+  const existingWarnings = document.getElementById('batch-warnings');
+  if (existingWarnings) existingWarnings.remove();
+
+  if (agg.warnings && agg.warnings.length > 0) {
+    const wDiv = document.createElement('div');
+    wDiv.id = 'batch-warnings';
+    wDiv.className = 'rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2';
+    wDiv.innerHTML = `
+      <div class="flex items-center gap-2 mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <span class="text-sm font-semibold text-amber-800">Advertencias sobre esta muestra</span>
+      </div>
+      ${agg.warnings.map(w => `<p class="text-sm text-amber-700 pl-6">• ${w}</p>`).join('')}
+    `;
+    wrapEl.insertBefore(wDiv, wrapEl.firstChild);
+  }
+
+  // Indicador de confiabilidad de muestra
+  const sampleBadge = {
+    reliable:     { text: 'Muestra confiable (≥30 dominios)',    cls: 'bg-green-100 text-green-700' },
+    indicative:   { text: 'Muestra indicativa (10–29 dominios)', cls: 'bg-amber-100 text-amber-700' },
+    insufficient: { text: 'Muestra insuficiente (<10 dominios)', cls: 'bg-gray-100 text-gray-500'   },
+  }[agg.sampleStatus] || { text: '', cls: '' };
+
   // Semáforo
-  const sc = SEMAPHORE_CFG[agg.semaphore];
+  const sc = SEMAPHORE_CFG[agg.semaphore] || SEMAPHORE_CFG.insufficient;
   const sb = document.getElementById('batch-semaphore-block');
   sb.style.borderColor = sc.border;
   sb.style.background  = sc.bg;
   document.getElementById('batch-semaphore-dot').style.background = sc.dot;
   document.getElementById('batch-semaphore-label').textContent = sc.label;
-  document.getElementById('batch-semaphore-desc').textContent  = sc.desc;
+  document.getElementById('batch-semaphore-desc').textContent  =
+    agg.sampleStatus !== 'reliable'
+      ? sc.desc + ` — ${sampleBadge.text}`
+      : sc.desc;
 
   // Métricas
   document.getElementById('bm-adoption').textContent   = agg.adoptionRate !== null ? agg.adoptionRate + '%' : 'N/D';
   document.getElementById('bm-total').textContent      = agg.total;
   document.getElementById('bm-structural').textContent = agg.structural;
   document.getElementById('bm-actionable').textContent = agg.actionable;
+
+  // Indicador de muestra bajo las métricas
+  const metricsEl = document.getElementById('bm-adoption').closest('.grid');
+  const existingBadge = document.getElementById('batch-sample-badge');
+  if (existingBadge) existingBadge.remove();
+  if (sampleBadge.text) {
+    const badge = document.createElement('div');
+    badge.id = 'batch-sample-badge';
+    badge.className = `mt-2 text-center text-xs font-medium px-3 py-1 rounded-full inline-block ${sampleBadge.cls}`;
+    badge.textContent = sampleBadge.text;
+    metricsEl.insertAdjacentElement('afterend', badge);
+  }
 
   // Barras de distribución
   const barsEl = document.getElementById('batch-status-bars');
@@ -2247,12 +2350,19 @@ function renderBatchResults(agg, results) {
       </div>`;
   }
 
-  // Recomendaciones
-  const rec = POLICY_RECS[agg.profile] || POLICY_RECS.mixed;
-  document.getElementById('batch-rec-profile').textContent = 'Perfil: ' + rec.profile + ' · País: ' + agg.country;
-  document.getElementById('batch-rec-policy').innerHTML    = rec.policy.map(a => `<li>${a}</li>`).join('');
-  document.getElementById('batch-rec-capacity').innerHTML  = rec.capacity.map(a => `<li>${a}</li>`).join('');
-  document.getElementById('batch-recommendations-block').classList.remove('hidden');
+  // Recomendaciones — solo si muestra mínima
+  const recBlock = document.getElementById('batch-recommendations-block');
+  if (agg.sampleStatus === 'insufficient') {
+    recBlock.classList.add('hidden');
+  } else {
+    const rec = POLICY_RECS[agg.profile] || POLICY_RECS.mixed;
+    document.getElementById('batch-rec-profile').textContent =
+      'Perfil: ' + rec.profile + ' · ' + agg.country +
+      (agg.sampleStatus === 'indicative' ? ' · (indicativo — muestra pequeña)' : '');
+    document.getElementById('batch-rec-policy').innerHTML    = rec.policy.map(a => `<li>${a}</li>`).join('');
+    document.getElementById('batch-rec-capacity').innerHTML  = rec.capacity.map(a => `<li>${a}</li>`).join('');
+    recBlock.classList.remove('hidden');
+  }
 
   // Tabla detalle
   const tbody = document.getElementById('batch-table-body');
@@ -2263,8 +2373,12 @@ function renderBatchResults(agg, results) {
     const cfg = STATUS_LABELS[s] || { label: s, color: '#555', bg: '#eee' };
     const risk = d?.executive_summary?.risk_level || '—';
     const conf = d?.assessment_meta?.confidence || '—';
+    const tipo = classifyDomain(r?.domain || '');
+    const tipoBadge = tipo === 'generic'
+      ? '<span class="ml-1 text-xs text-gray-400">(genérico)</span>'
+      : tipo === 'country' ? '' : '';
     return `<tr class="hover:bg-gray-50">
-      <td class="px-4 py-2 font-mono text-xs">${r?.domain || ''}</td>
+      <td class="px-4 py-2 font-mono text-xs">${r?.domain || ''}${tipoBadge}</td>
       <td class="px-4 py-2">
         <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}</span>
       </td>
@@ -2306,8 +2420,14 @@ function dnssecBatchExport(format) {
 
   if (format === 'html') {
     const agg = _batchAggregate;
-    const sc  = SEMAPHORE_CFG[agg.semaphore];
+    const sc  = SEMAPHORE_CFG[agg.semaphore] || SEMAPHORE_CFG.insufficient;
     const rec = POLICY_RECS[agg.profile] || POLICY_RECS.mixed;
+    const warningsHtml = agg.warnings && agg.warnings.length
+      ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;margin:16px 0">
+          <div style="font-weight:600;color:#92400e;margin-bottom:6px">⚠ Advertencias sobre esta muestra</div>
+          ${agg.warnings.map(w => `<p style="font-size:13px;color:#92400e;margin:3px 0">• ${w}</p>`).join('')}
+         </div>` : '';
+    const sampleLabel = { reliable: 'Muestra confiable (≥30)', indicative: 'Muestra indicativa (10–29)', insufficient: 'Muestra insuficiente (<10)' }[agg.sampleStatus] || '';
     const barsHtml = Object.entries(STATUS_LABELS).map(([s, cfg]) => {
       const count = agg.counts[s] || 0;
       const pct   = agg.total > 0 ? Math.round(count / agg.total * 100) : 0;
@@ -2322,10 +2442,11 @@ function dnssecBatchExport(format) {
 <body>
 <h1>Reporte DNSSEC — ${agg.country}</h1>
 <p style="color:#6b7280;font-size:13px">Mediciones ISOC LAC · Generado: ${new Date().toLocaleString('es-EC')}</p>
+${warningsHtml}
 <div class="sem"><div class="dot"></div><div><div style="font-size:17px;font-weight:600">${sc.label}</div><div style="font-size:13px;color:#555;margin-top:2px">${sc.desc}</div></div></div>
 <div class="grid">
   <div class="card"><div class="val" style="color:#1d4ed8">${agg.adoptionRate !== null ? agg.adoptionRate+'%' : 'N/D'}</div><div class="lbl">Adopción DNSSEC</div></div>
-  <div class="card"><div class="val">${agg.total}</div><div class="lbl">Dominios analizados</div></div>
+  <div class="card"><div class="val">${agg.total}</div><div class="lbl">Dominios analizados</div><div style="font-size:10px;color:#6b7280;margin-top:2px">${sampleLabel}</div></div>
   <div class="card"><div class="val" style="color:#c2410c">${agg.structural}</div><div class="lbl">Barrera estructural</div></div>
   <div class="card"><div class="val" style="color:#a16207">${agg.actionable}</div><div class="lbl">Barrera accionable</div></div>
 </div>
