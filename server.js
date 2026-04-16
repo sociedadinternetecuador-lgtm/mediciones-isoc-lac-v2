@@ -13,6 +13,9 @@ const { validateDomainInput } = require("./logic/validators/domain.validator");
 const { getDnssecAnalysis } = require("./services/dnssec.service");
 const { processDnssecAnalysis } = require("./logic/processors/dnssec.processor");
 const { buildZoneChain } = require("./logic/builders/zoneChain.builder");
+const { handleAggregateRequest } = require('./aggregate/routes/aggregate.routes');
+const { handleZonemasterRequest } = require('./aggregate/zonemaster/zonemaster.routes');
+const { handleObservatoryRequest } = require('./aggregate/observatory.routes');
 const dnsPacket = require('dns-packet'); 
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -2610,7 +2613,25 @@ if (parsed.pathname === "/dnssec-analysis") {
     return handleScreenshot(segments[1], res);
 
   // Ruta no encontrada
-  sendJSON(res, 404, { error: 'Not found' });
+
+
+
+  // Observatorio DNSSEC — sistema completo con histórico
+  if (parsed.pathname.startsWith('/obs')) {
+    return handleObservatoryRequest(req, res, parsed);
+  }
+
+  // Módulo Zonemaster — análisis DNSSEC profundo
+  if (parsed.pathname.startsWith('/zm')) {
+    return handleZonemasterRequest(req, res, parsed);
+  }
+
+  // Módulo agregado DNSSEC
+  if (parsed.pathname.startsWith('/aggregate')) {
+    return handleAggregateRequest(req, res, parsed);
+  }
+
+    sendJSON(res, 404, { error: 'Not found' });
 });
 
 const PORT = process.env.PORT || 8080;

@@ -106,6 +106,15 @@
       DNSSEC
     </button>
 
+    <button
+      id="tabBtnObservatorio"
+      type="button"
+      class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="observatorio"
+    >
+      OBSERVATORIO
+    </button>
+
   </div>
 </div>
 
@@ -472,6 +481,219 @@
 
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════ OBSERVATORIO -->
+<section
+  id="tabPanelObservatorio"
+  class="tab-panel hidden mb-8 mt-2 rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm"
+  data-panel="observatorio"
+>
+  <div class="mb-5">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h2 class="text-xl font-bold text-gray-900">Observatorio DNSSEC — LAC</h2>
+        <p class="text-sm text-gray-500 mt-1">Análisis periódico, histórico y biblioteca de reportes por país.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button disabled title="Guía en preparación — disponible próximamente"
+          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold opacity-40 cursor-not-allowed border border-indigo-300 text-indigo-700 bg-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
+          </svg>
+          Descargar guía Observatorio
+        </button>
+        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-600 text-white shadow-sm">Nuevo</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-pestañas del observatorio -->
+  <div class="flex gap-2 mb-5 border-b border-indigo-200 pb-0">
+    <button id="obs-tab-new" onclick="obsSwitchTab('new')"
+      class="obs-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-indigo-200 border-b-0 bg-white text-indigo-700 -mb-px">
+      Nuevo análisis
+    </button>
+    <button id="obs-tab-library" onclick="obsSwitchTab('library')"
+      class="obs-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-transparent text-gray-500 hover:text-indigo-600 transition">
+      Biblioteca de reportes
+    </button>
+    <button id="obs-tab-history" onclick="obsSwitchTab('history')"
+      class="obs-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-transparent text-gray-500 hover:text-indigo-600 transition">
+      Historial
+    </button>
+  </div>
+
+  <!-- Panel: Nuevo análisis -->
+  <div id="obs-panel-new">
+    <!-- Motor -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Motor de análisis</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <label id="obs-engine-doh-card" onclick="obsSelectEngine('doh')"
+          class="cursor-pointer border-2 border-indigo-500 bg-white rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <input type="radio" name="obs-engine" value="doh" checked class="mt-1">
+            <div>
+              <div class="font-semibold text-gray-800">Motor rápido — DoH</div>
+              <div class="text-xs text-gray-500 mt-1">2–5 seg/dominio · análisis estructural · resultados en minutos</div>
+              <div class="text-xs text-indigo-600 mt-1">Ideal para screening inicial</div>
+            </div>
+          </div>
+        </label>
+        <label id="obs-engine-zm-card" onclick="obsSelectEngine('zonemaster')"
+          class="cursor-pointer border-2 border-gray-200 bg-white rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <input type="radio" name="obs-engine" value="zonemaster" class="mt-1">
+            <div>
+              <div class="font-semibold text-gray-800">Motor completo — Zonemaster</div>
+              <div class="text-xs text-gray-500 mt-1">30–90 seg/dominio · validación criptográfica · horas para 500 dominios</div>
+              <div class="text-xs text-green-600 mt-1">Recomendado para reportes oficiales</div>
+            </div>
+          </div>
+        </label>
+      </div>
+      <div id="obs-zm-status" class="mt-2 text-xs text-gray-400 hidden"></div>
+    </div>
+
+    <!-- Etiqueta -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Etiqueta del análisis
+        <span class="text-gray-400 font-normal ml-1">— título del reporte</span>
+      </label>
+      <input id="obs-label" type="text" placeholder="Ej: Ecuador — dominios .gob.ec — Abril 2026"
+        class="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"/>
+    </div>
+
+    <!-- Dominios -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Lista de dominios</label>
+      <div class="mb-2 flex items-center gap-3 flex-wrap">
+        <label class="cursor-pointer inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
+          </svg>
+          Subir archivo .txt o .csv
+          <input id="obs-file-input" type="file" accept=".txt,.csv" class="hidden" onchange="obsLoadFile(this)"/>
+        </label>
+        <span id="obs-file-name" class="text-xs text-green-600 hidden"></span>
+      </div>
+      <textarea id="obs-domains-input" rows="6"
+        placeholder="sri.gob.ec&#10;msp.gob.ec&#10;mef.gob.ec&#10;mintel.gob.ec&#10;…"
+        class="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y"></textarea>
+      <div class="flex justify-between mt-1">
+        <span id="obs-domain-count" class="text-xs text-gray-400">0 dominios</span>
+        <span class="text-xs text-gray-400">Máx. recomendado: 500 (DoH) · 200 (Zonemaster)</span>
+      </div>
+    </div>
+
+    <button onclick="obsStartAnalysis()"
+      class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-indigo-700 active:scale-95 transition text-sm">
+      Iniciar análisis
+    </button>
+
+    <!-- Estado del job en curso -->
+    <div id="obs-job-status" class="hidden mt-6 bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div id="obs-job-spinner" class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <div>
+          <div id="obs-job-label" class="font-semibold text-gray-800"></div>
+          <div id="obs-job-engine" class="text-xs text-gray-500"></div>
+        </div>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+        <div id="obs-job-bar" class="bg-indigo-600 h-2 rounded-full transition-all" style="width:0%"></div>
+      </div>
+      <div class="flex justify-between text-xs text-gray-500">
+        <span id="obs-job-progress-text">Iniciando…</span>
+        <span id="obs-job-pct">0%</span>
+      </div>
+      <div id="obs-job-last" class="text-xs text-gray-400 mt-1"></div>
+      <div id="obs-job-done" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div class="text-sm font-semibold text-green-800 mb-2">Análisis completado</div>
+        <div class="flex gap-2 flex-wrap">
+          <a id="obs-export-html" href="#" target="_blank"
+            class="text-sm bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 transition">
+            Ver reporte HTML
+          </a>
+          <a id="obs-export-csv" href="#"
+            class="text-sm border border-gray-300 px-4 py-1.5 rounded-lg hover:bg-gray-50 transition">
+            Descargar CSV
+          </a>
+          <a id="obs-export-json" href="#"
+            class="text-sm border border-gray-300 px-4 py-1.5 rounded-lg hover:bg-gray-50 transition">
+            Descargar JSON
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerta de duplicado -->
+    <div id="obs-duplicate-alert" class="hidden mt-6 bg-amber-50 border border-amber-300 rounded-xl p-5">
+      <div class="font-semibold text-amber-800 mb-1">Esta lista ya fue analizada</div>
+      <div id="obs-duplicate-msg" class="text-sm text-amber-700 mb-3"></div>
+      <div class="flex gap-2 flex-wrap">
+        <a id="obs-dup-html" href="#" target="_blank"
+          class="text-sm bg-amber-600 text-white px-4 py-1.5 rounded-lg hover:bg-amber-700 transition">
+          Ver reporte existente
+        </a>
+        <a id="obs-dup-csv" href="#"
+          class="text-sm border border-amber-300 px-4 py-1.5 rounded-lg hover:bg-amber-50 transition">
+          Descargar CSV
+        </a>
+        <button onclick="obsForceAnalysis()"
+          class="text-sm border border-gray-300 px-4 py-1.5 rounded-lg hover:bg-gray-50 transition">
+          Forzar nuevo análisis
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Biblioteca de reportes -->
+  <div id="obs-panel-library" class="hidden">
+    <div class="mb-4 flex items-center justify-between">
+      <p class="text-sm text-gray-600">Reportes disponibles para descarga — sin necesidad de subir dominios.</p>
+      <button onclick="obsLoadLibrary()" class="text-xs text-indigo-600 hover:underline">Actualizar</button>
+    </div>
+    <div id="obs-library-loading" class="text-sm text-gray-400 py-4 text-center">Cargando…</div>
+    <div id="obs-library-content" class="hidden space-y-3"></div>
+    <div id="obs-library-empty" class="hidden text-sm text-gray-400 py-8 text-center">
+      No hay reportes disponibles aún. Ejecuta el primer análisis para comenzar la biblioteca.
+    </div>
+  </div>
+
+  <!-- Panel: Historial -->
+  <div id="obs-panel-history" class="hidden">
+    <div class="mb-4 flex items-center gap-3">
+      <input id="obs-history-filter" type="text" placeholder="Filtrar por país…"
+        oninput="obsFilterHistory(this.value)"
+        class="border border-gray-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none w-48"/>
+      <button onclick="obsLoadHistory()" class="text-xs text-indigo-600 hover:underline">Actualizar</button>
+    </div>
+    <div id="obs-history-loading" class="text-sm text-gray-400 py-4 text-center">Cargando…</div>
+    <div id="obs-history-table" class="hidden overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+          <tr>
+            <th class="px-4 py-2 text-left">Etiqueta</th>
+            <th class="px-4 py-2 text-left">Motor</th>
+            <th class="px-4 py-2 text-left">Dominios</th>
+            <th class="px-4 py-2 text-left">Semáforo</th>
+            <th class="px-4 py-2 text-left">Adopción</th>
+            <th class="px-4 py-2 text-left">Fecha</th>
+            <th class="px-4 py-2 text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="obs-history-body" class="divide-y divide-gray-100 bg-white"></tbody>
+      </table>
+    </div>
+    <div id="obs-history-empty" class="hidden text-sm text-gray-400 py-8 text-center">
+      No hay análisis en el historial.
+    </div>
+  </div>
+
+</section>
+
 <section
   id="tabPanelMediciones"
   class="tab-panel block mt-2"
@@ -1950,6 +2172,335 @@ function mapBlockingLevel(value) {
     unknown: "No determinado"
   };
   return map[value] || value || "No determinado";
+}
+</script>
+<script>
+// ═══════════════════════════════════════════════════ OBSERVATORIO DNSSEC LAC
+
+// ─── Sub-pestañas ─────────────────────────────────────────────────────────────
+
+function obsSwitchTab(tab) {
+  ['new','library','history'].forEach(t => {
+    document.getElementById('obs-panel-' + t).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById('obs-tab-' + t);
+    if (t === tab) {
+      btn.classList.add('bg-white','text-indigo-700','border-indigo-200','border','border-b-0','-mb-px');
+      btn.classList.remove('text-gray-500');
+    } else {
+      btn.classList.remove('bg-white','text-indigo-700','border-indigo-200','border','border-b-0','-mb-px');
+      btn.classList.add('text-gray-500');
+    }
+  });
+  if (tab === 'library') obsLoadLibrary();
+  if (tab === 'history')  obsLoadHistory();
+}
+
+// ─── Selección de motor ───────────────────────────────────────────────────────
+
+let _obsEngine = 'doh';
+
+function obsSelectEngine(engine) {
+  _obsEngine = engine;
+  document.getElementById('obs-engine-doh-card').classList.toggle('border-indigo-500', engine === 'doh');
+  document.getElementById('obs-engine-doh-card').classList.toggle('border-gray-200',   engine !== 'doh');
+  document.getElementById('obs-engine-zm-card').classList.toggle('border-indigo-500',  engine === 'zonemaster');
+  document.getElementById('obs-engine-zm-card').classList.toggle('border-gray-200',    engine !== 'zonemaster');
+
+  if (engine === 'zonemaster') {
+    const statusEl = document.getElementById('obs-zm-status');
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = 'Verificando disponibilidad de Zonemaster…';
+    fetch('/obs/zonemaster/status').then(r => r.json()).then(data => {
+      statusEl.textContent = data.available
+        ? `Zonemaster disponible · ${data.mode} · ${JSON.stringify(data.version || {})}`
+        : `Zonemaster no disponible: ${data.error}`;
+      statusEl.className = 'mt-2 text-xs ' + (data.available ? 'text-green-600' : 'text-red-500');
+    }).catch(() => {
+      statusEl.textContent = 'No se pudo verificar Zonemaster';
+      statusEl.className = 'mt-2 text-xs text-red-500';
+    });
+  } else {
+    document.getElementById('obs-zm-status').classList.add('hidden');
+  }
+}
+
+// ─── Carga de archivo ─────────────────────────────────────────────────────────
+
+document.getElementById('obs-domains-input').addEventListener('input', function() {
+  const domains = obsParsDomains(this.value);
+  document.getElementById('obs-domain-count').textContent = domains.length + ' dominios';
+});
+
+function obsParsDomains(text) {
+  return text.split(/[\n,;]+/).map(d => d.trim().toLowerCase()).filter(d => d.includes('.'));
+}
+
+function obsLoadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('obs-domains-input').value = e.target.result;
+    const domains = obsParsDomains(e.target.result);
+    document.getElementById('obs-domain-count').textContent = domains.length + ' dominios';
+    const fn = document.getElementById('obs-file-name');
+    fn.textContent = '✓ ' + file.name + ' — ' + domains.length + ' dominios';
+    fn.classList.remove('hidden');
+  };
+  reader.readAsText(file);
+}
+
+// ─── Iniciar análisis ─────────────────────────────────────────────────────────
+
+let _obsLastDomains = [];
+let _obsForce = false;
+let _obsCurrentJobId = null;
+let _obsEvtSource = null;
+
+async function obsStartAnalysis(force = false) {
+  const label   = document.getElementById('obs-label').value.trim();
+  const domains = obsParsDomains(document.getElementById('obs-domains-input').value);
+
+  if (!label) { alert('Ingresa una etiqueta para el análisis.'); return; }
+  if (domains.length === 0) { alert('Ingresa al menos un dominio.'); return; }
+
+  _obsLastDomains = domains;
+
+  document.getElementById('obs-duplicate-alert').classList.add('hidden');
+
+  const body = { label, domains, engine: _obsEngine };
+  if (force) body.force = true;
+
+  const res  = await fetch('/obs/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+
+  if (data.duplicate) {
+    obsShowDuplicate(data);
+    return;
+  }
+
+  _obsCurrentJobId = data.jobId;
+  obsShowJobStatus(data);
+  obsListenProgress(data.jobId);
+}
+
+function obsForceAnalysis() {
+  document.getElementById('obs-duplicate-alert').classList.add('hidden');
+  obsStartAnalysis(true);
+}
+
+// ─── Duplicado ────────────────────────────────────────────────────────────────
+
+function obsShowDuplicate(data) {
+  const el = document.getElementById('obs-duplicate-alert');
+  document.getElementById('obs-duplicate-msg').textContent = data.message;
+  const prev = data.previous;
+  document.getElementById('obs-dup-html').href = `/obs/job/${prev.jobId}/export?format=html`;
+  document.getElementById('obs-dup-csv').href  = `/obs/job/${prev.jobId}/export?format=csv`;
+  el.classList.remove('hidden');
+}
+
+// ─── Estado del job ───────────────────────────────────────────────────────────
+
+function obsShowJobStatus(data) {
+  const el = document.getElementById('obs-job-status');
+  document.getElementById('obs-job-label').textContent  = data.label;
+  document.getElementById('obs-job-engine').textContent =
+    data.engine === 'zonemaster'
+      ? `Motor Zonemaster · ~${data.estimatedMinutes} min estimados`
+      : `Motor DoH · ~${data.estimatedMinutes} min estimados`;
+  document.getElementById('obs-job-done').classList.add('hidden');
+  document.getElementById('obs-job-bar').style.width = '0%';
+  document.getElementById('obs-job-pct').textContent  = '0%';
+  document.getElementById('obs-job-progress-text').textContent = 'Iniciando…';
+  el.classList.remove('hidden');
+}
+
+function obsListenProgress(jobId) {
+  if (_obsEvtSource) _obsEvtSource.close();
+  _obsEvtSource = new EventSource(`/obs/job/${jobId}/progress`);
+
+  _obsEvtSource.onmessage = e => {
+    const data = JSON.parse(e.data);
+
+    if (data.event === 'progress') {
+      document.getElementById('obs-job-bar').style.width = data.percent + '%';
+      document.getElementById('obs-job-pct').textContent  = data.percent + '%';
+      document.getElementById('obs-job-progress-text').textContent =
+        `${data.processed} de ${data.total} dominios`;
+      if (data.lastDomain)
+        document.getElementById('obs-job-last').textContent = 'Último: ' + data.lastDomain;
+    }
+
+    if (data.event === 'done') {
+      document.getElementById('obs-job-bar').style.width = '100%';
+      document.getElementById('obs-job-pct').textContent  = '100%';
+      document.getElementById('obs-job-progress-text').textContent = 'Completado';
+      document.getElementById('obs-job-spinner').classList.add('hidden');
+
+      const doneEl = document.getElementById('obs-job-done');
+      document.getElementById('obs-export-html').href = `/obs/job/${jobId}/export?format=html`;
+      document.getElementById('obs-export-csv').href  = `/obs/job/${jobId}/export?format=csv`;
+      document.getElementById('obs-export-json').href = `/obs/job/${jobId}/export?format=json`;
+      doneEl.classList.remove('hidden');
+
+      _obsEvtSource.close();
+    }
+
+    if (data.event === 'error') {
+      document.getElementById('obs-job-progress-text').textContent = 'Error: ' + data.message;
+      document.getElementById('obs-job-spinner').classList.add('hidden');
+      _obsEvtSource.close();
+    }
+  };
+}
+
+// ─── Biblioteca ───────────────────────────────────────────────────────────────
+
+const SEM_COLORS = {
+  green:  { dot: '#16a34a', label: 'Verde' },
+  yellow: { dot: '#ca8a04', label: 'Amarillo' },
+  red:    { dot: '#dc2626', label: 'Rojo' },
+};
+
+async function obsLoadLibrary() {
+  document.getElementById('obs-library-loading').classList.remove('hidden');
+  document.getElementById('obs-library-content').classList.add('hidden');
+  document.getElementById('obs-library-empty').classList.add('hidden');
+
+  try {
+    const res  = await fetch('/obs/library');
+    const data = await res.json();
+
+    const countries = data.countries || [];
+    const loading   = document.getElementById('obs-library-loading');
+    const content   = document.getElementById('obs-library-content');
+    const empty     = document.getElementById('obs-library-empty');
+
+    if (countries.length === 0) {
+      loading.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    content.innerHTML = countries.map(a => {
+      const sem = SEM_COLORS[a.semaphore] || { dot: '#9ca3af', label: '—' };
+      const date = a.completedAt
+        ? new Date(a.completedAt).toLocaleDateString('es-EC')
+        : new Date(a.createdAt).toLocaleDateString('es-EC');
+      return `
+        <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full flex-shrink-0" style="background:${sem.dot}"></div>
+            <div>
+              <div class="font-semibold text-gray-800 text-sm">${a.label || a.country}</div>
+              <div class="text-xs text-gray-500">${a.totalDomains} dominios · ${a.engine?.toUpperCase()} · ${date}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <a href="/obs/job/${a.jobId}/export?format=html" target="_blank"
+              class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">
+              Reporte HTML
+            </a>
+            <a href="/obs/job/${a.jobId}/export?format=csv"
+              class="text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+              CSV
+            </a>
+          </div>
+        </div>`;
+    }).join('');
+
+    loading.classList.add('hidden');
+    content.classList.remove('hidden');
+  } catch(e) {
+    document.getElementById('obs-library-loading').textContent = 'Error cargando la biblioteca.';
+  }
+}
+
+// ─── Historial ────────────────────────────────────────────────────────────────
+
+let _obsAllHistory = [];
+
+async function obsLoadHistory() {
+  document.getElementById('obs-history-loading').classList.remove('hidden');
+  document.getElementById('obs-history-table').classList.add('hidden');
+  document.getElementById('obs-history-empty').classList.add('hidden');
+
+  try {
+    const res  = await fetch('/obs/history?limit=100');
+    const data = await res.json();
+    _obsAllHistory = data.analyses || [];
+    obsRenderHistory(_obsAllHistory);
+  } catch {
+    document.getElementById('obs-history-loading').textContent = 'Error cargando el historial.';
+  }
+}
+
+function obsFilterHistory(query) {
+  const filtered = query
+    ? _obsAllHistory.filter(a => (a.label || a.country || '').toLowerCase().includes(query.toLowerCase()))
+    : _obsAllHistory;
+  obsRenderHistory(filtered);
+}
+
+const STATUS_LABELS_OBS = {
+  completed: { text: 'Completado', cls: 'text-green-700 bg-green-50' },
+  running:   { text: 'En curso',   cls: 'text-blue-700 bg-blue-50'  },
+  failed:    { text: 'Error',      cls: 'text-red-700 bg-red-50'    },
+  pending:   { text: 'Pendiente',  cls: 'text-gray-600 bg-gray-100' },
+};
+
+function obsRenderHistory(list) {
+  const loading = document.getElementById('obs-history-loading');
+  const table   = document.getElementById('obs-history-table');
+  const empty   = document.getElementById('obs-history-empty');
+  const tbody   = document.getElementById('obs-history-body');
+
+  if (list.length === 0) {
+    loading.classList.add('hidden');
+    table.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  tbody.innerHTML = list.map(a => {
+    const sem     = SEM_COLORS[a.semaphore] || { dot: '#9ca3af', label: '—' };
+    const st      = STATUS_LABELS_OBS[a.status] || STATUS_LABELS_OBS.pending;
+    const date    = new Date(a.createdAt).toLocaleDateString('es-EC');
+    const actions = a.status === 'completed'
+      ? `<a href="/obs/job/${a.jobId}/export?format=html" target="_blank"
+           class="text-xs text-indigo-600 hover:underline">HTML</a>
+         <a href="/obs/job/${a.jobId}/export?format=csv"
+           class="text-xs text-gray-500 hover:underline ml-2">CSV</a>`
+      : `<span class="text-xs text-gray-400">${st.text}</span>`;
+
+    return `<tr class="hover:bg-gray-50">
+      <td class="px-4 py-2 text-sm font-medium text-gray-800">${a.label || a.country}</td>
+      <td class="px-4 py-2 text-xs text-gray-500">${(a.engine || 'doh').toUpperCase()}</td>
+      <td class="px-4 py-2 text-xs text-gray-500">${a.totalDomains}</td>
+      <td class="px-4 py-2">
+        ${a.semaphore
+          ? `<span class="inline-flex items-center gap-1.5 text-xs">
+               <span class="w-2.5 h-2.5 rounded-full" style="background:${sem.dot}"></span>
+               ${sem.label}
+             </span>`
+          : '<span class="text-xs text-gray-400">—</span>'}
+      </td>
+      <td class="px-4 py-2 text-xs text-gray-600">
+        ${a.adoptionPct !== undefined && a.adoptionPct !== null ? a.adoptionPct + '%' : '—'}
+      </td>
+      <td class="px-4 py-2 text-xs text-gray-500">${date}</td>
+      <td class="px-4 py-2">${actions}</td>
+    </tr>`;
+  }).join('');
+
+  loading.classList.add('hidden');
+  table.classList.remove('hidden');
+  empty.classList.add('hidden');
 }
 </script>
 <script>
