@@ -121,7 +121,7 @@
 
 <section
   id="tabPanelDnssec"
-  class="tab-panel hidden mb-8 mt-2 rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm"
+  class="tab-panel mb-8 mt-2 rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm" style="display:none"
   data-panel="dnssec"
 >
   <div class="mb-4">
@@ -495,7 +495,7 @@
 <!-- ═══════════════════════════════════════════════════════════ OBSERVATORIO -->
 <section
   id="tabPanelObservatorio"
-  class="tab-panel hidden mb-8 mt-2 rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm"
+  class="tab-panel mb-8 mt-2 rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm" style="display:none"
   data-panel="observatorio"
 >
   <div class="mb-5">
@@ -716,7 +716,7 @@
 
 <section
   id="tabPanelMediciones"
-  class="tab-panel hidden mt-2"
+  class="tab-panel mt-2" style="display:none"
   data-panel="mediciones"
 >
 <div class="mb-8 mt-2 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
@@ -1965,8 +1965,7 @@ analyzeDnssecInline(domain);
 
       tabPanels.forEach((panel) => {
         const isActive = panel.dataset.panel === tabName;
-        panel.classList.toggle("hidden", !isActive);
-        panel.classList.toggle("block", isActive);
+        panel.style.display = isActive ? "block" : "none";
       });
     }
 
@@ -1974,7 +1973,6 @@ analyzeDnssecInline(domain);
       button.addEventListener("click", function () {
         activateTab(button.dataset.tab);
       });
-      
     });
 
     activateTab("mediciones");
