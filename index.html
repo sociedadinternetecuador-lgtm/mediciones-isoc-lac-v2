@@ -200,36 +200,59 @@
 
   <!-- Panel: Análisis batch -->
   <div id="dnssec-panel-batch" class="hidden">
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700 mb-1">País / contexto</label>
-      <input id="batch-country" type="text" placeholder="Ej: Ecuador, Colombia, LAC…"
-        class="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-    </div>
+
+    <!-- País -->
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Lista de dominios
-        <span class="text-gray-400 font-normal ml-1">(uno por línea, o separados por coma)</span>
+        Etiqueta del reporte
+        <span class="text-gray-400 font-normal ml-1">— aparecerá como título en los archivos exportados</span>
       </label>
-      <textarea id="batch-domains-input" rows="7"
-        placeholder="sri.gob.ec&#10;msp.gob.ec&#10;mef.gob.ec&#10;mintel.gob.ec&#10;…"
+      <input id="batch-country" type="text" placeholder="Ej: Ecuador — dominios .gob.ec"
+        class="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+    </div>
+
+    <!-- Dominios: texto o archivo -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Lista de dominios
+      </label>
+
+      <!-- Subir archivo -->
+      <div class="mb-3 flex items-center gap-3 flex-wrap">
+        <label class="cursor-pointer inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
+          </svg>
+          Subir archivo .txt o .csv
+          <input id="batch-file-input" type="file" accept=".txt,.csv" class="hidden" onchange="dnssecLoadFile(this)" />
+        </label>
+        <span class="text-xs text-gray-400">Un dominio por línea, o separados por coma. Sin encabezados.</span>
+      </div>
+      <div id="batch-file-name" class="text-xs text-green-600 mb-2 hidden"></div>
+
+      <textarea id="batch-domains-input" rows="6"
+        placeholder="sri.gob.ec&#10;msp.gob.ec&#10;mef.gob.ec&#10;mintel.gob.ec&#10;senescyt.gob.ec&#10;…"
         class="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
       <div class="flex justify-between items-center mt-1">
         <span id="batch-domain-count" class="text-xs text-gray-400">0 dominios</span>
-        <span class="text-xs text-gray-400">Máximo recomendado: 500 dominios</span>
+        <span class="text-xs text-gray-400">Máximo recomendado: 500 dominios por análisis</span>
       </div>
     </div>
-    <div class="mb-4 flex items-center gap-3">
-      <label class="text-sm text-gray-600">Concurrencia:</label>
+
+    <!-- Concurrencia -->
+    <div class="mb-5 flex items-center gap-3">
+      <label class="text-sm text-gray-600">Velocidad:</label>
       <select id="batch-concurrency" class="border border-gray-300 rounded p-1 text-sm bg-white">
-        <option value="5">5 (conservador)</option>
-        <option value="10" selected>10 (recomendado)</option>
-        <option value="15">15 (rápido)</option>
+        <option value="5">Conservadora — 5 simultáneos</option>
+        <option value="10" selected>Recomendada — 10 simultáneos</option>
+        <option value="15">Rápida — 15 simultáneos</option>
       </select>
-      <span class="text-xs text-gray-400">análisis simultáneos</span>
     </div>
+
+    <!-- Botones acción -->
     <div class="flex gap-3 flex-wrap">
       <button id="batch-start-btn" onclick="dnssecBatchStart()"
-        class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm">
+        class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm">
         Iniciar análisis batch
       </button>
       <button id="batch-cancel-btn" onclick="dnssecBatchCancel()" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-200 transition">
@@ -304,19 +327,27 @@
       </div>
 
       <!-- Exportar -->
-      <div class="flex gap-3 flex-wrap">
-        <button onclick="dnssecBatchExport('json')"
-          class="text-sm border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-          Descargar JSON
-        </button>
-        <button onclick="dnssecBatchExport('csv')"
-          class="text-sm border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-          Descargar CSV
-        </button>
-        <button onclick="dnssecBatchExport('html')"
-          class="text-sm bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition">
-          Reporte HTML
-        </button>
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div class="text-sm font-semibold text-blue-800 mb-1">Exportar resultados</div>
+        <div class="text-xs text-blue-600 mb-3">Descarga los resultados del análisis en el formato que necesites.</div>
+        <div class="flex gap-3 flex-wrap">
+          <button onclick="dnssecBatchExport('csv')"
+            class="inline-flex items-center gap-2 bg-white border border-blue-300 text-blue-700 text-sm px-4 py-2 rounded-lg hover:bg-blue-100 transition font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            CSV — Excel / Sheets
+          </button>
+          <button onclick="dnssecBatchExport('html')"
+            class="inline-flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Reporte HTML — presentable
+          </button>
+          <button onclick="dnssecBatchExport('json')"
+            class="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            JSON — datos completos
+          </button>
+        </div>
+        <div class="text-xs text-blue-500 mt-2">El reporte HTML incluye semáforo, distribución, recomendaciones y tabla de dominios — listo para compartir.</div>
       </div>
 
       <!-- Tabla detalle -->
@@ -1923,6 +1954,23 @@ function mapBlockingLevel(value) {
 </script>
 <script>
 // ─── DNSSEC BATCH — Módulo de análisis por grupo de dominios ─────────────────
+
+// Cargar archivo .txt o .csv
+function dnssecLoadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    document.getElementById('batch-domains-input').value = text;
+    const domains = parseBatchDomains(text);
+    document.getElementById('batch-domain-count').textContent = domains.length + ' dominios';
+    const nameEl = document.getElementById('batch-file-name');
+    nameEl.textContent = '✓ Archivo cargado: ' + file.name + ' — ' + domains.length + ' dominios detectados';
+    nameEl.classList.remove('hidden');
+  };
+  reader.readAsText(file);
+}
 
 // Sub-pestañas
 function dnssecSwitchTab(tab) {
