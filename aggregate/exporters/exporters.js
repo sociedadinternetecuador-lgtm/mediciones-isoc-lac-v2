@@ -83,11 +83,82 @@ function statusBadge(status) {
   return `<span style="background:${s.bg};color:${s.color};padding:2px 8px;border-radius:4px;font-size:12px;font-family:monospace">${s.label}</span>`;
 }
 
-function buildHtmlReport({ country, aggregate, recommendations, results = [], regionData = null }) {
-  const sem = SEMAPHORE_COLORS[aggregate?.semaphore?.color] || SEMAPHORE_COLORS.unknown;
-  const adoptionPct = aggregate?.adoption?.rate ?? 'N/D';
-  const semLabel = aggregate?.semaphore?.label || '';
-  const generated = new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' });
+function buildHtmlReport({ country, aggregate, recommendations, results = [], regionData = null, engine = 'doh', analyzedAt = null }) {
+  const sem        = SEMAPHORE_COLORS[aggregate?.semaphore?.color] || SEMAPHORE_COLORS.unknown;
+  const adoptionPct= aggregate?.adoption?.rate ?? 'N/D';
+  const semLabel   = aggregate?.semaphore?.label || '';
+  const generated  = new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' });
+  const analysisDate = analyzedAt
+    ? new Date(analyzedAt).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil', year:'numeric', month:'long', day:'numeric' })
+    : generated;
+
+  // ── Advertencias ──────────────────────────────────────────────────────────
+  const warnings = aggregate?.warnings || [];
+
+  // Muestra pequeña
+  const sampleStatus = aggregate?.sampleStatus || 'reliable';
+  const sampleWarning = {
+    insufficient: `<strong>Muestra insuficiente (${aggregate?.total || 0} dominios):</strong> Se necesitan al menos 10 dominios para un resultado indicativo y 30 para uno confiable. El semáforo y las recomendaciones no se pueden emitir con esta muestra.`,
+    indicative:   `<strong>Muestra pequeña (${aggregate?.total || 0} dominios):</strong> El resultado es indicativo, no concluyente. Se recomiendan al menos 30 dominios para un criterio de madurez confiable.`,
+    reliable:     null,
+  }[sampleStatus];
+
+  // Dominios genéricos
+  const genericCount  = aggregate?.genericDomains || 0;
+  const countryCount  = aggregate?.countryDomains  || 0;
+  const totalAnalyzed = aggregate?.total || results.length;
+  const genericPct    = totalAnalyzed > 0 ? Math.round(genericCount / totalAnalyzed * 100) : 0;
+
+  let genericWarning = null;
+  if (genericCount > 0 && countryCount > 0) {
+    genericWarning = `<strong>Lista mixta:</strong> ${countryCount} dominio${countryCount !== 1 ? 's' : ''} de país (ccTLD) y ${genericCount} genérico${genericCount !== 1 ? 's' : ''} (.com, .net, .org, etc. — ${genericPct}% del total). Los dominios genéricos no dependen de la infraestructura ccTLD nacional y pueden distorsionar las métricas de madurez del país.`;
+  } else if (genericCount > 0 && countryCount === 0) {
+    genericWarning = `<strong>Solo dominios genéricos:</strong> Todos los ${genericCount} dominios analizados son .com, .net, .org u otros TLDs genéricos. Este análisis no refleja el estado DNSSEC de un país — los dominios genéricos no tienen dependencia de la infraestructura ccTLD nacional.`;
+  }
+
+  // Construir bloque de advertencias
+  const allWarnings = [sampleWarning, genericWarning, ...warnings].filter(Boolean);
+  const warningsBlock = allWarnings.length > 0 ? `
+<div style="background:#fffbeb;border:2px solid #fcd34d;border-radius:8px;padding:16px 20px;margin:0 0 24px">
+  <div style="font-weight:600;color:#92400e;margin-bottom:8px;font-size:14px">Advertencias sobre esta muestra</div>
+  ${allWarnings.map(w => `<p style="font-size:13px;color:#78350f;margin:4px 0">• ${w}</p>`).join('')}
+</div>` : '';
+
+  // ── Dominio genérico en tabla ─────────────────────────────────────────────
+  const GENERIC_TLDS = new Set(['com','net','org','io','co','info','biz','edu','int','gov','mil','mobi','name','pro']);
+  function domainType(domain) {
+    const parts = (domain || '').split('.');
+    const tld = parts[parts.length - 1]?.toLowerCase();
+    if (!tld) return 'unknown';
+    if (tld.length === 2) return 'country';
+    if (GENERIC_TLDS.has(tld)) return 'generic';
+    return 'other';
+  }
+
+  const domainRows = results.slice(0, 200).map(r => {
+    const d    = r?.dnssec || {};
+    const tipo = domainType(r?.domain);
+    const genericBadge = tipo === 'generic'
+      ? '<span style="font-size:10px;color:#9ca3af;margin-left:4px">(genérico)</span>'
+      : '';
+    return `<tr>
+      <td style="padding:4px 10px;font-family:monospace;font-size:13px">${r?.domain || ''}${genericBadge}</td>
+      <td style="padding:4px 10px">${statusBadge(d?.final_status)}</td>
+      <td style="padding:4px 10px;font-size:12px;color:#555">${d?.assessment_meta?.confidence || ''}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Disclaimer correcto por motor ─────────────────────────────────────────
+  const engineLabel = engine === 'zonemaster'
+    ? 'Motor: <strong>Zonemaster</strong> — validación criptográfica completa (DNSSEC01–DNSSEC17).'
+    : 'Motor: <strong>DoH estructural</strong> — análisis de evidencia observable en DNS. No realiza validación criptográfica completa; complementar con Zonemaster para reportes oficiales.';
+
+  // ── Indicador de confiabilidad ────────────────────────────────────────────
+  const sampleBadgeHtml = {
+    reliable:     '<span style="background:#dcfce7;color:#166534;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500">Muestra confiable (≥30 dominios)</span>',
+    indicative:   '<span style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500">Muestra indicativa (10–29 dominios)</span>',
+    insufficient: '<span style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500">Muestra insuficiente (&lt;10 dominios)</span>',
+  }[sampleStatus] || '';
 
   const statusRows = Object.entries(aggregate?.status_distribution || {})
     .map(([s, count]) => `
@@ -97,21 +168,9 @@ function buildHtmlReport({ country, aggregate, recommendations, results = [], re
         <td style="padding:6px 12px;text-align:right;color:#666">${aggregate?.total_domains > 0 ? Math.round(count / aggregate.total_domains * 100) + '%' : '-'}</td>
       </tr>`).join('');
 
-  const policyItems = (recommendations?.policy_actions || [])
-    .map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
-  const capacityItems = (recommendations?.capacity_actions || [])
-    .map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
-  const regionalItems = (recommendations?.regional_coordination || [])
-    .map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
-
-  const domainRows = results.slice(0, 200).map(r => {
-    const d = r?.dnssec || {};
-    return `<tr>
-      <td style="padding:4px 10px;font-family:monospace;font-size:13px">${r?.domain || ''}</td>
-      <td style="padding:4px 10px">${statusBadge(d?.final_status)}</td>
-      <td style="padding:4px 10px;font-size:12px;color:#555">${d?.assessment_meta?.confidence || ''}</td>
-    </tr>`;
-  }).join('');
+  const policyItems   = (recommendations?.policy_actions   || []).map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
+  const capacityItems = (recommendations?.capacity_actions  || []).map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
+  const regionalItems = (recommendations?.regional_coordination || []).map(a => `<li style="margin-bottom:6px">${a}</li>`).join('');
 
   const rankingRows = (regionData?.ranking || []).slice(0, 20).map(r => `
     <tr>
@@ -152,7 +211,10 @@ function buildHtmlReport({ country, aggregate, recommendations, results = [], re
 <body>
 
 <h1>Reporte DNSSEC — ${country?.toUpperCase()}</h1>
-<p style="color:#666;margin:0 0 24px;font-size:14px">Mediciones ISOC LAC · Generado: ${generated}</p>
+<p style="color:#666;margin:0 0 4px;font-size:14px">Mediciones ISOC LAC · Fecha de análisis: ${analysisDate}</p>
+<p style="color:#666;margin:0 0 20px;font-size:13px">${engineLabel}</p>
+
+${warningsBlock}
 
 <div class="semaphore-box">
   <div class="semaphore-dot"></div>
@@ -171,6 +233,7 @@ function buildHtmlReport({ country, aggregate, recommendations, results = [], re
   <div class="metric">
     <div class="metric-value">${aggregate?.total_domains || 0}</div>
     <div class="metric-label">Dominios analizados</div>
+    <div style="margin-top:6px">${sampleBadgeHtml}</div>
   </div>
   <div class="metric">
     <div class="metric-value">${aggregate?.barriers?.structural || 0}</div>
@@ -200,9 +263,9 @@ function buildHtmlReport({ country, aggregate, recommendations, results = [], re
   </div>
 </div>
 
-${recommendations ? `
+${recommendations && sampleStatus !== 'insufficient' ? `
 <h2>Recomendaciones de política pública</h2>
-<p style="color:#555;font-size:14px">Perfil del país: <strong>${recommendations.profile_label}</strong> · Urgencia: <strong>${recommendations.urgency}</strong></p>
+<p style="color:#555;font-size:14px">Perfil del país: <strong>${recommendations.profile_label}</strong> · Urgencia: <strong>${recommendations.urgency}</strong>${sampleStatus === 'indicative' ? ' · <em>Resultado indicativo — muestra pequeña</em>' : ''}</p>
 <p style="color:#555;font-size:14px">Actor principal: ${recommendations.primary_actor}</p>
 
 <h3>Acciones de política</h3>
@@ -213,7 +276,11 @@ ${recommendations ? `
 
 <h3>Coordinación regional</h3>
 <ul>${regionalItems}</ul>
-` : ''}
+` : sampleStatus === 'insufficient' ? `
+<h2>Recomendaciones de política pública</h2>
+<p style="color:#92400e;font-size:14px;background:#fffbeb;padding:12px;border-radius:6px">
+  La muestra es insuficiente para emitir recomendaciones de política diferenciadas. Analice al menos 30 dominios representativos del país.
+</p>` : ''}
 
 ${regionData ? `
 <h2>Posición regional — LAC</h2>
@@ -226,6 +293,7 @@ ${regionData ? `
 
 ${results.length > 0 ? `
 <h2>Detalle por dominio${results.length > 200 ? ' (primeros 200)' : ''}</h2>
+${genericCount > 0 ? `<p style="font-size:12px;color:#9ca3af;margin:0 0 8px">Los dominios marcados como (genérico) son .com, .net, .org u otros TLDs globales — no dependen de la infraestructura ccTLD del país analizado.</p>` : ''}
 <table>
   <thead><tr><th>Dominio</th><th>Estado</th><th>Confianza</th></tr></thead>
   <tbody>${domainRows}</tbody>
@@ -234,7 +302,10 @@ ${results.length > 0 ? `
 
 <div class="footer">
   <p>Mediciones ISOC LAC — Sistema de análisis DNSSEC para América Latina y el Caribe.</p>
-  <p>Este reporte evalúa evidencia estructural observable en DNS, no validación criptográfica completa.</p>
+  <p>${engine === 'zonemaster'
+    ? 'Análisis realizado con Zonemaster — validación criptográfica completa de la cadena DNSSEC.'
+    : 'Análisis estructural mediante DoH (DNS over HTTPS). Para validación criptográfica completa, usar Zonemaster.'}</p>
+  <p>Los resultados reflejan el estado en el momento del análisis y pueden variar con el tiempo.</p>
 </div>
 </body>
 </html>`;
