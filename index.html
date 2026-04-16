@@ -164,35 +164,184 @@
 </div>   
   </div>
 
-  <form id="dnssec-quick-form" novalidate>
-    <label for="dnssec-domain-input" class="block text-sm font-medium text-gray-700 mb-2">
-      Dominio a analizar
-    </label>
+  <!-- Sub-pestañas modo individual / batch -->
+  <div class="flex gap-2 mb-5 border-b border-blue-200 pb-0">
+    <button id="dnssec-tab-single" onclick="dnssecSwitchTab('single')"
+      class="dnssec-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-blue-200 border-b-0 bg-white text-blue-700 -mb-px">
+      Un dominio
+    </button>
+    <button id="dnssec-tab-batch" onclick="dnssecSwitchTab('batch')"
+      class="dnssec-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-transparent text-gray-500 hover:text-blue-600 transition">
+      Análisis batch
+    </button>
+  </div>
 
-    <div class="flex flex-col md:flex-row gap-3">
-      <input
-        id="dnssec-domain-input"
-        type="text"
-        placeholder="Ejemplo: isoc.org"
-        autocomplete="off"
-        spellcheck="false"
-        class="flex-1 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      />
+  <!-- Panel: Un dominio (original) -->
+  <div id="dnssec-panel-single">
+    <form id="dnssec-quick-form" novalidate>
+      <label for="dnssec-domain-input" class="block text-sm font-medium text-gray-700 mb-2">
+        Dominio a analizar
+      </label>
+      <div class="flex flex-col md:flex-row gap-3">
+        <input id="dnssec-domain-input" type="text" placeholder="Ejemplo: isoc.org"
+          autocomplete="off" spellcheck="false"
+          class="flex-1 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+        <button type="submit"
+          class="inline-flex items-center justify-center whitespace-nowrap bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition">
+          Analizar DNSSEC
+        </button>
+      </div>
+      <div id="dnssec-domain-error" class="text-red-600 text-sm mt-2 min-h-[20px]"></div>
+      <div class="mt-3 text-xs text-gray-500">
+        Ingrese solo el dominio. No es necesario escribir http://, https:// ni rutas.
+      </div>
+    </form>
+  </div>
 
-      <button
-        type="submit"
-        class="inline-flex items-center justify-center whitespace-nowrap bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition"
-      >
-        Analizar DNSSEC
+  <!-- Panel: Análisis batch -->
+  <div id="dnssec-panel-batch" class="hidden">
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">País / contexto</label>
+      <input id="batch-country" type="text" placeholder="Ej: Ecuador, Colombia, LAC…"
+        class="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+    </div>
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Lista de dominios
+        <span class="text-gray-400 font-normal ml-1">(uno por línea, o separados por coma)</span>
+      </label>
+      <textarea id="batch-domains-input" rows="7"
+        placeholder="sri.gob.ec&#10;msp.gob.ec&#10;mef.gob.ec&#10;mintel.gob.ec&#10;…"
+        class="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
+      <div class="flex justify-between items-center mt-1">
+        <span id="batch-domain-count" class="text-xs text-gray-400">0 dominios</span>
+        <span class="text-xs text-gray-400">Máximo recomendado: 500 dominios</span>
+      </div>
+    </div>
+    <div class="mb-4 flex items-center gap-3">
+      <label class="text-sm text-gray-600">Concurrencia:</label>
+      <select id="batch-concurrency" class="border border-gray-300 rounded p-1 text-sm bg-white">
+        <option value="5">5 (conservador)</option>
+        <option value="10" selected>10 (recomendado)</option>
+        <option value="15">15 (rápido)</option>
+      </select>
+      <span class="text-xs text-gray-400">análisis simultáneos</span>
+    </div>
+    <div class="flex gap-3 flex-wrap">
+      <button id="batch-start-btn" onclick="dnssecBatchStart()"
+        class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm">
+        Iniciar análisis batch
+      </button>
+      <button id="batch-cancel-btn" onclick="dnssecBatchCancel()" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-200 transition">
+        Cancelar
       </button>
     </div>
 
-    <div id="dnssec-domain-error" class="text-red-600 text-sm mt-2 min-h-[20px]"></div>
-
-    <div class="mt-3 text-xs text-gray-500">
-      Ingrese solo el dominio. No es necesario escribir http://, https:// ni rutas.
+    <!-- Progreso -->
+    <div id="batch-progress-wrap" class="hidden mt-6">
+      <div class="flex justify-between text-sm text-gray-600 mb-1">
+        <span id="batch-progress-label">Procesando…</span>
+        <span id="batch-progress-pct">0%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div id="batch-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
+      <div class="mt-2 text-xs text-gray-400" id="batch-last-domain"></div>
     </div>
-  </form>
+
+    <!-- Resultados batch -->
+    <div id="batch-results-wrap" class="hidden mt-6 space-y-5">
+
+      <!-- Semáforo + métricas -->
+      <div id="batch-semaphore-block" class="rounded-xl border-2 p-5">
+        <div class="flex items-center gap-4 mb-3">
+          <div id="batch-semaphore-dot" class="w-12 h-12 rounded-full flex-shrink-0"></div>
+          <div>
+            <div id="batch-semaphore-label" class="text-lg font-bold"></div>
+            <div id="batch-semaphore-desc" class="text-sm text-gray-600"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          <div class="bg-white rounded-lg border p-3 text-center">
+            <div id="bm-adoption" class="text-2xl font-bold text-blue-700">—</div>
+            <div class="text-xs text-gray-500 mt-1">Adopción DNSSEC</div>
+          </div>
+          <div class="bg-white rounded-lg border p-3 text-center">
+            <div id="bm-total" class="text-2xl font-bold text-gray-700">—</div>
+            <div class="text-xs text-gray-500 mt-1">Dominios analizados</div>
+          </div>
+          <div class="bg-white rounded-lg border p-3 text-center">
+            <div id="bm-structural" class="text-2xl font-bold text-orange-600">—</div>
+            <div class="text-xs text-gray-500 mt-1">Barrera estructural</div>
+          </div>
+          <div class="bg-white rounded-lg border p-3 text-center">
+            <div id="bm-actionable" class="text-2xl font-bold text-yellow-600">—</div>
+            <div class="text-xs text-gray-500 mt-1">Barrera accionable</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distribución de estados -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h4 class="font-semibold text-gray-800 mb-3">Distribución de estados DNSSEC</h4>
+        <div id="batch-status-bars" class="space-y-2"></div>
+      </div>
+
+      <!-- Recomendaciones -->
+      <div id="batch-recommendations-block" class="bg-white rounded-xl border border-gray-200 p-5 hidden">
+        <h4 class="font-semibold text-gray-800 mb-1">Recomendaciones de política pública</h4>
+        <p id="batch-rec-profile" class="text-sm text-gray-500 mb-3"></p>
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Acciones de política</div>
+            <ul id="batch-rec-policy" class="list-disc pl-5 text-sm text-gray-700 space-y-1"></ul>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Capacitación</div>
+            <ul id="batch-rec-capacity" class="list-disc pl-5 text-sm text-gray-700 space-y-1"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exportar -->
+      <div class="flex gap-3 flex-wrap">
+        <button onclick="dnssecBatchExport('json')"
+          class="text-sm border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          Descargar JSON
+        </button>
+        <button onclick="dnssecBatchExport('csv')"
+          class="text-sm border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          Descargar CSV
+        </button>
+        <button onclick="dnssecBatchExport('html')"
+          class="text-sm bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition">
+          Reporte HTML
+        </button>
+      </div>
+
+      <!-- Tabla detalle -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+          <h4 class="font-semibold text-gray-800 text-sm">Detalle por dominio</h4>
+          <span id="batch-table-count" class="text-xs text-gray-400"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+              <tr>
+                <th class="px-4 py-2 text-left">Dominio</th>
+                <th class="px-4 py-2 text-left">Estado</th>
+                <th class="px-4 py-2 text-left">Riesgo</th>
+                <th class="px-4 py-2 text-left">Confianza</th>
+              </tr>
+            </thead>
+            <tbody id="batch-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </section>
 <div id="dnssec-inline-result" class="mt-6 hidden">
   <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -449,12 +598,17 @@
     });
 
     function initMap() {
+        if (typeof L === 'undefined' || map) return;
         map = L.map('map').setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
     }
-    initMap();
+    if (typeof L !== 'undefined') {
+        initMap();
+    } else {
+        window.addEventListener('load', initMap);
+    }
 
     function clearMap() {
         mapMarkers.forEach(m => map.removeLayer(m));
@@ -463,6 +617,8 @@
 
     async function updateMap(domains) {
         if (!domains.length) return;
+        initMap();
+        if (!map) return;
         clearMap();
         mapDiv.classList.remove('hidden');
         map.invalidateSize();
@@ -1763,6 +1919,388 @@ function mapBlockingLevel(value) {
     unknown: "No determinado"
   };
   return map[value] || value || "No determinado";
+}
+</script>
+<script>
+// ─── DNSSEC BATCH — Módulo de análisis por grupo de dominios ─────────────────
+
+// Sub-pestañas
+function dnssecSwitchTab(tab) {
+  const single = document.getElementById('dnssec-panel-single');
+  const batch  = document.getElementById('dnssec-panel-batch');
+  const tSingle = document.getElementById('dnssec-tab-single');
+  const tBatch  = document.getElementById('dnssec-tab-batch');
+  const result  = document.getElementById('dnssec-inline-result');
+
+  if (tab === 'single') {
+    single.classList.remove('hidden');
+    batch.classList.add('hidden');
+    tSingle.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tBatch.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tBatch.classList.add('text-gray-500');
+  } else {
+    batch.classList.remove('hidden');
+    single.classList.add('hidden');
+    result.classList.add('hidden');
+    tBatch.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tBatch.classList.remove('text-gray-500');
+    tSingle.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tSingle.classList.add('text-gray-500');
+  }
+}
+
+// Contar dominios en tiempo real
+document.getElementById('batch-domains-input').addEventListener('input', function() {
+  const domains = parseBatchDomains(this.value);
+  document.getElementById('batch-domain-count').textContent = domains.length + ' dominios';
+});
+
+function parseBatchDomains(text) {
+  return text.split(/[\n,;]+/)
+    .map(d => d.trim().toLowerCase())
+    .filter(d => d.length > 0 && d.includes('.'));
+}
+
+function normalizeBatchDomain(value) {
+  return value.trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0].split('?')[0].split('#')[0]
+    .replace(/:\d+$/, '').replace(/\.$/, '');
+}
+
+// Estado global del batch
+let _batchCancelled = false;
+let _batchResults   = [];
+let _batchErrors    = [];
+let _batchCountry   = '';
+let _batchAggregate = null;
+
+async function dnssecBatchStart() {
+  const raw = document.getElementById('batch-domains-input').value;
+  const domains = parseBatchDomains(raw);
+  if (domains.length === 0) {
+    alert('Ingresa al menos un dominio.');
+    return;
+  }
+
+  _batchCountry   = document.getElementById('batch-country').value.trim() || 'sin especificar';
+  _batchCancelled = false;
+  _batchResults   = [];
+  _batchErrors    = [];
+  _batchAggregate = null;
+
+  const concurrency = parseInt(document.getElementById('batch-concurrency').value) || 10;
+
+  document.getElementById('batch-start-btn').classList.add('hidden');
+  document.getElementById('batch-cancel-btn').classList.remove('hidden');
+  document.getElementById('batch-progress-wrap').classList.remove('hidden');
+  document.getElementById('batch-results-wrap').classList.add('hidden');
+
+  setProgress(0, domains.length, '');
+
+  // Ejecutar con cola de concurrencia controlada
+  const queue = [...domains];
+  let processed = 0;
+  const total = domains.length;
+
+  const worker = async () => {
+    while (queue.length > 0 && !_batchCancelled) {
+      const domain = normalizeBatchDomain(queue.shift());
+      try {
+        const res = await fetch(`/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json`, {
+          headers: { Accept: 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          _batchResults.push(data);
+        } else {
+          _batchErrors.push({ domain, error: `HTTP ${res.status}` });
+        }
+      } catch (e) {
+        _batchErrors.push({ domain, error: e.message });
+      }
+      processed++;
+      setProgress(processed, total, domain);
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(concurrency, domains.length) }, () => worker());
+  await Promise.all(workers);
+
+  document.getElementById('batch-cancel-btn').classList.add('hidden');
+  document.getElementById('batch-start-btn').classList.remove('hidden');
+
+  if (!_batchCancelled) {
+    _batchAggregate = computeAggregate(_batchResults, _batchErrors, _batchCountry);
+    renderBatchResults(_batchAggregate, _batchResults);
+  }
+}
+
+function dnssecBatchCancel() {
+  _batchCancelled = true;
+  document.getElementById('batch-progress-label').textContent = 'Cancelado.';
+  document.getElementById('batch-cancel-btn').classList.add('hidden');
+  document.getElementById('batch-start-btn').classList.remove('hidden');
+}
+
+function setProgress(done, total, lastDomain) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('batch-progress-bar').style.width = pct + '%';
+  document.getElementById('batch-progress-pct').textContent = pct + '%';
+  document.getElementById('batch-progress-label').textContent =
+    `Procesando: ${done} de ${total}`;
+  if (lastDomain)
+    document.getElementById('batch-last-domain').textContent = 'Último: ' + lastDomain;
+}
+
+// ─── Agregación (cliente, sin servidor) ──────────────────────────────────────
+
+const STATUS_LABELS = {
+  ok:               { label: 'OK — DNSSEC correcto',        color: '#15803d', bg: '#dcfce7' },
+  not_implemented:  { label: 'No implementado',              color: '#92400e', bg: '#fef3c7' },
+  misconfigured:    { label: 'Mal configurado',              color: '#991b1b', bg: '#fee2e2' },
+  blocked_at_tld:   { label: 'Bloqueado en TLD',             color: '#5b21b6', bg: '#ede9fe' },
+  blocked_at_parent:{ label: 'Bloqueado en zona padre',      color: '#1e3a8a', bg: '#dbeafe' },
+  indeterminate:    { label: 'Indeterminado',                color: '#374151', bg: '#f3f4f6' },
+  non_existent:     { label: 'No existe',                    color: '#6b7280', bg: '#f9fafb' }
+};
+
+const SEMAPHORE_CFG = {
+  green:  { dot: '#16a34a', border: '#bbf7d0', bg: '#f0fdf4', label: 'Madurez verde — adopción sólida',   desc: 'Adopción ≥ 40% y barreras estructurales < 20%' },
+  yellow: { dot: '#ca8a04', border: '#fde68a', bg: '#fffbeb', label: 'Madurez amarilla — adopción parcial', desc: 'Adopción 10–39% o barreras mixtas' },
+  red:    { dot: '#dc2626', border: '#fecaca', bg: '#fff1f2', label: 'Madurez roja — adopción crítica',    desc: 'Adopción < 10% o bloqueo estructural dominante' }
+};
+
+const POLICY_RECS = {
+  tld_blocked: {
+    profile: 'TLD sin firmar — barrera estructural externa',
+    policy: [
+      'Gestionar ante el registry ccTLD la firma DNSSEC de la zona raíz del país.',
+      'Incluir firma DNSSEC del TLD como requisito en el marco regulatorio de Internet.',
+      'Coordinar con LACNIC e ICANN para asistencia técnica y financiera.'
+    ],
+    capacity: [
+      'Capacitar al equipo del registry en operaciones DNSSEC (KSK/ZSK rollover).',
+      'Realizar talleres con LACTLD y LACNOG sobre gestión de claves.'
+    ]
+  },
+  low_capacity: {
+    profile: 'Capacidad técnica baja — adopción accionable pero sin avance',
+    policy: [
+      'Emitir directiva ministerial que establezca DNSSEC como requisito para dominios del Estado.',
+      'Incluir DNSSEC en pliegos técnicos de adquisición de hosting y registro de dominios.',
+      'Crear incentivos para registrars que ofrezcan DNSSEC activado por defecto.'
+    ],
+    capacity: [
+      'Desarrollar programa de certificación DNSSEC para administradores del sector público.',
+      'Crear materiales de capacitación en español adaptados al contexto LAC.',
+      'Organizar laboratorios técnicos con LACNOG para implementación práctica.'
+    ]
+  },
+  ready_to_adopt: {
+    profile: 'Listo para adoptar — infraestructura habilitada, operadores inactivos',
+    policy: [
+      'Difundir que el TLD ya soporta DNSSEC y que la implementación es posible hoy.',
+      'Incluir auditoría DNSSEC en los controles periódicos de seguridad del Estado.',
+      'Promover que los registrars locales activen DNSSEC por defecto.'
+    ],
+    capacity: [
+      'Webinars prácticos de "DNSSEC en 30 minutos" para administradores de dominios .gob.',
+      'Guía específica por registrar con capturas de pantalla del proceso.',
+      'Mesa de ayuda técnica DNSSEC habilitada por el organismo regulador.'
+    ]
+  },
+  leader: {
+    profile: 'Líder regional — adopción sólida, potencial de mentoría',
+    policy: [
+      'Mantener monitoreo de la tasa de adopción para detectar retrocesos.',
+      'Formalizar el proceso como política de Estado documentada.',
+      'Participar activamente en LACNIC, LACTLD, LACNOG.'
+    ],
+    capacity: [
+      'Documentar el proceso de adopción como caso de estudio replicable.',
+      'Ofrecer mentoría técnica a países con menor adopción.',
+      'Desarrollar materiales educativos y compartirlos con la comunidad LAC.'
+    ]
+  },
+  mixed: {
+    profile: 'Perfil mixto — barreras estructurales y accionables coexisten',
+    policy: [
+      'Realizar diagnóstico detallado separando dominios con barrera estructural de los accionables.',
+      'Priorizar acción en dominios accionables mientras se gestiona la barrera estructural.',
+      'Crear grupo de trabajo interinstitucional con registro, gobierno y sector privado.'
+    ],
+    capacity: [
+      'Capacitación diferenciada: técnica para operadores, coordinación para barreras estructurales.',
+      'Mapear qué registrars soportan DNSSEC para guiar a los operadores.',
+      'Desarrollar inventario nacional de dominios por estado DNSSEC.'
+    ]
+  }
+};
+
+function computeAggregate(results, errors, country) {
+  const counts = { ok:0, not_implemented:0, misconfigured:0, blocked_at_tld:0, blocked_at_parent:0, indeterminate:0, non_existent:0 };
+  for (const r of results) {
+    const s = r?.dnssec?.final_status;
+    if (s && counts[s] !== undefined) counts[s]++;
+    else counts.indeterminate++;
+  }
+  const eligible = counts.ok + counts.not_implemented + counts.misconfigured + counts.blocked_at_tld + counts.blocked_at_parent;
+  const adoptionRate = eligible > 0 ? Math.round(counts.ok / eligible * 1000) / 10 : null;
+  const structural = counts.blocked_at_tld + counts.blocked_at_parent;
+  const actionable = counts.not_implemented + counts.misconfigured;
+  const structuralPct = results.length > 0 ? Math.round(structural / results.length * 1000) / 10 : 0;
+
+  let semaphore = 'red';
+  if (adoptionRate !== null && adoptionRate >= 40 && structuralPct < 20) semaphore = 'green';
+  else if (adoptionRate !== null && adoptionRate >= 10 && structuralPct <= 60) semaphore = 'yellow';
+
+  let profile = 'mixed';
+  if (counts.blocked_at_tld > actionable) profile = 'tld_blocked';
+  else if (semaphore === 'green') profile = 'leader';
+  else if (adoptionRate !== null && adoptionRate < 5 && actionable > structural) profile = 'low_capacity';
+  else if (actionable >= structural && semaphore !== 'green') profile = 'ready_to_adopt';
+
+  return { country, counts, adoptionRate, structural, actionable, structuralPct, semaphore, profile, total: results.length, errors: errors.length };
+}
+
+function renderBatchResults(agg, results) {
+  document.getElementById('batch-results-wrap').classList.remove('hidden');
+
+  // Semáforo
+  const sc = SEMAPHORE_CFG[agg.semaphore];
+  const sb = document.getElementById('batch-semaphore-block');
+  sb.style.borderColor = sc.border;
+  sb.style.background  = sc.bg;
+  document.getElementById('batch-semaphore-dot').style.background = sc.dot;
+  document.getElementById('batch-semaphore-label').textContent = sc.label;
+  document.getElementById('batch-semaphore-desc').textContent  = sc.desc;
+
+  // Métricas
+  document.getElementById('bm-adoption').textContent   = agg.adoptionRate !== null ? agg.adoptionRate + '%' : 'N/D';
+  document.getElementById('bm-total').textContent      = agg.total;
+  document.getElementById('bm-structural').textContent = agg.structural;
+  document.getElementById('bm-actionable').textContent = agg.actionable;
+
+  // Barras de distribución
+  const barsEl = document.getElementById('batch-status-bars');
+  barsEl.innerHTML = '';
+  for (const [status, cfg] of Object.entries(STATUS_LABELS)) {
+    const count = agg.counts[status] || 0;
+    const pct   = agg.total > 0 ? Math.round(count / agg.total * 100) : 0;
+    barsEl.innerHTML += `
+      <div class="flex items-center gap-3">
+        <div class="w-40 text-xs text-gray-600 truncate">${cfg.label}</div>
+        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+          <div class="h-4 rounded-full transition-all" style="width:${pct}%;background:${cfg.color}"></div>
+        </div>
+        <div class="w-16 text-right text-xs text-gray-500">${count} (${pct}%)</div>
+      </div>`;
+  }
+
+  // Recomendaciones
+  const rec = POLICY_RECS[agg.profile] || POLICY_RECS.mixed;
+  document.getElementById('batch-rec-profile').textContent = 'Perfil: ' + rec.profile + ' · País: ' + agg.country;
+  document.getElementById('batch-rec-policy').innerHTML    = rec.policy.map(a => `<li>${a}</li>`).join('');
+  document.getElementById('batch-rec-capacity').innerHTML  = rec.capacity.map(a => `<li>${a}</li>`).join('');
+  document.getElementById('batch-recommendations-block').classList.remove('hidden');
+
+  // Tabla detalle
+  const tbody = document.getElementById('batch-table-body');
+  document.getElementById('batch-table-count').textContent = results.length + ' dominios';
+  tbody.innerHTML = results.slice(0, 300).map(r => {
+    const d  = r?.dnssec || {};
+    const s  = d.final_status || 'indeterminate';
+    const cfg = STATUS_LABELS[s] || { label: s, color: '#555', bg: '#eee' };
+    const risk = d?.executive_summary?.risk_level || '—';
+    const conf = d?.assessment_meta?.confidence || '—';
+    return `<tr class="hover:bg-gray-50">
+      <td class="px-4 py-2 font-mono text-xs">${r?.domain || ''}</td>
+      <td class="px-4 py-2">
+        <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}</span>
+      </td>
+      <td class="px-4 py-2 text-xs text-gray-600">${risk}</td>
+      <td class="px-4 py-2 text-xs text-gray-600">${conf}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Exportación ─────────────────────────────────────────────────────────────
+
+function dnssecBatchExport(format) {
+  if (!_batchResults.length) { alert('No hay resultados para exportar.'); return; }
+
+  if (format === 'json') {
+    const blob = new Blob([JSON.stringify({ country: _batchCountry, aggregate: _batchAggregate, results: _batchResults, errors: _batchErrors }, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `dnssec-batch-${_batchCountry}-${Date.now()}.json`);
+    return;
+  }
+
+  if (format === 'csv') {
+    const headers = 'domain,final_status,risk_level,blocking_level,readiness,confidence,action_required';
+    const rows = _batchResults.map(r => {
+      const d = r?.dnssec || {};
+      return [
+        r?.domain || '',
+        d.final_status || '',
+        d?.executive_summary?.risk_level || '',
+        d?.blocking_level || '',
+        d?.readiness || '',
+        d?.assessment_meta?.confidence || '',
+        d?.executive_summary?.action_required ? 'si' : 'no'
+      ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    });
+    const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv;charset=utf-8' });
+    downloadBlob(blob, `dnssec-batch-${_batchCountry}-${Date.now()}.csv`);
+    return;
+  }
+
+  if (format === 'html') {
+    const agg = _batchAggregate;
+    const sc  = SEMAPHORE_CFG[agg.semaphore];
+    const rec = POLICY_RECS[agg.profile] || POLICY_RECS.mixed;
+    const barsHtml = Object.entries(STATUS_LABELS).map(([s, cfg]) => {
+      const count = agg.counts[s] || 0;
+      const pct   = agg.total > 0 ? Math.round(count / agg.total * 100) : 0;
+      return `<tr><td style="padding:4px 8px">${cfg.label}</td><td style="padding:4px 8px;text-align:right">${count}</td><td style="padding:4px 8px;text-align:right">${pct}%</td></tr>`;
+    }).join('');
+    const domainRows = _batchResults.slice(0, 300).map(r => {
+      const d = r?.dnssec || {};
+      return `<tr><td style="padding:3px 8px;font-family:monospace;font-size:12px">${r?.domain||''}</td><td style="padding:3px 8px;font-size:12px">${d.final_status||''}</td><td style="padding:3px 8px;font-size:12px">${d?.executive_summary?.risk_level||''}</td><td style="padding:3px 8px;font-size:12px">${d?.assessment_meta?.confidence||''}</td></tr>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte DNSSEC — ${agg.country}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:0 auto;padding:24px;color:#111}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 10px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#f9fafb;padding:6px 8px;text-align:left;font-size:12px;color:#6b7280}td{border-top:1px solid #f3f4f6}ul{margin:4px 0;padding-left:20px}li{margin-bottom:4px;font-size:13px}.sem{padding:16px 20px;border-radius:8px;border:2px solid ${sc.border};background:${sc.bg};display:flex;align-items:center;gap:16px;margin:16px 0}.dot{width:40px;height:40px;border-radius:50%;background:${sc.dot};flex-shrink:0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.card{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:12px;text-align:center}.val{font-size:26px;font-weight:600}.lbl{font-size:11px;color:#6b7280;margin-top:2px}.footer{margin-top:32px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:12px}</style></head>
+<body>
+<h1>Reporte DNSSEC — ${agg.country}</h1>
+<p style="color:#6b7280;font-size:13px">Mediciones ISOC LAC · Generado: ${new Date().toLocaleString('es-EC')}</p>
+<div class="sem"><div class="dot"></div><div><div style="font-size:17px;font-weight:600">${sc.label}</div><div style="font-size:13px;color:#555;margin-top:2px">${sc.desc}</div></div></div>
+<div class="grid">
+  <div class="card"><div class="val" style="color:#1d4ed8">${agg.adoptionRate !== null ? agg.adoptionRate+'%' : 'N/D'}</div><div class="lbl">Adopción DNSSEC</div></div>
+  <div class="card"><div class="val">${agg.total}</div><div class="lbl">Dominios analizados</div></div>
+  <div class="card"><div class="val" style="color:#c2410c">${agg.structural}</div><div class="lbl">Barrera estructural</div></div>
+  <div class="card"><div class="val" style="color:#a16207">${agg.actionable}</div><div class="lbl">Barrera accionable</div></div>
+</div>
+<h2>Distribución de estados</h2>
+<table><thead><tr><th>Estado</th><th>Dominios</th><th>%</th></tr></thead><tbody>${barsHtml}</tbody></table>
+<h2>Recomendaciones — ${rec.profile}</h2>
+<p style="font-size:13px;color:#555">Acciones de política pública:</p><ul>${rec.policy.map(a=>`<li>${a}</li>`).join('')}</ul>
+<p style="font-size:13px;color:#555;margin-top:12px">Capacitación:</p><ul>${rec.capacity.map(a=>`<li>${a}</li>`).join('')}</ul>
+<h2>Detalle por dominio${_batchResults.length > 300 ? ' (primeros 300)' : ''}</h2>
+<table><thead><tr><th>Dominio</th><th>Estado</th><th>Riesgo</th><th>Confianza</th></tr></thead><tbody>${domainRows}</tbody></table>
+<div class="footer"><p>Mediciones ISOC LAC — Sistema de análisis DNSSEC para América Latina y el Caribe.</p><p>Este reporte evalúa evidencia estructural observable en DNS, no validación criptográfica completa.</p></div>
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    downloadBlob(blob, `reporte-dnssec-${agg.country}-${Date.now()}.html`);
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 </script>
 </body>
