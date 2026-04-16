@@ -246,6 +246,16 @@
         <span id="batch-domain-count" class="text-xs text-gray-400">0 dominios</span>
         <span class="text-xs text-gray-400">Máximo recomendado: 500 dominios por análisis</span>
       </div>
+      <div id="batch-generic-warning" class="hidden mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div class="flex items-center justify-between gap-3">
+          <p id="batch-generic-msg" class="text-xs text-amber-700"></p>
+          <button onclick="batchFilterGeneric()"
+            class="flex-shrink-0 text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition font-medium">
+            Dejar solo dominios nacionales
+          </button>
+        </div>
+      </div>
+      </div>
     </div>
 
     <!-- Concurrencia -->
@@ -584,6 +594,16 @@
       <div class="flex justify-between mt-1">
         <span id="obs-domain-count" class="text-xs text-gray-400">0 dominios</span>
         <span class="text-xs text-gray-400">Máx. recomendado: 500 (DoH) · 200 (Zonemaster)</span>
+      </div>
+      <div id="obs-generic-warning" class="hidden mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div class="flex items-center justify-between gap-3">
+          <p id="obs-generic-msg" class="text-xs text-amber-700"></p>
+          <button onclick="obsFilterGeneric()"
+            class="flex-shrink-0 text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition font-medium">
+            Dejar solo dominios nacionales
+          </button>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -2227,12 +2247,36 @@ function obsSelectEngine(engine) {
 // ─── Carga de archivo ─────────────────────────────────────────────────────────
 
 document.getElementById('obs-domains-input').addEventListener('input', function() {
-  const domains = obsParsDomains(this.value);
-  document.getElementById('obs-domain-count').textContent = domains.length + ' dominios';
+  obsUpdateDomainCount(this.value);
 });
 
 function obsParsDomains(text) {
   return text.split(/[\n,;]+/).map(d => d.trim().toLowerCase()).filter(d => d.includes('.'));
+}
+
+function obsUpdateDomainCount(text) {
+  const domains = obsParsDomains(text);
+  const generic = domains.filter(d => classifyDomainType(d) === 'generic');
+  const country = domains.filter(d => classifyDomainType(d) === 'country');
+  document.getElementById('obs-domain-count').textContent = domains.length + ' dominios';
+  const warnEl = document.getElementById('obs-generic-warning');
+  const msgEl  = document.getElementById('obs-generic-msg');
+  if (generic.length > 0) {
+    const pct = Math.round(generic.length / domains.length * 100);
+    msgEl.textContent = country.length > 0
+      ? `${generic.length} dominio${generic.length !== 1?'s':''} genérico${generic.length !== 1?'s':''} (.com .net .org, etc.) — ${pct}% del total. Pueden distorsionar las métricas nacionales.`
+      : `Todos los dominios son genéricos (.com .net .org, etc.) — no representan la infraestructura ccTLD de ningún país.`;
+    warnEl.classList.remove('hidden');
+  } else {
+    warnEl.classList.add('hidden');
+  }
+}
+
+function obsFilterGeneric() {
+  const text     = document.getElementById('obs-domains-input').value;
+  const filtered = obsParsDomains(text).filter(d => classifyDomainType(d) !== 'generic');
+  document.getElementById('obs-domains-input').value = filtered.join('\n');
+  obsUpdateDomainCount(filtered.join('\n'));
 }
 
 function obsLoadFile(input) {
@@ -2241,8 +2285,8 @@ function obsLoadFile(input) {
   const reader = new FileReader();
   reader.onload = e => {
     document.getElementById('obs-domains-input').value = e.target.result;
+    obsUpdateDomainCount(e.target.result);
     const domains = obsParsDomains(e.target.result);
-    document.getElementById('obs-domain-count').textContent = domains.length + ' dominios';
     const fn = document.getElementById('obs-file-name');
     fn.textContent = '✓ ' + file.name + ' — ' + domains.length + ' dominios';
     fn.classList.remove('hidden');
@@ -2514,9 +2558,9 @@ function dnssecLoadFile(input) {
   reader.onload = function(e) {
     const text = e.target.result;
     document.getElementById('batch-domains-input').value = text;
-    const domains = parseBatchDomains(text);
-    document.getElementById('batch-domain-count').textContent = domains.length + ' dominios';
+    batchUpdateDomainCount(text);
     const nameEl = document.getElementById('batch-file-name');
+    const domains = parseBatchDomains(text);
     nameEl.textContent = '✓ Archivo cargado: ' + file.name + ' — ' + domains.length + ' dominios detectados';
     nameEl.classList.remove('hidden');
   };
@@ -2548,10 +2592,44 @@ function dnssecSwitchTab(tab) {
   }
 }
 
+// Clasificación de dominios
+const GENERIC_TLDS_SET = new Set(['com','net','org','io','info','biz','edu','int','mil','mobi','name','pro','aero','coop','tel']);
+function classifyDomainType(domain) {
+  const tld = domain.split('.').pop()?.toLowerCase();
+  if (!tld) return 'unknown';
+  if (tld.length === 2) return 'country';
+  if (GENERIC_TLDS_SET.has(tld)) return 'generic';
+  return 'other';
+}
+
+function batchUpdateDomainCount(text) {
+  const domains  = parseBatchDomains(text);
+  const generic  = domains.filter(d => classifyDomainType(d) === 'generic');
+  const country  = domains.filter(d => classifyDomainType(d) === 'country');
+  document.getElementById('batch-domain-count').textContent = domains.length + ' dominios';
+  const warnEl = document.getElementById('batch-generic-warning');
+  const msgEl  = document.getElementById('batch-generic-msg');
+  if (generic.length > 0) {
+    const pct = Math.round(generic.length / domains.length * 100);
+    msgEl.textContent = country.length > 0
+      ? `${generic.length} dominio${generic.length !== 1?'s':''} genérico${generic.length !== 1?'s':''} (.com .net .org, etc.) — ${pct}% del total. Pueden distorsionar las métricas nacionales.`
+      : `Todos los dominios son genéricos (.com .net .org, etc.) — no representan la infraestructura ccTLD de ningún país.`;
+    warnEl.classList.remove('hidden');
+  } else {
+    warnEl.classList.add('hidden');
+  }
+}
+
+function batchFilterGeneric() {
+  const text     = document.getElementById('batch-domains-input').value;
+  const filtered = parseBatchDomains(text).filter(d => classifyDomainType(d) !== 'generic');
+  document.getElementById('batch-domains-input').value = filtered.join('\n');
+  batchUpdateDomainCount(filtered.join('\n'));
+}
+
 // Contar dominios en tiempo real
 document.getElementById('batch-domains-input').addEventListener('input', function() {
-  const domains = parseBatchDomains(this.value);
-  document.getElementById('batch-domain-count').textContent = domains.length + ' dominios';
+  batchUpdateDomainCount(this.value);
 });
 
 function parseBatchDomains(text) {
