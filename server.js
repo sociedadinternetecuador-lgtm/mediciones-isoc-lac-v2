@@ -1263,7 +1263,7 @@ function queryQuad9(domain) {
     }
   });
 }
- }
+ 
 
 
 async function handleBlock(domain, res) {
