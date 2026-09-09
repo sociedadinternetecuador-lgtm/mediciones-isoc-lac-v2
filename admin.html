@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Administración — Mediciones ISOC-LAC</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; }
+  .field-label { display:block; font-size:0.75rem; font-weight:600; color:#4b5563; margin-bottom:0.25rem; }
+  .field-input { width:100%; border:1px solid #d1d5db; border-radius:0.5rem; padding:0.5rem 0.75rem; font-size:0.875rem; }
+  .btn-primary { background:#2563eb; color:#fff; font-weight:600; font-size:0.875rem; padding:0.5rem 1rem; border-radius:0.5rem; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .btn-secondary { border:1px solid #d1d5db; font-weight:600; font-size:0.875rem; padding:0.5rem 1rem; border-radius:0.5rem; }
+  .btn-secondary:hover { background:#f9fafb; }
+  .btn-danger { color:#b91c1c; font-size:0.8rem; font-weight:600; }
+  .btn-danger:hover { text-decoration:underline; }
+</style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<div class="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8 my-8">
+
+  <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Administración</h1>
+      <p class="text-sm text-gray-500">Mediciones ISOC-LAC — Blog, Eventos y Material de capacitación</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/" class="text-sm text-blue-600 hover:underline">← Volver al portal</a>
+      <button id="logoutBtn" onclick="doLogout()" class="hidden btn-secondary">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- ═══ Login ═══════════════════════════════════════════════════════ -->
+  <div id="loginView" class="max-w-sm mx-auto py-10">
+    <h2 class="text-lg font-bold text-gray-900 mb-4 text-center">Iniciar sesión</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="field-label">Usuario</label>
+        <input id="loginUsername" type="text" class="field-input" autocomplete="username" />
+      </div>
+      <div>
+        <label class="field-label">Contraseña</label>
+        <div class="relative">
+          <input id="loginPassword" type="password" class="field-input pr-10" autocomplete="current-password" />
+          <button type="button" onclick="togglePasswordVisibility()" aria-label="Mostrar u ocultar contraseña"
+            class="absolute right-0 top-0 h-full px-3 flex items-center text-gray-400 hover:text-gray-600">
+            <svg id="loginPasswordEyeOpen" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <svg id="loginPasswordEyeClosed" class="hidden w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button onclick="doLogin()" class="btn-primary w-full">Entrar</button>
+      <p id="loginError" class="hidden text-sm text-red-600 text-center"></p>
+      <button type="button" onclick="toggleForgotPassword()" class="block w-full text-center text-xs text-blue-600 hover:underline">
+        ¿Olvidó su contraseña?
+      </button>
+
+      <div id="forgotPasswordBox" class="hidden border-t border-gray-200 pt-3 space-y-2">
+        <label class="field-label">Usuario</label>
+        <input id="forgotUsername" type="text" class="field-input" placeholder="Su usuario" />
+        <button onclick="doForgotPassword()" class="btn-secondary w-full">Enviar contraseña nueva por correo</button>
+        <p id="forgotPasswordMsg" class="hidden text-xs text-gray-600 text-center"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Panel ═══════════════════════════════════════════════════════ -->
+  <div id="panelView" class="hidden">
+    <div class="mb-4 text-sm text-gray-500">
+      Sesión: <strong id="whoamiLabel"></strong>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1.5 rounded-xl inline-flex">
+      <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="blog" onclick="switchAdminTab('blog')">Blog</button>
+      <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="events" onclick="switchAdminTab('events')">Eventos</button>
+      <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="materials" onclick="switchAdminTab('materials')">Material de capacitación</button>
+      <button id="usersTabBtn" class="admin-tab-btn hidden px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="users" onclick="switchAdminTab('users')">Usuarios</button>
+    </div>
+
+    <!-- Blog -->
+    <div id="adminPanel-blog" class="admin-panel hidden">
+      <form onsubmit="return createContent(event, 'blog')" class="border border-gray-200 rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2"><label class="field-label">Título *</label><input name="title" required maxlength="200" class="field-input" /></div>
+        <div class="md:col-span-2"><label class="field-label">Resumen *</label><textarea name="summary" required maxlength="500" rows="2" class="field-input"></textarea></div>
+        <div><label class="field-label">Enlace al artículo *</label><input name="url" type="url" required maxlength="2000" class="field-input" placeholder="https://..." /></div>
+        <div><label class="field-label">Categoría</label><input name="category" maxlength="60" class="field-input" placeholder="Opcional" /></div>
+        <div class="md:col-span-2"><button type="submit" class="btn-primary">Agregar artículo</button></div>
+      </form>
+      <div id="adminList-blog" class="space-y-3"></div>
+    </div>
+
+    <!-- Eventos -->
+    <div id="adminPanel-events" class="admin-panel hidden">
+      <form onsubmit="return createContent(event, 'events')" class="border border-gray-200 rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2"><label class="field-label">Título *</label><input name="title" required maxlength="200" class="field-input" /></div>
+        <div><label class="field-label">Fecha</label><input name="date" type="date" class="field-input" /></div>
+        <div><label class="field-label">Tipo</label><input name="type" maxlength="60" class="field-input" placeholder="Curso, seminario…" /></div>
+        <div class="md:col-span-2"><label class="field-label">Descripción</label><textarea name="description" maxlength="2000" rows="2" class="field-input"></textarea></div>
+        <div class="md:col-span-2"><label class="field-label">Enlace</label><input name="url" type="url" maxlength="2000" class="field-input" placeholder="https://..." /></div>
+        <div class="md:col-span-2"><button type="submit" class="btn-primary">Agregar evento</button></div>
+      </form>
+      <div id="adminList-events" class="space-y-3"></div>
+    </div>
+
+    <!-- Materiales -->
+    <div id="adminPanel-materials" class="admin-panel hidden">
+      <form onsubmit="return createContent(event, 'materials')" class="border border-gray-200 rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2"><label class="field-label">Título *</label><input name="title" required maxlength="200" class="field-input" /></div>
+        <div class="md:col-span-2"><label class="field-label">Detalle *</label><textarea name="description" required maxlength="2000" rows="2" class="field-input"></textarea></div>
+        <div><label class="field-label">Enlace (PDF o sitio) *</label><input name="url" type="url" required maxlength="2000" class="field-input" placeholder="https://..." /></div>
+        <div><label class="field-label">Categoría</label><input name="category" maxlength="60" class="field-input" placeholder="Guía, presentación…" /></div>
+        <div class="md:col-span-2"><button type="submit" class="btn-primary">Agregar material</button></div>
+      </form>
+      <div id="adminList-materials" class="space-y-3"></div>
+    </div>
+
+    <!-- Usuarios (solo super_admin) -->
+    <div id="adminPanel-users" class="admin-panel hidden">
+      <form onsubmit="return createUser(event)" class="border border-gray-200 rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div><label class="field-label">Usuario *</label><input name="username" required class="field-input" /></div>
+        <div><label class="field-label">Email *</label><input name="email" type="email" required class="field-input" placeholder="para enviarle su contraseña" /></div>
+        <div class="md:col-span-2">
+          <p class="text-xs text-gray-500 mb-2">La contraseña se genera automáticamente y se envía por correo a esta dirección — nunca se escribe aquí.</p>
+          <button type="submit" class="btn-primary">Crear administrador</button>
+        </div>
+      </form>
+      <div id="adminList-users" class="space-y-2"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+let currentUser = null;
+
+async function api(path, opts) {
+  const res = await fetch(path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
+  let data = {};
+  try { data = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, data };
+}
+
+function escapeHtml(text) {
+  return String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/"/g, '&quot;');
+}
+
+async function checkSession() {
+  const { ok, data } = await api('/admin/api/whoami');
+  if (ok) {
+    currentUser = data;
+    showPanel();
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('panelView').classList.add('hidden');
+  document.getElementById('logoutBtn').classList.add('hidden');
+}
+
+function showPanel() {
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('panelView').classList.remove('hidden');
+  document.getElementById('logoutBtn').classList.remove('hidden');
+  document.getElementById('whoamiLabel').textContent = `${currentUser.username} (${currentUser.role === 'super_admin' ? 'super administrador' : 'administrador'})`;
+  document.getElementById('usersTabBtn').classList.toggle('hidden', currentUser.role !== 'super_admin');
+  switchAdminTab('blog');
+}
+
+function togglePasswordVisibility() {
+  const input = document.getElementById('loginPassword');
+  const open = document.getElementById('loginPasswordEyeOpen');
+  const closed = document.getElementById('loginPasswordEyeClosed');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  open.classList.toggle('hidden', !showing);
+  closed.classList.toggle('hidden', showing);
+}
+
+function toggleForgotPassword() {
+  document.getElementById('forgotPasswordBox').classList.toggle('hidden');
+  document.getElementById('forgotPasswordMsg').classList.add('hidden');
+}
+
+async function doForgotPassword() {
+  const username = document.getElementById('forgotUsername').value.trim();
+  const msgEl = document.getElementById('forgotPasswordMsg');
+  if (!username) return;
+  await api('/admin/api/forgot-password', { method: 'POST', body: JSON.stringify({ username }) });
+  msgEl.textContent = 'Si el usuario existe, se envió un correo con una contraseña nueva.';
+  msgEl.classList.remove('hidden');
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.classList.add('hidden');
+
+  const { ok, status, data } = await api('/admin/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+  if (!ok) {
+    errorEl.textContent = status === 429
+      ? 'Demasiados intentos. Espere unos minutos antes de volver a intentar.'
+      : 'Usuario o contraseña incorrectos.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  currentUser = data;
+  showPanel();
+}
+
+async function doLogout() {
+  await api('/admin/api/logout', { method: 'POST' });
+  currentUser = null;
+  showLogin();
+}
+
+function switchAdminTab(tab) {
+  document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.classList.toggle('bg-white', btn.dataset.tab === tab);
+    btn.classList.toggle('shadow-sm', btn.dataset.tab === tab);
+    btn.classList.toggle('text-blue-700', btn.dataset.tab === tab);
+    btn.classList.toggle('text-gray-600', btn.dataset.tab !== tab);
+  });
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById(`adminPanel-${tab}`).classList.remove('hidden');
+
+  if (tab === 'users') loadUsers();
+  else loadContentList(tab);
+}
+
+async function loadContentList(type) {
+  const container = document.getElementById(`adminList-${type}`);
+  container.innerHTML = '<p class="text-sm text-gray-400">Cargando…</p>';
+  const { ok, data } = await api(`/admin/api/content/${type}`);
+  if (!ok) { container.innerHTML = '<p class="text-sm text-red-600">No se pudo cargar el contenido.</p>'; return; }
+
+  const items = data.items || [];
+  if (!items.length) { container.innerHTML = '<p class="text-sm text-gray-400 italic">Aún no hay elementos.</p>'; return; }
+
+  container.innerHTML = items.map(item => `
+    <div class="border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-3 flex-wrap">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-semibold text-gray-900">${escapeHtml(item.title)}</span>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${item.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
+            ${item.published ? 'Publicado' : 'Borrador'}
+          </span>
+        </div>
+        <p class="text-sm text-gray-500 mt-1 break-words">${escapeHtml(item.summary || item.description || '')}</p>
+        ${item.url ? `<a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline break-all">${escapeHtml(item.url)}</a>` : ''}
+      </div>
+      <div class="flex flex-col gap-1.5 items-end shrink-0">
+        <button onclick="togglePublish('${type}', '${item.id}', ${!item.published})" class="text-xs font-semibold text-blue-600 hover:underline">
+          ${item.published ? 'Pasar a borrador' : 'Publicar'}
+        </button>
+        <button onclick="deleteContent('${type}', '${item.id}')" class="btn-danger">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createContent(event, type) {
+  event.preventDefault();
+  const form = event.target;
+  const body = Object.fromEntries(new FormData(form).entries());
+  const { ok, data } = await api(`/admin/api/content/${type}`, { method: 'POST', body: JSON.stringify(body) });
+  if (!ok) {
+    alert('No se pudo guardar: ' + (data.fields ? data.fields.join(', ') : data.error || 'error desconocido'));
+    return false;
+  }
+  form.reset();
+  loadContentList(type);
+  return false;
+}
+
+async function togglePublish(type, id, published) {
+  await api(`/admin/api/content/${type}/${id}`, { method: 'PUT', body: JSON.stringify({ published }) });
+  loadContentList(type);
+}
+
+async function deleteContent(type, id) {
+  if (!confirm('¿Eliminar este elemento? Esta acción no se puede deshacer.')) return;
+  await api(`/admin/api/content/${type}/${id}`, { method: 'DELETE' });
+  loadContentList(type);
+}
+
+async function loadUsers() {
+  const container = document.getElementById('adminList-users');
+  container.innerHTML = '<p class="text-sm text-gray-400">Cargando…</p>';
+  const { ok, data } = await api('/admin/api/users');
+  if (!ok) { container.innerHTML = '<p class="text-sm text-red-600">No se pudo cargar la lista de usuarios.</p>'; return; }
+
+  const users = data.users || [];
+  if (!users.length) { container.innerHTML = '<p class="text-sm text-gray-400 italic">Aún no hay administradores adicionales.</p>'; return; }
+
+  container.innerHTML = users.map(u => `
+    <div class="border border-gray-200 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <span class="font-semibold text-gray-900">${escapeHtml(u.username)}</span>
+        <span class="text-xs text-gray-500 ml-2">${escapeHtml(u.email || '')}</span>
+        <span class="text-xs text-gray-400 ml-2">creado ${escapeHtml(new Date(u.createdAt).toLocaleDateString('es-EC'))}</span>
+      </div>
+      <button onclick="deleteUser('${u.id}')" class="btn-danger">Eliminar</button>
+    </div>
+  `).join('');
+}
+
+async function createUser(event) {
+  event.preventDefault();
+  const form = event.target;
+  const body = Object.fromEntries(new FormData(form).entries());
+  const { ok, data } = await api('/admin/api/users', { method: 'POST', body: JSON.stringify(body) });
+  if (!ok) {
+    alert('No se pudo crear el usuario: ' + (data.error || 'error desconocido'));
+    return false;
+  }
+  form.reset();
+  loadUsers();
+  return false;
+}
+
+async function deleteUser(id) {
+  if (!confirm('¿Eliminar este administrador? Perderá acceso de inmediato.')) return;
+  await api(`/admin/api/users/${id}`, { method: 'DELETE' });
+  loadUsers();
+}
+
+checkSession();
+</script>
+
+</body>
+</html>

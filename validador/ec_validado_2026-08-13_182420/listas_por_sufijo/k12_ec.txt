@@ -1,0 +1,8 @@
+alliance.k12.ec
+atenea.k12.ec
+cotopaxi.k12.ec
+einstein.k12.ec
+fcaq.k12.ec
+tomasmoro.k12.ec
+uedelta.k12.ec
+unitypoint.k12.ec

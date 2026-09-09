@@ -1,0 +1,392 @@
+domain,suffix,final_status,review_subtype,cloudflare_ns,google_ns,cloudflare_soa,google_soa,dns_observations
+1799.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+1xbet-sport.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+aconfi.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+actradelogistics.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+adai.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+adr.ec,.ec,REVIEW,REVIEW_CONFLICT,SERVFAIL,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:SERVFAIL | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+advocatus.pro.ec,.pro.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+agendas.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+agqlabs.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+agri.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+agrichamp.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+agricolacallejas.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR:attempts=2
+agrilisto.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+agrind.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR:attempts=2
+agrined.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+agripac.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+agripaconline.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+agripower.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+alpiste.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+ambientalpartner.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+amepac.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+andino.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+andresherrera.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+andrespaez.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+anug.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+aorvet.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+apc.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apcgroup.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apco.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apel.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apespol.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apestasdeportivasranking.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+apexatv.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+apexba.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+artromed.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+asin.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+audicomer.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+autodesk.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+autoeastern.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+autoin.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+avalia.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+azogues.gob.ec,.gob.ec,REVIEW,REVIEW_CONFLICT,SERVFAIL,TIMEOUT,TIMEOUT,TIMEOUT,cloudflare(1.1.1.1):NS:SERVFAIL:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+bibi.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bichar.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bicis.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bidaia.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bien.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bienadmin.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bienesonline.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bienesraices.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR:attempts=2
+bienesraicescovin.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bienesstar.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bienhecho.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+biensur.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+biess.fin.ec,.fin.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+binario.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+birm.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+bis.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bosko.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brokerlogistic.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brokservice.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+broksseguros.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brucebet.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brucke.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+brujula.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brujulaelectoral.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bruler.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+brulumel.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bruma.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+brumalis.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+brunof.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+brunovassari.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+bustamanteabogados.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+bustv.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+cabot.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+carruselpreschool.edu.ec,.edu.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+catedral.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+catelina.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+catena.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+catepsi.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+caterexpress.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+caterworld.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+cati.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+catiecuador.ec,.ec,NXDOMAIN,,TIMEOUT,NXDOMAIN,NXDOMAIN,NXDOMAIN,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NXDOMAIN | cloudflare(1.1.1.1):SOA:NXDOMAIN | google(8.8.8.8):SOA:NXDOMAIN
+cato.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+catoba.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+ciberinteligencia.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+ciberseguridad.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+cisealpuce.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+cismo.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+citafacil.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+citas-para-mayoresde50.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+citas.med.ec,.med.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+citasmed.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+citatallerkia.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+citavet.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+codemet.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,SERVFAIL,TIMEOUT,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:SERVFAIL:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+coffee-cup.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+colegiodeeconomistas.org.ec,.org.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+comerciallopez.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+compraenfenedif.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+compubusiness.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+compuimagen.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+compuinformatica.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+compujob.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+compulab.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+conoce.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+consultmanager.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+costa.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+crosstronik.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+crs.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+crsf.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+crssmshushufindi.gob.ec,.gob.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+crtv.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+cruceros.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+crudo.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+cumbres.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+decconsultores.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+deliavena.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+delprado.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+difare.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+dig.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digan.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+diganfe.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digicatt.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digidata.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digimarket.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digipals.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+digiplot.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digishop.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+digitalorange.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+digitrack.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+dlatec.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+dragiomaraojeda.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+eat.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+ecoaire.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+ecofiber.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+ecp.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+ecuspanish.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+elcondor.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+elinmobiliario.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+elobservador.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+escueladeformacionyliderazgo.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+etq.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+evolutec.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+evoria.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+ferrimaxone.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+ferrum.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+ferrygalapagosisland.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fertilidadinnaifest.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fesaecuador.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fesisa.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festa.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festivaldelacancion.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festivalinternacionaldelglobo.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festivo.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festung.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+festy.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+fesurcap.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+fesvip.edu.ec,.edu.ec,NXDOMAIN,,TIMEOUT,NXDOMAIN,NXDOMAIN,NXDOMAIN,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NXDOMAIN | cloudflare(1.1.1.1):SOA:NXDOMAIN | google(8.8.8.8):SOA:NXDOMAIN
+fet.org.ec,.org.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+feta.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fintech.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+fireclub.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+firstmetal.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+fmcorp.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+fundei.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+funespejo.org.ec,.org.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+funmedical.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+furacam.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fusionkreativa.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+fusionline.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+fusionsolutions.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+fuso.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+fuso.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+futbol.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+futbolfinanciero.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+futbolhouse.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+futbollibre.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+futboltotal.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gadsanpedro.gob.ec,.gob.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+ganaton.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+gascrom.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+gerber.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+germanmotors.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+germec.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+gesco.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+gescolar.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gescom.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+geselec.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gesfinsa.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gesi.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gespasa.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gesplatec.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gesstiona.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+gestare.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+globalban.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+globalimf.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+gold.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+grupogrg.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+grupohb.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,TIMEOUT,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+hardwaredoctor.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+hortifresh.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+iasd.org.ec,.org.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+ifpo.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+imporagua.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+importadorasc.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+improdin.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+infinityroses.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+infodigital.com.ec,.com.ec,VALID,,TIMEOUT,SERVFAIL,NOERROR,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:NOERROR | google(8.8.8.8):SOA:SERVFAIL
+ingenieriaenfluidos.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+inngen.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+innovasoft.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+interlive.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+isidroayora.gob.ec,.gob.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+istct.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+jproject.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+kvcflowers.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+lacolinadelchef.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,TIMEOUT,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+lacondamine.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+lared.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+lasallanos.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+ldu.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+lec.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+lesca.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+liceonuevomundo.edu.ec,.edu.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+lospollosdelatri.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+lushlush.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+luvis.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+luzcar.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+maki.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+makia.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+mas-vida.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mascan.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mascomunicacion.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+mascontainer.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+mascot.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+mascotaplanet.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+medigrow.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+megapower.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+mife.edu.ec,.edu.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+mifirma.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mifondo.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+migcka.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+migmar.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+migracion.gob.ec,.gob.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+miitt.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+mileniumexpress.com.ec,.com.ec,VALID,,SERVFAIL,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:SERVFAIL:attempts=2 | google(8.8.8.8):NS:NOERROR
+mincosmo.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+misprimerashuellas.edu.ec,.edu.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+muebleriahogar.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mueblesa.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mueblesforma.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+mueblesveravazquez.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+mundimaquinas.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+mundodecor.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+museacademy.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+muv.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+neuromarket.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+nissanstoreecuador.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+niuk.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+nodestudio.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+nodusnetsa.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+novacauchos.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+nri.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+nuevecito.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+nuvasupermercados.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+opticc.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+osteoporosis.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+pae.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+parabebes.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+parachute.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+paracord.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+pawkarraymi.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+peptocid.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+pisoexpress.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+planit.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+plastimega.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+plazaton.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+plenisimo.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:SERVFAIL
+ploterstore.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+plotters.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+proservice.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+proskit.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+prosystem.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+publicos.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+publikarotular.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+python.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+quintell.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+radiolive.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+raem.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+recetas.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+redestel.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+regproazo.gob.ec,.gob.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+retail.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+revistametrociencia.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+reyesyreyes.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+rompecabezas.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+rpm.gob.ec,.gob.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+ruedaelectric.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+ruedalibre.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+saberec5.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+sealarm.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+sebalexa.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+semedic.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+semillademostaza.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+semillasdevida.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR:attempts=2
+semillasolar.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+send.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+senda.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+sendades.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+sendas.org.ec,.org.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+senderocore.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+sergen.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+sieg.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+siemprebellas.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+simplehome.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+sisconti.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+skyledecuador.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+skymedic.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+skynetsmart.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+skypro.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+skyrider.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+slot-box.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+slotexocasino.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+slotland.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+sloto-cash.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+slots-million.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+slots-palace.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+smarquitectos.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+sotec.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+stellantis.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+stgeorge.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+synergybae.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+techmansolutions.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+teclemas.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR:attempts=2 | google(8.8.8.8):NS:SERVFAIL
+tecnisupport.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+tecnoaces.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+teslaecuador.ec,.ec,REVIEW,REVIEW_CONFLICT,SERVFAIL,TIMEOUT,SERVFAIL,TIMEOUT,cloudflare(1.1.1.1):NS:SERVFAIL:attempts=2 | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2 | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:TIMEOUT:Timeout:attempts=2
+tomket.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+tonybet.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+tosmile.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totaldex.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totalmagnesiano.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totalmed.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totalmedic.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+totalseafood.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+totaltek.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+totaltravel.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+totem.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totemsoftware.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+totopet.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+tottec.com.ec,.com.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+touch.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+triconsul.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+tuv.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+tvmas.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+uedelta.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+uefk.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+uehog.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+uemecologica.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+uemercedesjijon.edu.ec,.edu.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+uemercedesjs.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemhs.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemo.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemonsej.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemonsenorjosemasnini.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemontealto.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemontecristi.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+uemoraspungo.edu.ec,.edu.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+valortis.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+vansclick.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+velocity.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+viajeliterario.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+viajesamazonas.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+viajesydestinos.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+vialcons.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+vialcontrol.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+vicostv.net.ec,.net.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+visitsaraguro.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+visor.com.ec,.com.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+vpgroup.ec,.ec,VALID,,NOERROR,SERVFAIL,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:SERVFAIL
+wolleflubes.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+work.ec,.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+worq.com.ec,.com.ec,VALID,,NOERROR,TIMEOUT,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:NOERROR | google(8.8.8.8):NS:TIMEOUT:Timeout:attempts=2
+wsmart.ec,.ec,VALID,,TIMEOUT,NOERROR,NOT_QUERIED,NOT_QUERIED,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:NOERROR
+wurstchen.ec,.ec,REVIEW,REVIEW_CONFLICT,SERVFAIL,SERVFAIL,TIMEOUT,SERVFAIL,cloudflare(1.1.1.1):NS:SERVFAIL:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+xlog.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+yachaywasi.ec,.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL
+yellowbanexport.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL:attempts=2 | google(8.8.8.8):SOA:SERVFAIL
+zeusprime.com.ec,.com.ec,REVIEW,REVIEW_CONFLICT,TIMEOUT,SERVFAIL,SERVFAIL,SERVFAIL,cloudflare(1.1.1.1):NS:TIMEOUT:Timeout:attempts=2 | google(8.8.8.8):NS:SERVFAIL | cloudflare(1.1.1.1):SOA:SERVFAIL | google(8.8.8.8):SOA:SERVFAIL

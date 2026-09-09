@@ -1,0 +1,1553 @@
+{
+  "Bolivia": {
+    "pais": "Bolivia",
+    "dominio_base": "isoc.bo",
+    "timestamp_utc": "2026-09-09T01:36:23.358303+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.bo/",
+          "status": 500
+        }
+      ],
+      "url_final": "https://isoc.bo/",
+      "status_final": 500,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:24 GMT",
+        "Server": "nginx/1.29.8",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "0",
+        "Vary": "User-Agent",
+        "Connection": "close"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.bo/",
+          "status": 500
+        }
+      ],
+      "url_final": "https://www.isoc.bo/",
+      "status_final": 500,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:24 GMT",
+        "Server": "nginx/1.29.8",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "0",
+        "Vary": "User-Agent",
+        "Connection": "close"
+      }
+    },
+    "hostname_final": "isoc.bo",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=www.old.isoc.bo",
+      "issuer": "CN=YR2,O=Let's Encrypt,C=US",
+      "not_before": "2026-08-22T15:01:50+00:00",
+      "not_after": "2026-11-20T15:01:49+00:00",
+      "sans": [
+        "*.igfbolivia.bo",
+        "*.isoc.bo",
+        "igfbolivia.bo",
+        "isoc.bo",
+        "mail.obj.lxh.temporary.site",
+        "obj.lxh.temporary.site",
+        "www.certificados.isoc.bo",
+        "www.comunicados.isoc.bo",
+        "www.desarrollo.isoc.bo",
+        "www.eventos.isoc.bo",
+        "www.igfbolivia.isoc.bo",
+        "www.iot.isoc.bo",
+        "www.lac-icann.isoc.bo",
+        "www.obj.lxh.temporary.site",
+        "www.old.isoc.bo",
+        "www.votacion.isoc.bo"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_resolucion": "[Errno 11001] getaddrinfo failed"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.bo. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: isoc.bo. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 mail.isoc.bo."
+      ],
+      "spf": [
+        "\"v=spf1 ip4:69.49.249.76 +a +mx +ip4:108.167.157.233 +include:websitewelcome.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": {
+        "error": "The DNS query name does not exist: _dmarc.isoc.bo."
+      },
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.bo."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.bo', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.bo', port=443): Failed to resolve 'mta-sts.isoc.bo' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.bo."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.bo. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.isoc.bo."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 500,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 500,
+        "snippet": null
+      },
+      "/sitemap.xml": {
+        "status": 500,
+        "snippet": null
+      }
+    },
+    "rpki": {
+      "108.167.157.237": {
+        "asn": "31898",
+        "prefix": "108.167.156.0/22",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Colombia": {
+    "pais": "Colombia",
+    "dominio_base": "isoc.co",
+    "timestamp_utc": "2026-09-09T01:36:23.358303+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.co/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.co/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:34:19 GMT",
+        "Server": "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips mod_fcgid/2.3.9 PHP/7.2.34",
+        "X-Powered-By": "PHP/7.2.34",
+        "Last-Modified": "Tue, 08 Sep 2026 23:06:29 GMT",
+        "Etag": "8691706caf3d4f6a0cf051f0fd5d55a6",
+        "Cache-Control": "public",
+        "Keep-Alive": "timeout=5, max=100",
+        "Connection": "Keep-Alive",
+        "Transfer-Encoding": "chunked",
+        "Content-Type": "text/html; charset=utf-8"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.co/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://www.isoc.co/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:34:20 GMT",
+        "Server": "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips mod_fcgid/2.3.9 PHP/7.2.34",
+        "X-Powered-By": "PHP/7.2.34",
+        "Last-Modified": "Tue, 08 Sep 2026 23:06:29 GMT",
+        "Etag": "8691706caf3d4f6a0cf051f0fd5d55a6",
+        "Cache-Control": "public",
+        "Keep-Alive": "timeout=5, max=100",
+        "Connection": "Keep-Alive",
+        "Transfer-Encoding": "chunked",
+        "Content-Type": "text/html; charset=utf-8"
+      }
+    },
+    "hostname_final": "isoc.co",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.co",
+      "issuer": "CN=YR1,O=Let's Encrypt,C=US",
+      "not_before": "2026-07-13T09:21:54+00:00",
+      "not_after": "2026-10-11T09:21:53+00:00",
+      "sans": [
+        "isoc.co",
+        "www.isoc.co"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": false
+    },
+    "ipv6": {
+      "aaaa": [],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_resolucion": "[Errno 11001] getaddrinfo failed"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.co. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: isoc.co. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "1 isoc-co.mail.protection.outlook.com."
+      ],
+      "spf": [
+        "\"v=spf1 a mx ip4:13.66.5.28 include:spf.protection.outlook.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": {
+        "error": "The DNS query name does not exist: _dmarc.isoc.co."
+      },
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.co."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.co', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.co', port=443): Failed to resolve 'mta-sts.isoc.co' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.co."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.co. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.isoc.co."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 200,
+        "snippet": "<!DOCTYPE html>\r\n\r\n<html lang=\"es\">\t\r\n  \r\n<head>\r\n\r\n\t\t\t\t\r\n  <meta charset=\"utf-8\">\r\n\t\t\t\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\r\n  \r\n  <meta https-equiv=\"X-UA-Compatible\" content=\"IE=edge\">  \r\n\r\n  <meta https-equiv=\"Content-Language\" content=\"es-CO\">"
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "<!DOCTYPE html>\r\n\r\n<html lang=\"es\">\t\r\n  \r\n<head>\r\n\r\n\t\t\t\t\r\n  <meta charset=\"utf-8\">\r\n\t\t\t\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\r\n  \r\n  <meta https-equiv=\"X-UA-Compatible\" content=\"IE=edge\">  \r\n\r\n  <meta https-equiv=\"Content-Language\" content=\"es-CO\">"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<!DOCTYPE html>\r\n\r\n<html lang=\"es\">\t\r\n  \r\n<head>\r\n\r\n\t\t\t\t\r\n  <meta charset=\"utf-8\">\r\n\t\t\t\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\r\n  \r\n  <meta https-equiv=\"X-UA-Compatible\" content=\"IE=edge\">  \r\n\r\n  <meta https-equiv=\"Content-Language\" content=\"es-CO\">"
+      }
+    },
+    "rpki": {
+      "45.171.118.54": {
+        "asn": "262191",
+        "prefix": "45.171.118.0/24",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Peru": {
+    "pais": "Peru",
+    "dominio_base": "isoc.pe",
+    "timestamp_utc": "2026-09-09T01:36:23.358303+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.pe/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.pe/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:24 GMT",
+        "Server": "Apache",
+        "Vary": "User-Agent",
+        "Last-Modified": "Fri, 04 Sep 2026 01:18:05 GMT",
+        "Accept-Ranges": "bytes",
+        "Content-Length": "157958",
+        "Cache-Control": "max-age=0, no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "Mon, 29 Oct 1923 20:30:00 GMT",
+        "Keep-Alive": "timeout=5, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=UTF-8"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.pe/",
+          "status": 301
+        },
+        {
+          "url": "https://isoc.pe/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.pe/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:27 GMT",
+        "Server": "Apache",
+        "Vary": "User-Agent",
+        "Last-Modified": "Fri, 04 Sep 2026 01:18:05 GMT",
+        "Accept-Ranges": "bytes",
+        "Content-Length": "157958",
+        "Cache-Control": "max-age=0, no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "Mon, 29 Oct 1923 20:30:00 GMT",
+        "Keep-Alive": "timeout=5, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=UTF-8"
+      }
+    },
+    "hostname_final": "isoc.pe",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.pe",
+      "issuer": "CN=YR2,O=Let's Encrypt,C=US",
+      "not_before": "2026-08-07T03:41:24+00:00",
+      "not_after": "2026-11-05T03:41:23+00:00",
+      "sans": [
+        "isoc.pe",
+        "www.isoc.pe"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_resolucion": "[Errno 11001] getaddrinfo failed"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.pe. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: isoc.pe. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 isoc.pe."
+      ],
+      "spf": [
+        "\"v=spf1 +a +mx +ip4:161.132.57.188 +ip4:161.132.19.0/24 +ip4:209.45.69.0/24 +ip4:161.132.8.0/24 +ip4:161.132.18.0/24 ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.pe."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.pe', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.pe', port=443): Failed to resolve 'mta-sts.isoc.pe' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.pe."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.pe. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.isoc.pe."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "User-agent: *\r\nDisallow: /wp-admin/\r\nAllow: /wp-admin/admin-ajax.php\r\n\r\nSitemap: https://isoc.pe/page-sitemap.xml"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//isoc.pe/main-sitemap.xsl\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n\t<sitemap>\n\t\t<loc>https://isoc.pe/post-sitemap.xml</loc>\n\t\t<lastmod>2026-06-26T20:09:33+00:00</lastmod>\n\t</sitemap>\n\t<sitemap>"
+      }
+    },
+    "rpki": {
+      "161.132.57.188": {
+        "asn": "3132",
+        "prefix": "161.132.57.0/24",
+        "estado_rpki": "unknown"
+      }
+    }
+  },
+  "Ecuador": {
+    "pais": "Ecuador",
+    "dominio_base": "isoc.org.ec",
+    "timestamp_utc": "2026-09-09T01:36:23.358303+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.org.ec/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.ec/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:25 GMT",
+        "Content-Type": "text/html",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self';",
+        "last-modified": "Mon, 13 Jul 2026 20:42:36 GMT",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=TbA7K7LgOxL17ssTuiMh7b52%2BiLNaWmuW3YwUAN08CtUGsXToPT3%2FOs0SEWEOD0EIZ7wZaRiNRoQWTDFYr%2Fk2F1Y54LiaC8RTddFk612505XOnWcTHTZLmtQnuvF1A%3D%3D\"}]}",
+        "vary": "Accept-Encoding",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "Server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "Content-Encoding": "br",
+        "CF-RAY": "a3827635cd9b95d7-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.org.ec/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://www.isoc.org.ec/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:25 GMT",
+        "Content-Type": "text/html",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self';",
+        "last-modified": "Mon, 13 Jul 2026 20:42:36 GMT",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=OKQXdlXRIfzit2N09nVCgvuGafVRmkYwUsCplFKne6PBki527IkwBFDHkmpn8EyNV0jsiwxLefAmxhga7Z1c4L26b%2BtN78eSEprepddWjqdnAhfTVMzpxhHOg3KZVwHW2aQ%3D\"}]}",
+        "vary": "Accept-Encoding",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "Server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "Content-Encoding": "br",
+        "CF-RAY": "a382763eeb8995cd-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "hostname_final": "isoc.org.ec",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.org.ec",
+      "issuer": "CN=YE2,O=Let's Encrypt,C=US",
+      "not_before": "2026-09-01T02:33:51+00:00",
+      "not_after": "2026-11-30T02:33:50+00:00",
+      "sans": [
+        "*.isoc.org.ec",
+        "isoc.org.ec"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [
+        "2606:4700:3030::ac43:c1dc",
+        "2606:4700:3034::6815:3c4c"
+      ],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_conexion": "timed out"
+    },
+    "dnssec": {
+      "ds_parent": [
+        "2371 13 2 cf8b85214871720af79c83b491eb4a04ab38284de68513083e703f278341d043"
+      ],
+      "dnskey": [
+        "256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWz JaOau8XNEZeqCYKD5ar0IRd8KqXXFJkq mVfRvMGPmM1x8fGAa2XhSA==",
+        "257 3 13 mdsswUyr3DPW132mOi8V9xESWE8jTo0d xCjjnopKl+GqJxpVXckHAeF+KkxLbxIL fDLUT0rAK9iUzy1L53eKGQ=="
+      ],
+      "ad_bit": {
+        "1.1.1.1": true,
+        "8.8.8.8": true
+      },
+      "clasificacion": "valido"
+    },
+    "correo": {
+      "mx": [
+        "0 mail.isoc.org.ec."
+      ],
+      "spf": [
+        "\"Value: v=spf1 ip4:38.129.136.196 ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=none;\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS response does not contain an answer to the question: _mta-sts.isoc.org.ec. IN TXT"
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.org.ec', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.org.ec', port=443): Failed to resolve 'mta-sts.isoc.org.ec' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS response does not contain an answer to the question: _smtp._tls.isoc.org.ec. IN TXT"
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.org.ec. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS response does not contain an answer to the question: _443._tcp.isoc.org.ec. IN TLSA"
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\n#      use.\n# (b)  If a Content-Signal = no, you may not collect content for the\n#      corresponding use.\n# (c)  If the"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n<url><loc>https://isoc.org.ec</loc><changefreq>daily</changefreq><priority>1.00</priority></url><url><loc>https://isoc.org.ec/subpage</loc><changefreq>daily</changefreq><priority>0.80</priority></url>"
+      }
+    },
+    "rpki": {
+      "104.21.60.76": {
+        "asn": "13335",
+        "prefix": "104.21.48.0/20",
+        "estado_rpki": "valid"
+      },
+      "172.67.193.220": {
+        "asn": "13335",
+        "prefix": "172.67.192.0/20",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3030::ac43:c1dc": {
+        "asn": "13335",
+        "prefix": "2606:4700:3030::/48",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3034::6815:3c4c": {
+        "asn": "13335",
+        "prefix": "2606:4700:3034::/48",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Brasil": {
+    "pais": "Brasil",
+    "dominio_base": "isoc.org.br",
+    "timestamp_utc": "2026-09-09T01:36:30.685798+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.org.br/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.br/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:31 GMT",
+        "Server": "Apache/2.4.68 (Ubuntu)",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
+        "Upgrade": "h2,h2c",
+        "Connection": "Upgrade, Keep-Alive",
+        "Vary": "Accept-Encoding",
+        "Content-Encoding": "gzip",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Referrer-Policy": "no-referrer",
+        "Content-Length": "10682",
+        "Keep-Alive": "timeout=5, max=100",
+        "Content-Type": "text/html; charset=UTF-8"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.org.br/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://www.isoc.org.br/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:32 GMT",
+        "Server": "Apache/2.4.68 (Ubuntu)",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
+        "Upgrade": "h2,h2c",
+        "Connection": "Upgrade, Keep-Alive",
+        "Vary": "Accept-Encoding",
+        "Content-Encoding": "gzip",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Referrer-Policy": "no-referrer",
+        "Content-Length": "10688",
+        "Keep-Alive": "timeout=5, max=100",
+        "Content-Type": "text/html; charset=UTF-8"
+      }
+    },
+    "hostname_final": "isoc.org.br",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.org.br",
+      "issuer": "CN=YE1,O=Let's Encrypt,C=US",
+      "not_before": "2026-09-08T04:46:36+00:00",
+      "not_after": "2026-12-07T04:46:35+00:00",
+      "sans": [
+        "fanny.isoc.org.br",
+        "isoc.org.br",
+        "www.isoc.org.br"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [
+        "2a02:4780:6e:5732::1"
+      ],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_conexion": "timed out"
+    },
+    "dnssec": {
+      "ds_parent": [
+        "161 13 2 a27b5500979c923107a0050964ed21b3c68162573b59495f8221a1c3c3fdfa48"
+      ],
+      "dnskey": [
+        "257 3 13 nNObBk1YA1rcqAkv/H/z6Nzx4awh2JpZ Wq4vv5WA+M3UHerfG+jsPkIClKsgxJs4 H6YI9xP638c/0aJ/J3aKQw=="
+      ],
+      "ad_bit": {
+        "1.1.1.1": true,
+        "8.8.8.8": true
+      },
+      "clasificacion": "valido"
+    },
+    "correo": {
+      "mx": [
+        "5 mx2.hostinger.com.",
+        "10 mx1.hostinger.com."
+      ],
+      "spf": [
+        "\"v=spf1 include:_spf.mail.hostinger.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=none; rua=mailto:info@isoc.org.br;\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.org.br."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.org.br', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.org.br', port=443): Failed to resolve 'mta-sts.isoc.org.br' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.org.br."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.org.br. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.isoc.org.br."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": ""
+      },
+      "/sitemap.xml": {
+        "status": 404,
+        "snippet": null
+      }
+    },
+    "rpki": {
+      "179.197.64.89": {
+        "asn": "47583",
+        "prefix": "179.197.64.0/24",
+        "estado_rpki": "valid"
+      },
+      "2a02:4780:6e:5732::1": {
+        "asn": "47583",
+        "prefix": "2a02:4780:6e::/48",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Chile": {
+    "pais": "Chile",
+    "dominio_base": "isoc.cl",
+    "timestamp_utc": "2026-09-09T01:36:33.479899+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.cl/",
+          "status": 301
+        },
+        {
+          "url": "https://www.isoc.cl/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://www.isoc.cl/",
+      "status_final": 200,
+      "headers_finales": {
+        "Connection": "Keep-Alive",
+        "Keep-Alive": "timeout=5, max=100",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Link": "<https://www.isoc.cl/index.php?rest_route=/>; rel=\"https://api.w.org/\", <https://www.isoc.cl/index.php?rest_route=/wp/v2/pages/4713>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://www.isoc.cl/>; rel=shortlink",
+        "Cache-Control": "public, max-age=3600",
+        "Expires": "Wed, 09 Sep 2026 02:36:36 GMT",
+        "Transfer-Encoding": "chunked",
+        "Content-Encoding": "br",
+        "Vary": "Accept-Encoding",
+        "Date": "Wed, 09 Sep 2026 01:36:36 GMT",
+        "Server": "LiteSpeed",
+        "Referrer-Policy": "no-referrer-when-downgrade",
+        "alt-svc": "h3=\":443\"; ma=2592000, h3-29=\":443\"; ma=2592000, h3-Q050=\":443\"; ma=2592000, h3-Q046=\":443\"; ma=2592000, h3-Q043=\":443\"; ma=2592000, quic=\":443\"; ma=2592000; v=\"43,46\""
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.cl/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://www.isoc.cl/",
+      "status_final": 200,
+      "headers_finales": {
+        "Connection": "Keep-Alive",
+        "Keep-Alive": "timeout=5, max=100",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Link": "<https://www.isoc.cl/index.php?rest_route=/>; rel=\"https://api.w.org/\", <https://www.isoc.cl/index.php?rest_route=/wp/v2/pages/4713>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://www.isoc.cl/>; rel=shortlink",
+        "Cache-Control": "public, max-age=3600",
+        "Expires": "Wed, 09 Sep 2026 02:36:38 GMT",
+        "Transfer-Encoding": "chunked",
+        "Content-Encoding": "br",
+        "Vary": "Accept-Encoding",
+        "Date": "Wed, 09 Sep 2026 01:36:38 GMT",
+        "Server": "LiteSpeed",
+        "Referrer-Policy": "no-referrer-when-downgrade",
+        "alt-svc": "h3=\":443\"; ma=2592000, h3-29=\":443\"; ma=2592000, h3-Q050=\":443\"; ma=2592000, h3-Q046=\":443\"; ma=2592000, h3-Q043=\":443\"; ma=2592000, quic=\":443\"; ma=2592000; v=\"43,46\""
+      }
+    },
+    "hostname_final": "www.isoc.cl",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=*.isoc.cl",
+      "issuer": "CN=YR1,O=Let's Encrypt,C=US",
+      "not_before": "2026-08-21T19:48:59+00:00",
+      "not_after": "2026-11-19T19:48:58+00:00",
+      "sans": [
+        "*.isoc.cl",
+        "isoc.cl"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": false
+    },
+    "ipv6": {
+      "aaaa": [
+        "2803:3b80:1::3"
+      ],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_conexion": "timed out"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: www.isoc.cl. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: www.isoc.cl. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "1 aspmx.l.google.com.",
+        "5 alt2.aspmx.l.google.com.",
+        "10 alt3.aspmx.l.google.com.",
+        "5 alt1.aspmx.l.google.com.",
+        "10 alt4.aspmx.l.google.com."
+      ],
+      "spf": [
+        "\"v=spf1 ip4:138.255.101.194 include:_spf.zglobalhost.com +a +mx include:_spf.google.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": {
+        "error": "The DNS query name does not exist: _dmarc.isoc.cl."
+      },
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.cl."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.cl', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.cl', port=443): Failed to resolve 'mta-sts.isoc.cl' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.cl."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: www.isoc.cl. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.www.isoc.cl."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 200,
+        "snippet": "<!DOCTYPE html>\n<html lang=\"es-CL\">\n<head>\n\t<meta charset=\"UTF-8\" />\n\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />\n\n\t<!-- This site is optimized with the Yoast SEO "
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# As a condition of accessing this website, you agree to abide by the following\r\n# content signals:\r\n\r\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\r\n#      use.\r\n# (b)  If a Content-Signal = no, you may not collect content for the\r\n#      corresponding use.\r\n# (c) "
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": " <urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" class=\"hidden\">\r\n<url>\r\n<loc>https://www.isoc.cl/</loc>\r\n<lastmod>2026-08-26</lastmod>\r\n<changefreq>daily</changefreq>\r\n<priority>1</priority>\r\n</url>\r\n</urlset>"
+      }
+    },
+    "rpki": {
+      "138.255.101.194": {
+        "asn": "263702",
+        "prefix": "138.255.101.0/24",
+        "estado_rpki": "valid"
+      },
+      "2803:3b80:1::3": {
+        "asn": "263702",
+        "prefix": "2803:3b80::/36",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Republica Dominicana": {
+    "pais": "Republica Dominicana",
+    "dominio_base": "isoc.do",
+    "timestamp_utc": "2026-09-09T01:36:45.863715+00:00",
+    "http_raiz": {
+      "ok": false,
+      "error": "HTTPSConnectionPool(host='isoc.do', port=443): Read timed out. (read timeout=8)"
+    },
+    "http_www": {
+      "ok": false,
+      "error": "HTTPSConnectionPool(host='www.isoc.do', port=443): Read timed out. (read timeout=8)"
+    },
+    "error_general": "No se pudo obtener respuesta HTTPS de raiz ni www."
+  },
+  "Costa Rica": {
+    "pais": "Costa Rica",
+    "dominio_base": "isoc.cr",
+    "timestamp_utc": "2026-09-09T01:36:43.890178+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.cr/",
+          "status": 301
+        },
+        {
+          "url": "https://web.cr/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://web.cr/",
+      "status_final": 200,
+      "headers_finales": {
+        "Server": "nginx",
+        "Date": "Wed, 09 Sep 2026 01:36:50 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Permissions-Policy": "private-state-token-redemption=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\"), private-state-token-issuance=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\")",
+        "Link": "<https://web.cr/wp-json/>; rel=\"https://api.w.org/\", <https://web.cr/wp-json/wp/v2/pages/2980>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://web.cr/>; rel=shortlink",
+        "Cache-Control": "max-age=0",
+        "Expires": "Wed, 09 Sep 2026 01:36:45 GMT",
+        "Vary": "Accept-Encoding,User-Agent"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.cr/",
+          "status": 301
+        },
+        {
+          "url": "https://web.cr/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://web.cr/",
+      "status_final": 200,
+      "headers_finales": {
+        "Server": "nginx",
+        "Date": "Wed, 09 Sep 2026 01:36:54 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Permissions-Policy": "private-state-token-redemption=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\"), private-state-token-issuance=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\")",
+        "Link": "<https://web.cr/wp-json/>; rel=\"https://api.w.org/\", <https://web.cr/wp-json/wp/v2/pages/2980>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://web.cr/>; rel=shortlink",
+        "Cache-Control": "max-age=0",
+        "Expires": "Wed, 09 Sep 2026 01:36:53 GMT",
+        "Vary": "Accept-Encoding,User-Agent"
+      }
+    },
+    "hostname_final": "web.cr",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=*.web.cr",
+      "issuer": "CN=YR2,O=Let's Encrypt,C=US",
+      "not_before": "2026-08-12T01:57:10+00:00",
+      "not_after": "2026-11-10T01:57:09+00:00",
+      "sans": [
+        "*.web.cr",
+        "web.cr"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_resolucion": "[Errno 11001] getaddrinfo failed"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: web.cr. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: web.cr. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 isoc.cr."
+      ],
+      "spf": [
+        "\"v=spf1 +a +mx +ip4:162.0.225.123 ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=none;\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.cr."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.cr', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.cr', port=443): Failed to resolve 'mta-sts.isoc.cr' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.cr."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: web.cr. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.web.cr."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# START WPFORMS BLOCK\n# ---------------------------\nUser-agent: *\nDisallow: /wp-content/uploads/wpforms/\n# ---------------------------\n# END WPFORMS BLOCK\n\n# START YOAST BLOCK\n# ---------------------------\nUser-agent: *\nDisallow:\n\nSitemap: https://web.cr/sitemap_index.xml\n# -------------------------"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//web.cr/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n\t<sitemap>\n\t\t<loc>https://web.cr/post-sitemap.xml</loc>\n\t\t<lastmod>2026-06-25T01:39:46+00:"
+      }
+    },
+    "rpki": {
+      "162.0.225.123": {
+        "asn": "22612",
+        "prefix": "162.0.225.0/24",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Uruguay": {
+    "pais": "Uruguay",
+    "dominio_base": "isoc.uy",
+    "timestamp_utc": "2026-09-09T01:36:58.170301+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.uy/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.uy/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:58 GMT",
+        "Server": "nginx/1.29.8",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Link": "<https://isoc.uy/wp-json/>; rel=\"https://api.w.org/\", <https://isoc.uy/wp-json/wp/v2/pages/35>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://isoc.uy/>; rel=shortlink",
+        "Vary": "Accept-Encoding",
+        "Content-Encoding": "gzip",
+        "host-header": "c2hhcmVkLmJsdWVob3N0LmNvbQ==",
+        "X-Server-Cache": "true",
+        "X-Proxy-Cache": "HIT",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.uy/",
+          "status": 301
+        },
+        {
+          "url": "https://isoc.uy/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.uy/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:37:02 GMT",
+        "Server": "nginx/1.29.8",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Link": "<https://isoc.uy/wp-json/>; rel=\"https://api.w.org/\", <https://isoc.uy/wp-json/wp/v2/pages/35>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://isoc.uy/>; rel=shortlink",
+        "Vary": "Accept-Encoding",
+        "Content-Encoding": "gzip",
+        "host-header": "c2hhcmVkLmJsdWVob3N0LmNvbQ==",
+        "X-Server-Cache": "true",
+        "X-Proxy-Cache": "HIT",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "hostname_final": "isoc.uy",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=cpanel.isoc.uy",
+      "issuer": "CN=YR1,O=Let's Encrypt,C=US",
+      "not_before": "2026-08-03T14:14:54+00:00",
+      "not_after": "2026-11-01T14:14:53+00:00",
+      "sans": [
+        "autodiscover.isoc.uy",
+        "cpanel.isoc.uy",
+        "cpcalendars.isoc.uy",
+        "cpcontacts.isoc.uy",
+        "isoc.uy",
+        "mail.isoc.uy",
+        "webdisk.isoc.uy",
+        "webmail.isoc.uy",
+        "www.isoc.uy"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_resolucion": "[Errno 11001] getaddrinfo failed"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.uy. IN DS"
+      },
+      "dnskey": {
+        "error": "The DNS response does not contain an answer to the question: isoc.uy. IN DNSKEY"
+      },
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 mail.isoc.uy."
+      ],
+      "spf": [
+        "\"v=spf1 a mx include:websitewelcome.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": {
+        "error": "The DNS query name does not exist: _dmarc.isoc.uy."
+      },
+      "mta_sts_record": {
+        "error": "The DNS query name does not exist: _mta-sts.isoc.uy."
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.uy', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.uy', port=443): Failed to resolve 'mta-sts.isoc.uy' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS query name does not exist: _smtp._tls.isoc.uy."
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.uy. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS query name does not exist: _443._tcp.isoc.uy."
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# START YOAST BLOCK\n# ---------------------------\nUser-agent: *\nDisallow:\n\nSitemap: https://isoc.uy/sitemap_index.xml\n# ---------------------------\n# END YOAST BLOCK"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//isoc.uy/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n\t<sitemap>\n\t\t<loc>https://isoc.uy/post-sitemap.xml</loc>\n\t\t<lastmod>2026-08-17T21:31:03+0"
+      }
+    },
+    "rpki": {
+      "50.87.177.72": {
+        "asn": "46606",
+        "prefix": "50.87.0.0/16",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Paraguay": {
+    "pais": "Paraguay",
+    "dominio_base": "isoc.org.py",
+    "timestamp_utc": "2026-09-09T01:36:52.047428+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.org.py/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.py/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:54 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Server": "cloudflare",
+        "strict-transport-security": "max-age=15768000; includeSubDomains; preload",
+        "expect-ct": "enforce; max-age=2592000;",
+        "content-security-policy-report-only": "default-src https:; upgrade-insecure-requests; report-uri /_/csp-reports",
+        "x-frame-options": "SAMEORIGIN",
+        "referrer-policy": "strict-origin",
+        "x-xss-protection": "1; mode=block",
+        "x-content-type-options": "nosniff",
+        "link": "<https://isoc.org.py/wp-json/>; rel=\"https://api.w.org/\"",
+        "vary": "Accept-Encoding,User-Agent",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cf-cache-status": "DYNAMIC",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=K6OwlQEpAV386ApO4WtSpB8R8aRDSbk3Z%2B6U9B0WI07y2O40GPbsnZfA%2FUCWVuYeQnZ1CVtAALseUHeFyKWJS99cX8LNW8Y813VgKkT9C1%2FCmyS9g4dbvWM3ioYDzQ%3D%3D\"}]}",
+        "Content-Encoding": "br",
+        "CF-RAY": "a38276e83e0595cf-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.org.py/",
+          "status": 301
+        },
+        {
+          "url": "https://isoc.org.py/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.py/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:36:55 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Server": "cloudflare",
+        "strict-transport-security": "max-age=15768000; includeSubDomains; preload",
+        "expect-ct": "enforce; max-age=2592000;",
+        "content-security-policy-report-only": "default-src https:; upgrade-insecure-requests; report-uri /_/csp-reports",
+        "x-frame-options": "SAMEORIGIN",
+        "referrer-policy": "strict-origin",
+        "x-xss-protection": "1; mode=block",
+        "x-content-type-options": "nosniff",
+        "link": "<https://isoc.org.py/wp-json/>; rel=\"https://api.w.org/\"",
+        "vary": "Accept-Encoding,User-Agent",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cf-cache-status": "DYNAMIC",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=N83vzgAFy9q%2F4yrdbn3iNdI3iG0UuAydso0m7Q9Y97PDC%2Fh9SLPWrGf8tPFkby11afMhIsUiJ6y%2BFrCnBI83RI2E4OCLUCeUPX5oV1jtNviJ8bVDMtmwBnFHdEtj9g%3D%3D\"}]}",
+        "Content-Encoding": "br",
+        "CF-RAY": "a38276fb1dda95c6-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "hostname_final": "isoc.org.py",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.org.py",
+      "issuer": "CN=WE1,O=Google Trust Services,C=US",
+      "not_before": "2026-08-02T22:03:45+00:00",
+      "not_after": "2026-10-31T23:03:42+00:00",
+      "sans": [
+        "isoc.org.py",
+        "*.isoc.org.py"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [
+        "2606:4700:3034::ac43:9f52",
+        "2606:4700:3037::6815:955"
+      ],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_conexion": "timed out"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.org.py. IN DS"
+      },
+      "dnskey": [
+        "257 3 13 mdsswUyr3DPW132mOi8V9xESWE8jTo0d xCjjnopKl+GqJxpVXckHAeF+KkxLbxIL fDLUT0rAK9iUzy1L53eKGQ==",
+        "256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWz JaOau8XNEZeqCYKD5ar0IRd8KqXXFJkq mVfRvMGPmM1x8fGAa2XhSA=="
+      ],
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 mail.isoc.org.py."
+      ],
+      "spf": [
+        "\"v=spf1 ip4:65.181.111.153 ip4:65.181.111.152 include:spf.mysecurecloudhost.com ~all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=quarantine; rua=mailto:d7c556d0f3b2456cbac34da0c65af421@dmarc-reports.cloudflare.net,mailto:secure@isoc.org.py;ruf=mailto:secure@isoc.org.py\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS response does not contain an answer to the question: _mta-sts.isoc.org.py. IN TXT"
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.org.py', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.org.py', port=443): Failed to resolve 'mta-sts.isoc.org.py' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS response does not contain an answer to the question: _smtp._tls.isoc.org.py. IN TXT"
+      }
+    },
+    "caa": {
+      "error": "The DNS response does not contain an answer to the question: isoc.org.py. IN CAA"
+    },
+    "tlsa_dane": {
+      "error": "The DNS response does not contain an answer to the question: _443._tcp.isoc.org.py. IN TLSA"
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\n#      use.\n# (b)  If a Content-Signal = no, you may not collect content for the\n#      corresponding use.\n# (c)  If the"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<?xml-stylesheet type=\"text/xsl\" href=\"https://isoc.org.py/wp-sitemap-index.xsl\" ?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"><sitemap><loc>https://isoc.org.py/wp-sitemap-posts-post-1.xml</loc></sitemap><sitemap><loc>https://isoc.org.py/"
+      }
+    },
+    "rpki": {
+      "104.21.9.85": {
+        "asn": "13335",
+        "prefix": "104.21.0.0/20",
+        "estado_rpki": "valid"
+      },
+      "172.67.159.82": {
+        "asn": "13335",
+        "prefix": "172.67.144.0/20",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3034::ac43:9f52": {
+        "asn": "13335",
+        "prefix": "2606:4700:3034::/48",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3037::6815:955": {
+        "asn": "13335",
+        "prefix": "2606:4700:3037::/48",
+        "estado_rpki": "valid"
+      }
+    }
+  },
+  "Panama": {
+    "pais": "Panama",
+    "dominio_base": "isoc.org.pa",
+    "timestamp_utc": "2026-09-09T01:37:02.504386+00:00",
+    "http_raiz": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://isoc.org.pa/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.pa/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:37:05 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "Link": "<https://isoc.org.pa/wp-json/>; rel=\"https://api.w.org/\", <https://isoc.org.pa/wp-json/wp/v2/pages/2180>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://isoc.org.pa/>; rel=shortlink",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=lea2%2FmdwjSvI8mWRO9W7jAxd3PDCvmRThJmiKP9V%2BIg2eeBz8rdia%2B1yUC9pH8kaNJXHpC3go4tnpAUuHLvadx%2FV1DStmvkI7KqkXW3wfaLAR0TOBkPpnO%2BHTSS8kw%3D%3D\"}]}",
+        "Vary": "Accept-Encoding",
+        "Server": "cloudflare",
+        "X-turbo-charged-by": "LiteSpeed",
+        "cf-cache-status": "DYNAMIC",
+        "Content-Encoding": "br",
+        "CF-RAY": "a38277299f2395c6-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "http_www": {
+      "ok": true,
+      "cadena_redirecciones": [
+        {
+          "url": "https://www.isoc.org.pa/",
+          "status": 301
+        },
+        {
+          "url": "https://isoc.org.pa/",
+          "status": 200
+        }
+      ],
+      "url_final": "https://isoc.org.pa/",
+      "status_final": 200,
+      "headers_finales": {
+        "Date": "Wed, 09 Sep 2026 01:37:07 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "Link": "<https://isoc.org.pa/wp-json/>; rel=\"https://api.w.org/\", <https://isoc.org.pa/wp-json/wp/v2/pages/2180>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://isoc.org.pa/>; rel=shortlink",
+        "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=Lg%2BWhGellbRImC%2Brtch5tZSiB7atLokCChfUozUOz%2FBj7sP%2FDqRlV1Oa74a1SdJo0e2%2FeQieUCe7ZAVNEM2AWZ84QFOM1haIjdZ1yHLXpq9HI32DpKwO5OAHzR36Dg%3D%3D\"}]}",
+        "Vary": "Accept-Encoding",
+        "Server": "cloudflare",
+        "X-turbo-charged-by": "LiteSpeed",
+        "cf-cache-status": "DYNAMIC",
+        "Content-Encoding": "br",
+        "CF-RAY": "a38277423e5595c8-UIO",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      }
+    },
+    "hostname_final": "isoc.org.pa",
+    "certificado": {
+      "valido": true,
+      "subject": "CN=isoc.org.pa",
+      "issuer": "CN=WE1,O=Google Trust Services,C=US",
+      "not_before": "2026-07-14T20:29:26+00:00",
+      "not_after": "2026-10-12T21:29:21+00:00",
+      "sans": [
+        "isoc.org.pa",
+        "*.isoc.org.pa"
+      ]
+    },
+    "tls_versiones": {
+      "TLSv1.0": false,
+      "TLSv1.1": false,
+      "TLSv1.2": true,
+      "TLSv1.3": true
+    },
+    "ipv6": {
+      "aaaa": [
+        "2606:4700:3031::ac43:be39",
+        "2606:4700:3033::6815:13d6"
+      ],
+      "conecta_ipv6": false,
+      "tls_ipv6_ok": false,
+      "error_conexion": "timed out"
+    },
+    "dnssec": {
+      "ds_parent": {
+        "error": "The DNS response does not contain an answer to the question: isoc.org.pa. IN DS"
+      },
+      "dnskey": [
+        "257 3 13 mdsswUyr3DPW132mOi8V9xESWE8jTo0d xCjjnopKl+GqJxpVXckHAeF+KkxLbxIL fDLUT0rAK9iUzy1L53eKGQ==",
+        "256 3 13 oJMRESz5E4gYzS/q6XDrvU1qMPYIjCWz JaOau8XNEZeqCYKD5ar0IRd8KqXXFJkq mVfRvMGPmM1x8fGAa2XhSA=="
+      ],
+      "ad_bit": {
+        "1.1.1.1": false,
+        "8.8.8.8": false
+      },
+      "clasificacion": "no_desplegado"
+    },
+    "correo": {
+      "mx": [
+        "0 isoc-org-pa.mail.protection.outlook.com."
+      ],
+      "spf": [
+        "\"v=spf1 ip4:157.90.56.180 ip4:92.60.32.27 +include:spf.protection.outlook.com -all\""
+      ],
+      "spf_multiple": false,
+      "dmarc": [
+        "\"v=DMARC1; p=reject; aspf=s; adkim=s; fo=1\""
+      ],
+      "mta_sts_record": {
+        "error": "The DNS response does not contain an answer to the question: _mta-sts.isoc.org.pa. IN TXT"
+      },
+      "mta_sts_policy": "no_accesible: HTTPSConnectionPool(host='mta-sts.isoc.org.pa', port=443): Max retries exceeded with url: /.well-known/mta-sts.txt (Caused by NameResolutionError(\"HTTPSConnection(host='mta-sts.isoc.org.pa', port=443): Failed to resolve 'mta-sts.isoc.org.pa' ([Errno 11001] getaddrinfo failed)\"))",
+      "tls_rpt": {
+        "error": "The DNS response does not contain an answer to the question: _smtp._tls.isoc.org.pa. IN TXT"
+      }
+    },
+    "caa": [
+      "0 issue \"comodoca.com\"",
+      "0 issue \"digicert.com; cansignhttpexchanges=yes\"",
+      "0 issue \"globalsign.com\"",
+      "0 issue \"letsencrypt.org\"",
+      "0 issue \"pki.goog; cansignhttpexchanges=yes\"",
+      "0 issue \"sectigo.com\"",
+      "0 issue \"ssl.com\"",
+      "0 issuewild \"comodoca.com\"",
+      "0 issuewild \"digicert.com; cansignhttpexchanges=yes\"",
+      "0 issuewild \"globalsign.com\"",
+      "0 issuewild \"letsencrypt.org\"",
+      "0 issuewild \"pki.goog; cansignhttpexchanges=yes\"",
+      "0 issuewild \"sectigo.com\"",
+      "0 issuewild \"ssl.com\""
+    ],
+    "tlsa_dane": {
+      "error": "The DNS response does not contain an answer to the question: _443._tcp.isoc.org.pa. IN TLSA"
+    },
+    "otros": {
+      "/.well-known/security.txt": {
+        "status": 404,
+        "snippet": null
+      },
+      "/robots.txt": {
+        "status": 200,
+        "snippet": "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\n#      use.\n# (b)  If a Content-Signal = no, you may not collect content for the\n#      corresponding use.\n# (c)  If the"
+      },
+      "/sitemap.xml": {
+        "status": 200,
+        "snippet": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><?xml-stylesheet type=\"text/xsl\" href=\"//isoc.org.pa/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n\t<sitemap>\n\t\t<loc>https://isoc.org.pa/post-sitemap.xml</loc>\n\t\t<lastmod>2026-08-19T20"
+      }
+    },
+    "rpki": {
+      "104.21.19.214": {
+        "asn": "13335",
+        "prefix": "104.21.16.0/20",
+        "estado_rpki": "valid"
+      },
+      "172.67.190.57": {
+        "asn": "13335",
+        "prefix": "172.67.176.0/20",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3031::ac43:be39": {
+        "asn": "13335",
+        "prefix": "2606:4700:3031::/48",
+        "estado_rpki": "valid"
+      },
+      "2606:4700:3033::6815:13d6": {
+        "asn": "13335",
+        "prefix": "2606:4700:3033::/48",
+        "estado_rpki": "valid"
+      }
+    }
+  }
+}

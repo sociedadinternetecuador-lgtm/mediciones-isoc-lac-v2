@@ -1,3 +1,25 @@
+// Carga mínima de .env (sin dependencia nueva) — solo variables que no
+// vengan ya definidas por el entorno (Docker/systemd tienen prioridad).
+(function loadDotEnv() {
+  const fs = require('fs');
+  const path = require('path');
+  const envPath = path.join(__dirname, '.env');
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = value;
+  }
+})();
+
 const http = require('http');
 const dns = require('dns').promises;
 const DEFAULT_SERVERS = ['8.8.8.8', '8.8.4.4'];
@@ -16,7 +38,12 @@ const { buildZoneChain } = require("./logic/builders/zoneChain.builder");
 const { handleAggregateRequest } = require('./aggregate/routes/aggregate.routes');
 const { handleZonemasterRequest } = require('./aggregate/zonemaster/zonemaster.routes');
 const { handleObservatoryRequest } = require('./aggregate/observatory.routes');
-const dnsPacket = require('dns-packet'); 
+const { handleDatasetRequest } = require('./routes/datasetPreparation.routes');
+const { handleContentRequest } = require('./routes/content.routes');
+const { handleAdminRequest } = require('./routes/admin.routes');
+const { handleMedicionesBatchReportRequest } = require('./routes/medicionesBatchReport.routes');
+const { fetchSafePage, resolveFinalWebTarget } = require('./logic/adapters/safeWebFetch.adapter');
+const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
 
@@ -296,7 +323,7 @@ function fetchText(target, options = {}) {
 }
 
 function fetchHeaders(target, useHttp = false) {
-  return fetchPage(target, { method: 'HEAD', useHttp }).then(({ headers, statusCode }) => ({
+  return fetchSafePage(target, { method: 'HEAD' }).then(({ headers, statusCode }) => ({
     headers,
     statusCode
   }));
@@ -358,9 +385,10 @@ async function fetchWebsite(domain) {
   const targets = [`https://${domain}`, `http://${domain}`];
   for (const target of targets) {
     try {
-      const page = await fetchPage(target);
-      if (page.statusCode && page.statusCode >= 200 && page.statusCode < 400) {
-        const value = { url: target, ...page };
+      const resolved = await resolveFinalWebTarget(target);
+      const page = resolved.response;
+      if (page.statusCode && page.statusCode >= 200 && page.statusCode < 300) {
+        const value = { url: resolved.finalUrl, chain: resolved.chain, ...page };
         cacheSet(htmlCache, domain, value);
         cacheSet(headerCache, domain, { headers: page.headers, statusCode: page.statusCode });
         return value;
@@ -377,47 +405,28 @@ async function rpkiValidity(ip) {
     );
     const prefix =
       info?.data?.prefix || info?.data?.resources?.[0] || info?.data?.resource;
+    // RIPEstat devuelve el ASN como string (ej. "13335"), no number ni object.
     const asnEntry = info?.data?.asns?.[0];
     const asn =
       typeof asnEntry === 'number'
         ? asnEntry
-        : typeof asnEntry === 'object'
-        ? asnEntry.asn || asnEntry.id
+        : typeof asnEntry === 'string'
+        ? parseInt(asnEntry, 10) || null
+        : typeof asnEntry === 'object' && asnEntry
+        ? asnEntry.asn || asnEntry.id || null
         : null;
 
     let state = 'unknown';
 
-    if (asn) {
-      try {
-        const cf = await fetchJSON(
-          `https://rpki.cloudflare.com/api/v1/validity?ip=${encodeURIComponent(
-            ip
-          )}&asn=${asn}`
-        );
-        const validity =
-          cf?.state?.validity ||
-          cf?.state ||
-          cf?.validity ||
-          cf?.result ||
-          null;
-        if (validity) state = String(validity).toLowerCase();
-      } catch (e) {}
-    }
-
-    if (state === 'unknown') {
+    // La validación real requiere ASN de origen + prefijo; sin ASN no se puede
+    // determinar validity (la API de Cloudflare RPKI usada antes aquí ya no
+    // existe — devuelve 404 en cualquier formato de URL, se retiró).
+    if (asn && prefix) {
       try {
         const ripe = await fetchJSON(
-          prefix
-            ? `https://stat.ripe.net/data/rpki-validation/data.json?resource=${encodeURIComponent(
-                prefix
-              )}${asn ? `&origin_asn=${asn}` : ''}`
-            : `https://stat.ripe.net/data/rpki-validation/data.json?resource=${encodeURIComponent(
-                ip
-              )}`
+          `https://stat.ripe.net/data/rpki-validation/data.json?resource=${asn}&prefix=${encodeURIComponent(prefix)}`
         );
-        const validity =
-          ripe?.data?.validity || ripe?.status || ripe?.state || ripe?.validity;
-        if (validity) state = String(validity).toLowerCase();
+        if (ripe?.data?.status) state = String(ripe.data.status).toLowerCase();
       } catch (e) {}
     }
 
@@ -446,25 +455,48 @@ async function handleRpki(domain, res) {
   }
 }
 
+const WHOIS_DISCLAIMER =
+  'Los datos WHOIS dependen de políticas de cada registrador/registro y pueden ' +
+  'estar total o parcialmente redactados por privacidad, o el TLD puede no ' +
+  'publicarlos en las fuentes consultadas. Su ausencia no implica ningún ' +
+  'problema del dominio.';
+
+// Extrae el bloque de una sección "df-heading" del HTML de whois.com (ej.
+// "Registrant Contact") para no cruzar campos con otras secciones (Registrar,
+// Technical Contact, etc.) que también puedan usar etiquetas genéricas.
+function extractWhoisComSection(html, headingText) {
+  const idx = html.indexOf(headingText);
+  if (idx === -1) return '';
+  const rest = html.slice(idx);
+  const nextHeading = rest.indexOf('df-heading', headingText.length);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
 async function handleWhois(domain, res) {
   domain = normalizeDomain(domain);
-  try {
-    let name = '';
-    let country = '';
-    try {
-      const html = await fetchText(`https://www.whois.com/whois/${domain}`);
-      const orgMatch = html.match(
-        /Registrant Organization:\s*<\/div>\s*<div class="df-value">([^<]*)/i
-      );
-      if (orgMatch) name = orgMatch[1].trim();
-      const countryMatch = html.match(
-        /Registrant Country:\s*<\/div>\s*<div class="df-value">([^<]*)/i
-      );
-      if (countryMatch) country = countryMatch[1].trim();
-    } catch (e) {}
+  let name = '';
+  let country = '';
+  let whoisComReached = false;
+  let rdapReached = false;
 
-    if (!name && !country) {
+  try {
+    const html = await fetchText(`https://www.whois.com/whois/${domain}`);
+    whoisComReached = true;
+    const section = extractWhoisComSection(html, 'Registrant Contact');
+    const orgMatch = section.match(
+      /Organization:\s*<\/div>\s*<div class="df-value">([^<]*)/i
+    );
+    if (orgMatch) name = orgMatch[1].trim();
+    const countryMatch = section.match(
+      /Country:\s*<\/div>\s*<div class="df-value">([^<]*)/i
+    );
+    if (countryMatch) country = countryMatch[1].trim();
+  } catch (e) {}
+
+  if (!name && !country) {
+    try {
       const data = await fetchJSON(`https://rdap.org/domain/${domain}`);
+      rdapReached = true;
       const registrant = data.entities?.find(e => e.roles?.includes('registrant'));
       const vcard = registrant?.vcardArray?.[1] || [];
       for (const item of vcard) {
@@ -476,12 +508,29 @@ async function handleWhois(domain, res) {
         if (item[0] === 'country') country = item[3];
       }
       if (!name && data.name) name = data.name;
-    }
-
-    sendJSON(res, 200, { domain, name, country });
-  } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    } catch (e) {}
   }
+
+  let status;
+  let message = null;
+  if (name || country) {
+    status = 'ok';
+  } else if (whoisComReached || rdapReached) {
+    status = 'redactado_o_no_disponible';
+    message = 'Sin campos de registrante públicos en las fuentes consultadas.';
+  } else {
+    status = 'error_tecnico';
+    message = 'No se pudo consultar ninguna fuente WHOIS/RDAP en este momento.';
+  }
+
+  sendJSON(res, 200, {
+    domain,
+    name,
+    country,
+    status,
+    message,
+    disclaimer: WHOIS_DISCLAIMER
+  });
 }
 
 async function handleW3C(domain, res) {
@@ -502,7 +551,8 @@ async function handleW3C(domain, res) {
 async function handleHeaders(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const httpsRes = await fetchHeaders(`https://${domain}`);
+    const resolved = await resolveFinalWebTarget(`https://${domain}`, { method: 'HEAD' });
+    const httpsRes = resolved.response;
     const httpRes = await fetchHeaders(`http://${domain}`, true).catch(
       () => null
     );
@@ -524,6 +574,8 @@ async function handleHeaders(domain, res) {
       xxss: Boolean(httpsRes.headers['x-xss-protection']),
       compression: Boolean(httpsRes.headers['content-encoding']),
       server: httpsRes.headers['server'] || '',
+      finalUrl: resolved.finalUrl,
+      chain: resolved.chain,
       headers: httpsRes.headers
     };
     sendJSON(res, 200, result);
@@ -559,9 +611,9 @@ async function handleTlsa(domain, res) {
 async function handleSecurityTxt(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const data = await fetchHeaders(`https://${domain}/.well-known/security.txt`);
-    const found = data.statusCode && data.statusCode < 400;
-    sendJSON(res, 200, { domain, found });
+    const data = await resolveFinalWebTarget(`https://${domain}/.well-known/security.txt`, { method: 'HEAD' });
+    const found = data.response.statusCode && data.response.statusCode >= 200 && data.response.statusCode < 300;
+    sendJSON(res, 200, { domain, found, finalUrl: data.finalUrl, chain: data.chain });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e) });
   }
@@ -705,12 +757,14 @@ async function handleCrawlRules(domain, res) {
     const urls = [`https://${domain}/robots.txt`, `http://${domain}/robots.txt`];
     for (const url of urls) {
       try {
-        const data = await fetchPage(url);
-        if (data.statusCode && data.statusCode < 400) {
+        const data = await resolveFinalWebTarget(url);
+        if (data.response.statusCode && data.response.statusCode >= 200 && data.response.statusCode < 300) {
           return sendJSON(res, 200, {
             domain,
             found: true,
-            content: data.body
+            finalUrl: data.finalUrl,
+            chain: data.chain,
+            content: data.response.body
           });
         }
       } catch (e) {}
@@ -783,16 +837,8 @@ async function handleAssociatedHosts(domain, res) {
 }
 
 async function followRedirects(url, limit = 5, chain = []) {
-  if (limit < 0) return chain;
-  const { headers, statusCode } = await fetchPage(url, { method: 'HEAD' });
-  const entry = { url, statusCode, location: headers.location || null };
-  chain.push(entry);
-  if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
-    const next = headers.location.startsWith('http')
-      ? headers.location
-      : new URL(headers.location, url).toString();
-    return followRedirects(next, limit - 1, chain);
-  }
+  const resolved = await resolveFinalWebTarget(url, { method: 'HEAD', maxRedirects: limit });
+  chain.push(...resolved.chain);
   return chain;
 }
 
@@ -821,22 +867,25 @@ async function handleTxtRecords(domain, res) {
 async function handleServerStatus(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const page = await fetchPage(`https://${domain}`, { method: 'HEAD' });
+    const data = await resolveFinalWebTarget(`https://${domain}`, { method: 'HEAD' });
+    const page = data.response;
     sendJSON(res, 200, {
       domain,
       statusCode: page.statusCode,
-      location: page.headers?.location || null
+      location: page.headers?.location || null,
+      finalUrl: data.finalUrl,
+      chain: data.chain
     });
   } catch (e) {
     try {
-      const page = await fetchPage(`http://${domain}`, {
-        method: 'HEAD',
-        useHttp: true
-      });
+      const data = await resolveFinalWebTarget(`http://${domain}`, { method: 'HEAD' });
+      const page = data.response;
       sendJSON(res, 200, {
         domain,
         statusCode: page.statusCode,
-        location: page.headers?.location || null
+        location: page.headers?.location || null,
+        finalUrl: data.finalUrl,
+        chain: data.chain
       });
     } catch (err) {
       sendJSON(res, 200, { domain, error: errorMessage(err) });
@@ -1062,10 +1111,10 @@ async function handleListedPages(domain, res) {
     const urls = [`https://${domain}/sitemap.xml`, `http://${domain}/sitemap.xml`];
     for (const url of urls) {
       try {
-        const data = await fetchPage(url);
-        if (data.statusCode && data.statusCode < 400) {
-          const matches = [...data.body.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1]);
-          return sendJSON(res, 200, { domain, pages: matches });
+        const data = await resolveFinalWebTarget(url);
+        if (data.response.statusCode && data.response.statusCode >= 200 && data.response.statusCode < 300) {
+          const matches = [...data.response.body.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1]);
+          return sendJSON(res, 200, { domain, pages: matches, finalUrl: data.finalUrl, chain: data.chain });
         }
       } catch (e) {}
     }
@@ -2453,9 +2502,10 @@ function getBaseUrl(req) {
   const server = http.createServer(async (req, res) => {
 
   const publicPath = path.join(__dirname, 'public');
-  let filePath = path.join(publicPath, req.url === '/' ? 'index.html' : req.url);
+  const requestPath = req.url.split('?')[0];
+  let filePath = path.join(publicPath, requestPath);
 
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+  if (requestPath !== '/' && requestPath !== '/index.html' && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath);
 
     const contentType = {
@@ -2631,9 +2681,28 @@ if (parsed.pathname === "/dnssec-analysis") {
     return handleAggregateRequest(req, res, parsed);
   }
 
+  // Preparación de datasets de dominios — Fuente → Carga → Normalización
+  if (parsed.pathname.startsWith('/dataset')) {
+    return handleDatasetRequest(req, res, parsed);
+  }
+
+  // Contenido editorial público — Blog, Eventos, Material de capacitación
+  if (parsed.pathname.startsWith('/content')) {
+    return handleContentRequest(req, res, parsed);
+  }
+
+  // Administración — login y CRUD de contenido editorial
+  if (parsed.pathname.startsWith('/admin')) {
+    return handleAdminRequest(req, res, parsed);
+  }
+
+  // Análisis comparativo — sub-tab de Mediciones (reporte final + export PDF/JSON)
+  if (parsed.pathname.startsWith('/mediciones-batch')) {
+    return handleMedicionesBatchReportRequest(req, res, parsed);
+  }
+
     sendJSON(res, 404, { error: 'Not found' });
 });
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-

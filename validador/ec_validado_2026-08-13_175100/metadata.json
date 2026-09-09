@@ -1,0 +1,41 @@
+{
+  "project": "Mediciones LAC - Internet Society",
+  "source": "OpenINTEL",
+  "source_file": "ec_openintel_normalizado.txt",
+  "source_date": null,
+  "cctld": ".ec",
+  "processed_at": "2026-08-13T18:06:36-05:00",
+  "input_sha256": "932ab032f513ffaddf6595cab1b9413ed0c88d3ca246b0850c1e53b594b79e5c",
+  "normalized_sha256": "932ab032f513ffaddf6595cab1b9413ed0c88d3ca246b0850c1e53b594b79e5c",
+  "input": {
+    "raw_lines": 34785,
+    "normalized": 34785,
+    "rejected": 0
+  },
+  "results": {
+    "total_validated": 34785,
+    "VALID": 33888,
+    "NXDOMAIN": 414,
+    "REVIEW": 483,
+    "discrepancies": 202
+  },
+  "validation": {
+    "resolvers": {
+      "cloudflare": "1.1.1.1",
+      "google": "8.8.8.8"
+    },
+    "timeout_seconds": 2.5,
+    "retries": 1,
+    "workers": 20,
+    "query_types": [
+      "NS",
+      "SOA when NS is inconclusive"
+    ],
+    "checking_disabled": true,
+    "policy": {
+      "VALID": "NOERROR from at least one resolver",
+      "NXDOMAIN": "NXDOMAIN confirmed by both resolvers for NS or SOA",
+      "REVIEW": "Inconclusive result; do not discard automatically"
+    }
+  }
+}

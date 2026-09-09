@@ -5,13 +5,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"No tests\""
+    "test": "node test/datasetDomains.parity.test.js && node test/dnsValidation.classify.parity.test.js && node test/contentStore.crud.test.js && node test/adminAuth.session.test.js && node test/content.publicVisibility.test.js && node test/medicionesBatchReport.exporter.test.js && node test/medicionesBatchReport.routes.test.js && node test/safeWebFetch.adapter.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "dns-packet": "^5.6.1"
+    "dns-packet": "^5.6.1",
+    "nodemailer": "^9.0.5"
   }
 }

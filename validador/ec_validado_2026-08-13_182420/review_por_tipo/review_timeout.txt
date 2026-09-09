@@ -1,0 +1,5 @@
+area51.ec
+ausubelhighschool.edu.ec
+loscannes.ec
+morse.ec
+rev-sep.ec

@@ -1,0 +1,122 @@
+{
+  "project": "Mediciones LAC - Internet Society",
+  "validator_version": "6.1",
+  "execution_status": "COMPLETED_WITH_REVIEW",
+  "source": "OpenINTEL",
+  "source_file": "ec_openintel_normalizado.txt",
+  "source_date": null,
+  "cctld": ".ec",
+  "processed_at": "2026-08-13T18:42:18-05:00",
+  "input_sha256": "932ab032f513ffaddf6595cab1b9413ed0c88d3ca246b0850c1e53b594b79e5c",
+  "normalized_sha256": "932ab032f513ffaddf6595cab1b9413ed0c88d3ca246b0850c1e53b594b79e5c",
+  "public_suffix_list": {
+    "mode": "ICANN section only",
+    "path": "C:\\Users\\cvera\\.cache\\mediciones_lac\\public_suffix_list.dat",
+    "origin": "downloaded",
+    "sha256": "084a5674d77c1d14900b16da5fc8afee9765af2f00a638552a8c7aa18f44ae81",
+    "source_url": "https://publicsuffix.org/list/public_suffix_list.dat"
+  },
+  "input": {
+    "raw_lines": 34785,
+    "normalized": 34785,
+    "rejected": 0
+  },
+  "preflight": {
+    "cloudflare": {
+      "server": "1.1.1.1",
+      "query": ". NS",
+      "rcode": "NOERROR",
+      "error": ""
+    },
+    "google": {
+      "server": "8.8.8.8",
+      "query": ". NS",
+      "rcode": "NOERROR",
+      "error": ""
+    }
+  },
+  "results": {
+    "total_validated": 34785,
+    "first_pass": {
+      "VALID": 33891,
+      "NXDOMAIN": 414,
+      "REVIEW": 480
+    },
+    "final": {
+      "VALID": 33892,
+      "NXDOMAIN": 414,
+      "REVIEW": 479
+    },
+    "discrepancies": 391,
+    "review_retry": {
+      "retried": 480,
+      "became_VALID": 1,
+      "became_NXDOMAIN": 0,
+      "remained_REVIEW": 479
+    },
+    "review_subtypes": {
+      "REVIEW_SERVFAIL": 369,
+      "REVIEW_CONFLICT": 104,
+      "REVIEW_TIMEOUT": 5,
+      "REVIEW_MIXED_TIMEOUT_SERVFAIL": 1
+    }
+  },
+  "integrity": {
+    "passed": true,
+    "checks": {
+      "normalized_equals_result_count": true,
+      "status_partition_equals_result_count": true,
+      "all_normalized_domains_have_result": true,
+      "result_domains_are_unique": true,
+      "suffix_totals_equal_result_count": true
+    }
+  },
+  "timing": {
+    "normalization_and_psl_seconds": 0.901,
+    "preflight_seconds": 0.121,
+    "first_dns_pass_seconds": 912.674,
+    "review_retry_seconds": 162.173,
+    "dns_validation_seconds": 1076.853,
+    "output_generation_seconds": 0.295,
+    "total_execution_seconds": 1078.172
+  },
+  "validation": {
+    "methodology_version": "2.0",
+    "purpose": "Confirm DNS existence only; do not measure service adoption at this stage",
+    "resolvers": {
+      "cloudflare": "1.1.1.1",
+      "google": "8.8.8.8"
+    },
+    "timeout_seconds": 2.5,
+    "retries": 1,
+    "workers": 20,
+    "review_retry_enabled": true,
+    "review_retry_wait_seconds": 2.0,
+    "transport": {
+      "primary": "UDP",
+      "fallback": "TCP when TC=1"
+    },
+    "query_sequence": [
+      "Preflight: query . NS against both resolvers",
+      "Query NS against both resolvers for every domain",
+      "If NS is inconclusive, query SOA against both resolvers",
+      "After first pass, retry only REVIEW domains unless disabled"
+    ],
+    "checking_disabled": true,
+    "policy": {
+      "VALID": "NOERROR from at least one resolver in NS or SOA",
+      "NXDOMAIN": "NXDOMAIN confirmed by both resolvers for the same query type",
+      "REVIEW": "Inconclusive result; do not discard automatically"
+    },
+    "non_exclusion_criteria": [
+      "A",
+      "AAAA",
+      "IPv6",
+      "MX",
+      "DNSSEC",
+      "HTTPS",
+      "website availability"
+    ],
+    "principle": "Conservative inclusion: only confirmed NXDOMAIN is excluded automatically"
+  }
+}

@@ -10,6 +10,178 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f3f4f6; color: #1f2937; }
+        img[src*="ISOC_Logo_Dark-RGB.png"] {
+            height: 3rem !important;
+            width: auto !important;
+            max-width: 260px !important;
+            object-fit: contain;
+        }
+        .hidden { display: none !important; }
+        .block { display: block; }
+        .inline-block { display: inline-block; }
+        .flex { display: flex; }
+        .inline-flex { display: inline-flex; }
+        .grid { display: grid; }
+        .flex-col { flex-direction: column; }
+        .flex-wrap { flex-wrap: wrap; }
+        .items-center { align-items: center; }
+        .items-stretch { align-items: stretch; }
+        .items-start { align-items: flex-start; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .my-8 { margin-top: 2rem; margin-bottom: 2rem; }
+        .mt-1 { margin-top: .25rem; }
+        .mt-2 { margin-top: .5rem; }
+        .mt-3 { margin-top: .75rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-5 { margin-top: 1.25rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mt-8 { margin-top: 2rem; }
+        .mb-1 { margin-bottom: .25rem; }
+        .mb-2 { margin-bottom: .5rem; }
+        .mb-3 { margin-bottom: .75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-5 { margin-bottom: 1.25rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .ml-3 { margin-left: .75rem; }
+        .p-1\.5 { padding: .375rem; }
+        .p-4 { padding: 1rem; }
+        .p-5 { padding: 1.25rem; }
+        .p-6 { padding: 1.5rem; }
+        .px-2 { padding-left: .5rem; padding-right: .5rem; }
+        .px-3 { padding-left: .75rem; padding-right: .75rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+        .py-0\.5 { padding-top: .125rem; padding-bottom: .125rem; }
+        .py-1 { padding-top: .25rem; padding-bottom: .25rem; }
+        .py-2 { padding-top: .5rem; padding-bottom: .5rem; }
+        .py-2\.5 { padding-top: .625rem; padding-bottom: .625rem; }
+        .gap-1 { gap: .25rem; }
+        .gap-2 { gap: .5rem; }
+        .gap-3 { gap: .75rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-5 { gap: 1.25rem; }
+        .space-y-3 > * + * { margin-top: .75rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .w-full { width: 100%; }
+        .w-4 { width: 1rem; }
+        .w-5 { width: 1.25rem; }
+        .h-2 { height: .5rem; }
+        .h-2\.5 { height: .625rem; }
+        .h-4 { height: 1rem; }
+        .h-5 { height: 1.25rem; }
+        .h-12 { height: 3rem; }
+        .h-64 { height: 16rem; }
+        .w-auto { width: auto; }
+        .max-w-3xl { max-width: 48rem; }
+        .max-w-4xl { max-width: 56rem; }
+        .overflow-x-auto { overflow-x: auto; }
+        .rounded { border-radius: .25rem; }
+        .rounded-lg { border-radius: .5rem; }
+        .rounded-xl { border-radius: .75rem; }
+        .rounded-full { border-radius: 9999px; }
+        .rounded-t-lg { border-top-left-radius: .5rem; border-top-right-radius: .5rem; }
+        .border { border: 1px solid #e5e7eb; }
+        .border-2 { border-width: 2px; border-style: solid; }
+        .border-b { border-bottom: 1px solid #e5e7eb; }
+        .border-b-0 { border-bottom: 0; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .border-blue-100 { border-color: #dbeafe; }
+        .border-blue-200 { border-color: #bfdbfe; }
+        .border-red-300 { border-color: #fca5a5; }
+        .border-indigo-200 { border-color: #c7d2fe; }
+        .bg-white { background: #fff; }
+        .bg-gray-50 { background: #f9fafb; }
+        .bg-gray-100 { background: #f3f4f6; }
+        .bg-gray-200 { background: #e5e7eb; }
+        .bg-blue-50 { background: #eff6ff; }
+        .bg-blue-600 { background: #2563eb; }
+        .bg-red-50 { background: #fef2f2; }
+        .bg-red-100 { background: #fee2e2; }
+        .bg-red-600 { background: #dc2626; }
+        .bg-gray-700 { background: #374151; }
+        .bg-green-50 { background: #f0fdf4; }
+        .bg-indigo-600 { background: #4f46e5; }
+        .text-xs { font-size: .75rem; line-height: 1rem; }
+        .text-sm { font-size: .875rem; line-height: 1.25rem; }
+        .text-md { font-size: 1rem; line-height: 1.5rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .uppercase { text-transform: uppercase; }
+        .underline { text-decoration: underline; }
+        .leading-relaxed { line-height: 1.625; }
+        .text-white { color: #fff; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-900 { color: #111827; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-blue-600 { color: #2563eb; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-blue-800 { color: #1e40af; }
+        .text-red-600 { color: #dc2626; }
+        .text-red-700 { color: #b91c1c; }
+        .text-red-800 { color: #991b1b; }
+        .text-green-600 { color: #16a34a; }
+        .text-green-700 { color: #15803d; }
+        .text-green-800 { color: #166534; }
+        .text-indigo-600 { color: #4f46e5; }
+        .text-indigo-700 { color: #4338ca; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,.05); }
+        .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0,0,0,.05); }
+        .transition { transition: all .15s ease; }
+        .cursor-pointer { cursor: pointer; }
+        .list-disc { list-style-type: disc; }
+        .pl-5 { padding-left: 1.25rem; }
+        .min-h-\[120px\] { min-height: 120px; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .divide-y > * + * { border-top: 1px solid #e5e7eb; }
+        .check-label, button, input, select, textarea {
+            font-family: inherit;
+        }
+        button {
+            border: 0;
+            cursor: pointer;
+        }
+        input, select, textarea {
+            max-width: 100%;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            padding: .5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        @media (min-width: 768px) {
+            .md\:p-8 { padding: 2rem; }
+            .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1024px) {
+            .lg\:flex-row { flex-direction: row; }
+            .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
         .loader {
             border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
             border-radius: 50%; width: 24px; height: 24px;
@@ -32,12 +204,75 @@
   color: #111827;
 }
 
+/* Pestañas de contenido editorial (Blog/Información/Eventos) — marco azul
+   visible. Se declara acá (no con clases Tailwind border-*) porque
+   .tab-btn { border: none } de arriba gana el cascade sobre las utilities
+   inyectadas por el script del CDN de Tailwind. */
+.tab-btn.tab-btn-content {
+  border: 2px solid #93c5fd;
+}
+.tab-btn.tab-btn-content:hover {
+  border-color: #60a5fa;
+}
+.tab-btn.tab-btn-content.active {
+  border-color: #2563eb;
+}
+
 /* ACTIVO (PRO) */
 .tab-btn.active {
   background: #2563eb;
   color: #ffffff;
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
   transform: translateY(-1px);
+}
+.term-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-left: .35rem;
+  border: 1px solid #93c5fd;
+  border-radius: 9999px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+.term-help:hover::after,
+.term-help:focus::after {
+  content: attr(data-help);
+  position: absolute;
+  left: 50%;
+  top: 1.45rem;
+  z-index: 50;
+  width: min(18rem, 78vw);
+  transform: translateX(-50%);
+  padding: .55rem .65rem;
+  border: 1px solid #bfdbfe;
+  border-radius: .5rem;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, .14);
+  font-size: .78rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  white-space: normal;
+}
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .75rem;
+}
+.glossary-term {
+  border: 1px solid #dbeafe;
+  border-radius: .5rem;
+  background: #ffffff;
+  padding: .75rem;
 }
 .download-btn-isoc {
   background: #4f5fe6;
@@ -54,6 +289,11 @@
   outline: none;
   box-shadow: 0 0 0 3px rgba(79, 95, 230, 0.18);
 }
+
+/* Preparación de datasets — badges de progreso del flujo */
+.prep-step-badge { background: #d1d5db; } /* pendiente (gris) */
+.prep-step-badge.prep-step-active { background: #2563eb; }
+.prep-step-badge.prep-step-done { background: #16a34a; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -79,19 +319,46 @@
   <button id="aboutBtn" class="mt-2 text-sm text-blue-600 underline">
     Acerca de
   </button>
+  <a href="/admin" title="Acceso administración" aria-label="Acceso administración"
+    class="ml-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition align-middle">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+    Admin
+  </a>
 
   <div id="aboutText" class="hidden mt-4 text-sm text-gray-700">
-    Varios capítulos de la región desarrollaron esta herramienta abierta para medir la adopción de tecnologías y buenas prácticas en América Latina y el Caribe. Esta plataforma se integrará con ISOC Pulse para recopilar y compartir información regional.
+    Varios capítulos de ISOC en región LAC desarrollaron esta herramienta abierta para medir la adopción de tecnologías y buenas prácticas en Internet en América Latina y el Caribe.
   </div>
 
         </div>
-<div class="mt-6 mb-8">
-  <div class="bg-gray-100 p-1.5 rounded-xl inline-flex gap-2 shadow-inner">
+<div class="mt-6 mb-8 flex flex-col items-center gap-2">
+
+  <!-- Fila 1 — módulos de operación del sistema -->
+  <div class="bg-gray-100 p-1.5 rounded-xl inline-flex flex-wrap justify-center gap-2 shadow-inner">
+
+    <button
+      id="tabBtnInicio"
+      type="button"
+      class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="inicio"
+    >
+      INICIO
+    </button>
+
+    <button
+      id="tabBtnPreparacion"
+      type="button"
+      class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="preparacion"
+    >
+      DataSet
+    </button>
 
     <button
       id="tabBtnMediciones"
       type="button"
-      class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold transition"
+      class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="mediciones"
     >
       MEDICIONES
@@ -117,7 +384,327 @@
 
   </div>
 
+  <!-- Fila 2 — contenido editorial (Blog, Información, Eventos) -->
+  <div class="inline-flex flex-wrap justify-center gap-2">
+
+    <button
+      id="tabBtnBlog"
+      type="button"
+      class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="blog"
+    >
+      BLOG
+    </button>
+
+    <button
+      id="tabBtnInformacion"
+      type="button"
+      class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="informacion"
+    >
+      INFORMACIÓN
+    </button>
+
+    <button
+      id="tabBtnEventos"
+      type="button"
+      class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
+      data-tab="eventos"
+    >
+      EVENTOS
+    </button>
+
+  </div>
+
+</div>
+
 <!-- ═══ PANELS — dentro del contenedor principal max-w-4xl ══════════════ -->
+
+<section
+  id="tabPanelInicio"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="inicio"
+>
+  <div class="mb-8">
+    <h2 class="text-xl font-bold text-gray-900 mb-2">¿Qué es Mediciones ISOC LAC?</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">
+      Esta plataforma es una iniciativa abierta impulsada por capítulos de <strong>Internet Society (ISOC)</strong>
+      en América Latina y el Caribe para generar evidencia técnica sobre la salud de la infraestructura de
+      Internet en la región: adopción de DNSSEC, seguridad de enrutamiento (RPKI) y buenas prácticas en
+      dominios ccTLD (<code>.ec</code>, <code>.co</code>, <code>.ar</code>, <code>.mx</code>, ...). Los datos
+      generados alimentan reportes que respaldan política pública regional y se integran con
+      <a href="https://pulse.internetsociety.org" target="_blank" class="text-blue-600 underline">ISOC Pulse</a>,
+      la plataforma global de métricas de Internet Society.
+    </p>
+  </div>
+
+  <div class="mb-8">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">Módulos de la plataforma</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">Mediciones</div>
+        <p class="text-sm text-gray-600 flex-1">
+          Análisis individual o por lote de un dominio: MX, DKIM, RPKI, WHOIS, CAA, TLSA, cabeceras de
+          seguridad, cadena TLS y más de 30 verificaciones técnicas por dominio.
+        </p>
+        <button onclick="document.getElementById('tabBtnMediciones').click()"
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">DNSSEC</div>
+        <p class="text-sm text-gray-600 flex-1">
+          Valida la cadena de firma DNSSEC completa (TLD → dominio) y las delegaciones seguras (DS/DNSKEY),
+          en modo individual o por lote sobre listas de dominios.
+        </p>
+        <button onclick="document.getElementById('tabBtnDnssec').click()"
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">Observatorio <span class="text-amber-600 normal-case font-semibold">(en construcción)</span></div>
+        <p class="text-sm text-gray-600 flex-1">
+          Panel de comparación de la evolución de DNSSEC por país, entre países de la región y frente a otras
+          regiones del mundo — pendiente de definir las fuentes de datos.
+        </p>
+        <button onclick="document.getElementById('tabBtnObservatorio').click()"
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<section
+  id="tabPanelInformacion"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="informacion"
+>
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Información</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      Guías, presentaciones y material de capacitación sobre DNSSEC y sobre la metodología de mediciones: qué se
+      mide, por qué es válido hacerlo y para qué sirve.
+    </p>
+  </div>
+  <div id="home-info-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+</section>
+
+<section
+  id="tabPanelPreparacion"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="preparacion"
+>
+  <div class="mb-2 flex items-center gap-3 flex-wrap">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Preparación de datasets de dominios</h2>
+  </div>
+  <p class="text-sm text-gray-600 mb-8 leading-relaxed">
+    Esta sección prepara el universo de dominios que posteriormente utilizarán las mediciones del portal
+    (Mediciones, DNSSEC y Observatorio). A partir de una fuente de dominios (por ejemplo, listas ccTLD de
+    OpenINTEL basadas en Certificate Transparency), el flujo de preparación normaliza, clasifica y valida
+    técnicamente cada nombre antes de que forme parte del dataset operativo — sin exigir todavía A/AAAA, MX,
+    DNSSEC ni disponibilidad web como criterio de exclusión.
+  </p>
+
+  <!-- Flujo visual: Fuente → Carga → Normalización → Validación DNS → Resultados y descarga -->
+  <div class="flex flex-col lg:flex-row items-stretch gap-3 mb-4">
+
+    <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="prep-badge-fuente" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="fuente">1</span>
+        <span class="font-semibold text-gray-900 text-sm">Fuente</span>
+      </div>
+      <p class="text-xs text-gray-600 flex-1">
+        Archivo de origen de dominios (ej. listas ccTLD de OpenINTEL vía Certificate Transparency). Es una
+        fuente amplia de descubrimiento, no un censo oficial del ccTLD.
+      </p>
+    </div>
+
+    <div class="hidden lg:flex items-center justify-center text-gray-300 text-xl px-1">→</div>
+    <div class="flex lg:hidden items-center justify-center text-gray-300 text-xl py-1">↓</div>
+
+    <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="prep-badge-carga" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="carga">2</span>
+        <span class="font-semibold text-gray-900 text-sm">Carga</span>
+      </div>
+      <p class="text-xs text-gray-600 flex-1">
+        Subida del archivo al portal (.txt/.csv, un dominio por línea o primera columna).
+      </p>
+    </div>
+
+    <div class="hidden lg:flex items-center justify-center text-gray-300 text-xl px-1">→</div>
+    <div class="flex lg:hidden items-center justify-center text-gray-300 text-xl py-1">↓</div>
+
+    <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="prep-badge-normalizacion" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="normalizacion">3</span>
+        <span class="font-semibold text-gray-900 text-sm">Normalización</span>
+      </div>
+      <p class="text-xs text-gray-600 flex-1">
+        Limpieza y deduplicación: minúsculas, IDNA/Punycode, validación de sintaxis y ccTLD, y clasificación
+        por sufijo con la Public Suffix List (sección ICANN).
+      </p>
+    </div>
+
+    <div class="hidden lg:flex items-center justify-center text-gray-300 text-xl px-1">→</div>
+    <div class="flex lg:hidden items-center justify-center text-gray-300 text-xl py-1">↓</div>
+
+    <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="prep-badge-validacion" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="validacion">4</span>
+        <span class="font-semibold text-gray-900 text-sm">Validación DNS</span>
+      </div>
+      <p class="text-xs text-gray-600 flex-1">
+        Confirmación de existencia DNS contra dos resolvers independientes (Cloudflare y Google): NS y, si es
+        inconcluso, SOA. Clasifica cada dominio como VALID, NXDOMAIN o REVIEW.
+      </p>
+    </div>
+
+    <div class="hidden lg:flex items-center justify-center text-gray-300 text-xl px-1">→</div>
+    <div class="flex lg:hidden items-center justify-center text-gray-300 text-xl py-1">↓</div>
+
+    <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="prep-badge-resultado" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="resultado">5</span>
+        <span class="font-semibold text-gray-900 text-sm">Resultados y descarga</span>
+      </div>
+      <p class="text-xs text-gray-600 flex-1">
+        Dataset operativo (dominios VALID) listo para las mediciones del portal, junto con las listas de
+        exclusión, discrepancias y el reporte de metodología.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ═══ Etapa: Fuente ═══════════════════════════════════════════════════ -->
+  <div id="prep-stage-fuente">
+    <div class="border-2 border-blue-200 rounded-xl p-5 bg-blue-50/40 mb-4">
+      <div class="text-xs font-bold uppercase tracking-wide text-blue-700 mb-1">Fuente recomendada</div>
+      <h3 class="font-semibold text-gray-900 mb-2">OpenINTEL</h3>
+      <ul class="text-sm text-gray-700 space-y-1.5 list-disc pl-5 mb-3">
+        <li>La lista ccTLD se descarga <strong>manualmente</strong> desde el sitio de OpenINTEL — este portal no realiza scraping ni descargas automáticas.</li>
+        <li>Las listas se derivan principalmente de nombres observados en <strong>Certificate Transparency (CT)</strong>.</li>
+        <li>Ofrecen una cobertura amplia, pero <strong>no son un archivo oficial de zona ni un censo completo</strong> del ccTLD.</li>
+        <li>Que un dominio aparezca en la lista <strong>no garantiza que siga existiendo actualmente en DNS</strong> — por eso Mediciones realiza después una validación DNS independiente.</li>
+        <li>Antes de descargar, revisa y acepta directamente los <strong>términos y licencia</strong> aplicables de OpenINTEL en su propio sitio; este portal no los gestiona ni los reemplaza.</li>
+      </ul>
+      <a href="https://openintel.nl/" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:underline">
+        Ir al sitio oficial de OpenINTEL →
+      </a>
+    </div>
+
+    <button onclick="prepGoToStage('carga')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      Ya tengo el archivo — continuar a Carga →
+    </button>
+  </div>
+
+  <!-- ═══ Etapa: Carga ════════════════════════════════════════════════════ -->
+  <div id="prep-stage-carga" class="hidden">
+    <h3 class="font-semibold text-gray-900 mb-2">Carga del archivo</h3>
+    <p class="text-sm text-gray-600 mb-3">
+      Selecciona el archivo .txt o .csv descargado desde la fuente (un dominio por línea, o primera columna
+      si es CSV). El archivo se procesa en este portal; no se sube a ningún tercero.
+    </p>
+
+    <label class="inline-block text-sm font-semibold border border-gray-300 px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-50 transition mb-4">
+      Seleccionar archivo…
+      <input type="file" id="prep-file-input" accept=".txt,.csv" class="hidden" onchange="prepHandleFileSelect(this)" />
+    </label>
+    <span id="prep-file-error" class="hidden text-sm text-red-600 mb-3 block"></span>
+
+    <div id="prep-file-meta" class="hidden border border-gray-200 rounded-xl p-4 text-sm mb-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+        <div><span class="text-gray-500">Nombre:</span> <span id="prep-meta-name" class="font-medium"></span></div>
+        <div><span class="text-gray-500">Tamaño:</span> <span id="prep-meta-size" class="font-medium"></span></div>
+        <div><span class="text-gray-500">Líneas:</span> <span id="prep-meta-lines" class="font-medium"></span></div>
+        <div><span class="text-gray-500">Fecha (del nombre):</span> <span id="prep-meta-date" class="font-medium"></span></div>
+      </div>
+      <div class="mt-3">
+        <span class="text-gray-500 text-xs">SHA-256:</span>
+        <div id="prep-meta-sha256" class="font-mono text-xs break-all bg-gray-50 border border-gray-200 rounded p-2 mt-1"></div>
+      </div>
+      <div class="mt-3 flex items-center gap-2 flex-wrap">
+        <label for="prep-tld-input" class="text-gray-500">ccTLD detectado (editable):</label>
+        <input id="prep-tld-input" type="text" placeholder="ec" class="border border-gray-300 rounded px-2 py-1 text-sm w-24 font-mono" />
+      </div>
+      <p class="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+        ⚠ Cambiar el ccTLD no es solo una etiqueta: modifica el criterio de filtrado — decide qué dominios
+        se aceptan o se rechazan como "outside_tld" durante la normalización. Corrígelo solo si el detectado
+        es incorrecto.
+      </p>
+    </div>
+
+    <button id="prep-continue-to-normalize" onclick="prepGoToStage('normalizacion')" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      Continuar a Normalización →
+    </button>
+  </div>
+
+  <!-- ═══ Etapa: Normalización ═══════════════════════════════════════════ -->
+  <div id="prep-stage-normalizacion" class="hidden">
+    <h3 class="font-semibold text-gray-900 mb-2">Normalización</h3>
+    <p class="text-sm text-gray-600 mb-4">
+      Aplica la misma metodología del validador de referencia: trim, minúsculas, eliminación de punto final,
+      IDNA/Punycode, eliminación de vacíos y duplicados, validación de longitud/sintaxis, pertenencia al
+      ccTLD, y clasificación por sufijo con la Public Suffix List (sección ICANN). Todavía no se ejecutan
+      consultas DNS ni se clasifica como VALID/NXDOMAIN/REVIEW.
+    </p>
+
+    <div id="prep-normalize-idle">
+      <button onclick="prepRunNormalize()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+        Normalizar dominios
+      </button>
+    </div>
+    <div id="prep-normalize-loading" class="hidden text-sm text-gray-500">Normalizando y clasificando por sufijo (PSL, sección ICANN)…</div>
+    <div id="prep-normalize-error" class="hidden text-sm text-red-600"></div>
+    <div id="prep-normalize-results" class="hidden"></div>
+  </div>
+
+  <!-- ═══ Etapa: Validación DNS ═══════════════════════════════════════════ -->
+  <div id="prep-stage-validacion" class="hidden">
+    <h3 class="font-semibold text-gray-900 mb-2">Validación DNS</h3>
+    <p class="text-sm text-gray-600 mb-4">
+      Réplica fiel del validador de referencia: confirma existencia DNS contra dos resolvers
+      independientes — Cloudflare (1.1.1.1) y Google (8.8.8.8) — consultando NS y, si es inconcluso, SOA,
+      con CD=1 para no depender de la validación DNSSEC del resolver. <strong>VALID</strong> = NOERROR en
+      al menos un resolver. <strong>NXDOMAIN</strong> = ambos resolvers confirman NXDOMAIN para el mismo
+      tipo de consulta. <strong>REVIEW</strong> = resultado no concluyente, no se descarta
+      automáticamente. Los REVIEW de la primera pasada se reintentan una vez de forma automática.
+    </p>
+
+    <div id="prep-dns-idle">
+      <button id="prep-dns-start-btn" onclick="prepRunDnsValidation()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+        Iniciar validación DNS
+      </button>
+    </div>
+
+    <div id="prep-dns-preflight-error" class="hidden text-sm text-red-700 border border-red-200 bg-red-50 rounded-xl p-4 mt-3"></div>
+
+    <div id="prep-dns-progress" class="hidden mt-2">
+      <div class="flex items-center justify-between text-sm mb-1">
+        <span id="prep-dns-progress-label">Preflight de resolvers…</span>
+        <span id="prep-dns-progress-pct">0%</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-2.5 mb-2">
+        <div id="prep-dns-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
+      <div class="text-xs text-gray-400" id="prep-dns-progress-last"></div>
+    </div>
+
+    <div id="prep-dns-results" class="hidden"></div>
+  </div>
+
+  <!-- ═══ Etapa: Resultados y descarga ═══════════════════════════════════ -->
+  <div id="prep-stage-resultado" class="hidden">
+    <div id="prep-resultado-content"></div>
+  </div>
+
+</section>
 
 <section
   id="tabPanelDnssec"
@@ -137,7 +724,7 @@
       ?
     </span>
 
-    <div class="absolute left-6 top-0 w-72 p-3 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+    <div class="absolute right-0 top-6 w-72 max-w-[85vw] p-3 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
       Nota metodológica: dominios reservados para documentación o pruebas (p. ej., definidos en la RFC 2606) pueden mostrar resultados válidos sin ser representativos de despliegues reales. Interpretar con cautela.
     </div>
   </div>
@@ -392,7 +979,7 @@
       </div>
 
     </div>
-</section>
+  </section>
 <div id="dnssec-inline-result" class="mt-6 hidden">
   <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
@@ -493,11 +1080,67 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ OBSERVATORIO -->
+<!--
+  Módulo simplificado: el Observatorio ya NO hará análisis batch complejos.
+  La versión anterior (motor de análisis, biblioteca de reportes, historial)
+  queda en reserva más abajo — desconectada del sistema de tabs (su
+  data-panel/id cambiaron a "...-legacy") pero intacta por si se reactiva.
+-->
 <section
   id="tabPanelObservatorio"
   class="tab-panel"
   style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #c7d2fe;background:#eef2ff;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
   data-panel="observatorio"
+>
+  <div class="mb-2 flex items-center gap-3 flex-wrap">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Observatorio DNSSEC — LAC</h2>
+    <span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">En construcción</span>
+  </div>
+  <p class="text-sm text-gray-600 mb-6 max-w-3xl">
+    El Observatorio será un panel de comparación, no una herramienta de análisis por lote. En vez de correr
+    verificaciones sobre listas propias, mostrará la <strong>evolución de la adopción de DNSSEC</strong> ya medida
+    a partir de fuentes de datos regionales:
+  </p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">Por país</div>
+      <p class="text-sm text-gray-600 flex-1">
+        Evolución en el tiempo de la adopción de DNSSEC dentro de un mismo país — ¿el porcentaje de dominios
+        firmados sube, baja o se estanca?
+      </p>
+    </div>
+    <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">Entre países</div>
+      <p class="text-sm text-gray-600 flex-1">
+        Comparación lado a lado entre países de la región LAC — qué ccTLD lidera la adopción y cuáles van
+        rezagados.
+      </p>
+    </div>
+    <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">LAC vs. otras regiones</div>
+      <p class="text-sm text-gray-600 flex-1">
+        Ubicar a América Latina y el Caribe frente a otras regiones del mundo, para dimensionar la brecha o el
+        avance relativo.
+      </p>
+    </div>
+  </div>
+
+  <div class="border-2 border-dashed border-indigo-200 rounded-xl p-5 bg-indigo-50/30">
+    <div class="text-xs font-bold uppercase tracking-wide text-indigo-700 mb-1">Pendiente de definir</div>
+    <p class="text-sm text-gray-700">
+      Todavía no se ha definido de dónde vendrán los datos de esta comparación (fuente propia, agregador
+      internacional existente, o una combinación). El dashboard no se activa hasta resolver esa fuente — así se
+      evita construir sobre una base de datos que luego cambie de origen o de formato.
+    </p>
+  </div>
+</section>
+
+<section
+  id="tabPanelObservatorioLegacy"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #c7d2fe;background:#eef2ff;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="observatorio-legacy"
 >
   <div class="mb-5">
     <div class="flex items-center justify-between gap-3 flex-wrap">
@@ -721,6 +1364,36 @@
 </section>
 
 <section
+  id="tabPanelBlog"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="blog"
+>
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Blog</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      Artículos técnicos y de opinión sobre DNSSEC, RPKI y la infraestructura de Internet en la región.
+    </p>
+  </div>
+  <div id="blog-tab-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</section>
+
+<section
+  id="tabPanelEventos"
+  class="tab-panel"
+  style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
+  data-panel="eventos"
+>
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Eventos</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      Cursos, seminarios y capacitaciones organizados por los capítulos ISOC de la región.
+    </p>
+  </div>
+  <div id="eventos-tab-list" class="space-y-3"></div>
+</section>
+
+<section
   id="tabPanelMediciones"
   class="tab-panel"
   style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #bfdbfe;background:#eff6ff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
@@ -766,6 +1439,29 @@
 
     <div class="mt-4 h-[1px] w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200"></div>
   </div>
+
+  <!-- Sub-pestañas: Un dominio / Análisis comparativo -->
+  <div class="flex gap-2 mb-5 border-b border-blue-200 pb-0 flex-wrap">
+    <button id="mediciones-tab-single" onclick="medicionesSwitchTab('single')"
+      class="mediciones-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-blue-200 border-b-0 bg-white text-blue-700 -mb-px">
+      Un dominio
+    </button>
+    <button id="mediciones-tab-batch" onclick="medicionesSwitchTab('batch')"
+      class="mediciones-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-transparent text-gray-500 hover:text-blue-600 transition">
+      Análisis comparativo
+    </button>
+  </div>
+
+  <!-- Glosario general: qué mide cada indicador (compartido por "Un dominio" y "Análisis comparativo") -->
+  <details class="mb-6 border rounded-lg bg-white shadow-sm">
+    <summary class="cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between">
+      <span>📖 Glosario de términos — qué mide cada indicador</span>
+      <span class="text-xs text-gray-500 font-normal">Ver todos los grupos</span>
+    </summary>
+    <div id="mediciones-glossary-body" class="p-3 space-y-2"></div>
+  </details>
+
+  <div id="mediciones-panel-single">
         <div class="mb-6">
             <label for="countrySelect" class="block text-sm font-medium text-gray-700 mb-2">Selecciona un país</label>
             <select id="countrySelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
@@ -820,9 +1516,133 @@
             <div id="loader" class="hidden items-center justify-center py-4">
                 <div class="loader"></div><p class="ml-3 text-gray-600">Analizando...</p>
             </div>
+            <div id="mediciones-status-legend" class="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2"></div>
             <div id="results" class="space-y-6"></div>
         </div>
+  </div>
+  <!-- /mediciones-panel-single -->
+
+  <!-- Panel: Análisis comparativo (lote de 20-25 dominios, reporte final PDF/JSON) -->
+  <div id="mediciones-panel-batch" class="hidden">
+
+    <!-- Dominios: texto o archivo -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Lista de dominios
+        <span class="text-gray-400 font-normal ml-1">— recomendado: 20 a 25 dominios</span>
+      </label>
+
+      <div class="mb-3 flex items-center gap-3 flex-wrap">
+        <label class="cursor-pointer inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
+          </svg>
+          Subir archivo .txt o .csv
+          <input id="mb-file-input" type="file" accept=".txt,.csv" class="hidden" onchange="medicionesBatchLoadFile(this)" />
+        </label>
+        <span class="text-xs text-gray-400">Un dominio por línea, o separados por coma. Sin encabezados.</span>
+      </div>
+      <div id="mb-file-name" class="text-xs text-green-600 mb-2 hidden"></div>
+
+      <textarea id="mb-domains-input" rows="5"
+        placeholder="nic.uy&#10;lacnic.net&#10;isoc.org&#10;…"
+        class="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
+      <div class="flex justify-between items-center mt-1">
+        <span id="mb-domain-count" class="text-xs text-gray-400">0 dominios</span>
+        <span class="text-xs text-gray-400">Máximo recomendado: 25 dominios por análisis</span>
+      </div>
     </div>
+
+    <!-- Verificaciones a realizar (mismo árbol de checks que "Un dominio") -->
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-3">
+        <label class="block text-sm font-medium text-gray-700">Verificaciones a realizar</label>
+        <button id="mb-selectAll" type="button" class="text-blue-600 text-sm">Seleccionar todos</button>
+      </div>
+      <div id="mb-checksContainer" class="space-y-3"></div>
+    </div>
+
+    <!-- Concurrencia -->
+    <div class="mb-5 flex items-center gap-3">
+      <label class="text-sm text-gray-600">Velocidad:</label>
+      <select id="mb-concurrency" class="border border-gray-300 rounded p-1 text-sm bg-white">
+        <option value="5">Conservadora — 5 simultáneos</option>
+        <option value="10" selected>Recomendada — 10 simultáneos</option>
+        <option value="15">Rápida — 15 simultáneos</option>
+      </select>
+    </div>
+
+    <!-- Botones acción -->
+    <div class="flex gap-3 flex-wrap">
+      <button id="mb-start-btn" onclick="medicionesBatchStart()"
+        class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm">
+        Analizar
+      </button>
+      <button id="mb-cancel-btn" onclick="medicionesBatchCancel()" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-200 transition">
+        Cancelar
+      </button>
+    </div>
+
+    <!-- Progreso -->
+    <div id="mb-progress-wrap" class="hidden mt-6">
+      <div class="flex justify-between text-sm text-gray-600 mb-1">
+        <span id="mb-progress-label">Procesando…</span>
+        <span id="mb-progress-pct">0%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div id="mb-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
+      <div class="mt-2 text-xs text-gray-400" id="mb-last-domain"></div>
+      <div class="mt-1 text-xs text-gray-400" id="mb-dns-status">Validación DNS: en cola…</div>
+    </div>
+
+    <!-- Resultados y descarga -->
+    <div id="mb-results-wrap" class="hidden mt-6 space-y-5">
+      <div class="rounded-xl border border-gray-200 bg-white p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+          <div>
+            <div id="mb-summary-total" class="text-2xl font-bold text-blue-700">—</div>
+            <div class="text-xs text-gray-500 mt-1">Dominios analizados</div>
+          </div>
+          <div>
+            <div id="mb-summary-dnssec-adoption" class="text-2xl font-bold text-blue-700">—</div>
+            <div class="text-xs text-gray-500 mt-1">Adopción DNSSEC del lote</div>
+          </div>
+          <div>
+            <div id="mb-summary-dns-valid" class="text-2xl font-bold text-blue-700">—</div>
+            <div class="text-xs text-gray-500 mt-1">Dominios VALID (validación DNS)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <h3 class="text-md font-semibold text-gray-800">Reporte comparativo — dominio × verificación</h3>
+          <div id="mb-status-legend" class="text-xs mt-2"></div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead id="mb-comparative-thead" class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide"></thead>
+            <tbody id="mb-comparative-tbody" class="divide-y divide-gray-200 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex gap-3 flex-wrap">
+        <button id="mb-download-pdf" class="bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 active:scale-95 transition text-sm">
+          Descargar PDF
+        </button>
+        <button id="mb-download-json" class="bg-gray-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 active:scale-95 transition text-sm">
+          Descargar JSON
+        </button>
+      </div>
+      <div id="mb-report-error" class="hidden text-sm text-red-600"></div>
+    </div>
+
+  </div>
+  <!-- /mediciones-panel-batch -->
+
+</div>
 </section>
 
 </div><!-- /max-w-4xl principal -->
@@ -1022,12 +1842,129 @@
         }
     ];
 
+    const checkGlossary = {
+        ipinfo: 'Lista las direcciones IPv4/IPv6 del dominio y datos básicos de geolocalización/ASN cuando están disponibles.',
+        serverlocation: 'Ubica geográficamente la primera IP resuelta del dominio. Es una aproximación basada en bases públicas de IP.',
+        serverinfo: 'Resume IP, ASN, organización, red e ISP asociados al servidor observado.',
+        ipv4: 'Comprueba si el dominio publica registros A para conectividad IPv4.',
+        ipv6: 'Comprueba si el dominio publica registros AAAA para conectividad IPv6.',
+        asn: 'Identifica el Sistema Autónomo que anuncia la IP principal del dominio.',
+        serverstatus: 'Consulta el estado HTTP final del sitio después de redirecciones válidas.',
+        openports: 'Prueba conectividad básica a puertos comunes. No sustituye un escaneo de seguridad formal.',
+        traceroute: 'Obtiene una ruta aproximada de red usando un servicio externo de diagnóstico.',
+        redirectchain: 'Muestra la cadena HTTP/HTTPS desde el dominio inicial hasta el destino final.',
+        block: 'Compara respuestas de resolvers públicos para detectar posibles bloqueos o diferencias de resolución.',
+        dnsrecords: 'Consulta registros DNS principales: A, AAAA, MX, NS, TXT y CNAME.',
+        txtrecords: 'Lista registros TXT publicados en el dominio, usados para políticas y verificaciones.',
+        dnsserver: 'Lista los servidores NS autoritativos declarados para el dominio.',
+        dnssecurity: 'Detecta señales básicas de DNSSEC mediante DS/DNSKEY y DoH.',
+        rpki: 'Valida si la IP observada tiene cobertura RPKI válida para el prefijo y ASN de origen.',
+        caa: 'Busca registros CAA, que indican qué autoridades certificadoras pueden emitir certificados para el dominio.',
+        tlsa: 'Busca registros TLSA/DANE para vincular certificados TLS con DNSSEC.',
+        emailconfig: 'Resume MX, SPF, DMARC y DKIM observado con selectores comunes.',
+        mx: 'Comprueba si el dominio tiene registros MX para recibir correo.',
+        smtputf8: 'Detecta si los servidores MX anuncian soporte SMTPUTF8 para direcciones internacionalizadas.',
+        dmarc: 'Comprueba si existe política DMARC en _dmarc del dominio.',
+        spf: 'Comprueba si el dominio publica una política SPF en registros TXT.',
+        dkim: 'Busca una clave DKIM con el selector configurado o por defecto.',
+        whois: 'Consulta fuentes WHOIS/RDAP para datos públicos del registrante, sujetos a redacción por privacidad.',
+        domaininfo: 'Consulta RDAP para registrar, estado y fechas relevantes del dominio.',
+        securitytxt: 'Comprueba si existe /.well-known/security.txt para reportar vulnerabilidades.',
+        sitefeatures: 'Detecta señales simples de formularios, búsqueda, video, analítica o comercio en el HTML final.',
+        cookies: 'Lista cookies Set-Cookie observadas en la respuesta final del sitio.',
+        crawlrules: 'Lee robots.txt para reglas de rastreo y señales de uso automatizado.',
+        linkedpages: 'Extrae enlaces encontrados en la página principal final.',
+        listedpages: 'Lee sitemap.xml y extrae URLs declaradas.',
+        socialtags: 'Extrae metadatos sociales como Open Graph, Twitter cards, descripción y viewport.',
+        quality: 'Consulta métricas de PageSpeed/Lighthouse cuando el servicio externo responde.',
+        archive: 'Consulta historial básico de capturas en Internet Archive.',
+        ranking: 'Consulta ranking global aproximado del dominio en Tranco.',
+        malware: 'Consulta URLHaus para señales públicas de malware o phishing asociadas al dominio.',
+        screenshot: 'Genera o consulta una captura visual del sitio, si el servicio está disponible.',
+        https: 'Comprueba si el sitio final responde por HTTPS correctamente.',
+        redirect: 'Comprueba si HTTP redirige hacia HTTPS.',
+        hsts: 'Detecta Strict-Transport-Security, que fuerza uso futuro de HTTPS en navegadores compatibles.',
+        csp: 'Detecta Content-Security-Policy, política que limita fuentes de scripts, estilos, imágenes y conexiones.',
+        xfo: 'Detecta X-Frame-Options, protección clásica contra clickjacking.',
+        xcto: 'Detecta X-Content-Type-Options, que evita interpretación MIME insegura.',
+        referrer: 'Detecta Referrer-Policy, que controla cuánta información de origen se envía al navegar.',
+        permissions: 'Detecta Permissions-Policy, que restringe APIs del navegador como cámara, micrófono o geolocalización.',
+        xxss: 'Detecta X-XSS-Protection. Es una cabecera antigua y hoy menos relevante en navegadores modernos.',
+        headers: 'Muestra las cabeceras HTTP observadas en la respuesta final.',
+        server: 'Muestra el valor de Server, que puede revelar tecnología o estar oculto por el proveedor.',
+        compression: 'Detecta si la respuesta usa compresión HTTP como gzip, br o deflate.',
+        ocsp: 'Detecta OCSP Stapling en la conexión TLS, usado para estado de revocación del certificado.',
+        tls: 'Muestra la versión TLS negociada con el servidor.',
+        key: 'Muestra información de intercambio de claves de la sesión TLS.',
+        sslchain: 'Lista la cadena de certificados presentada por el servidor.',
+        tlsciphers: 'Prueba suites de cifrado disponibles en TLS 1.2/1.3.',
+        tlsconfig: 'Resume configuración TLS observable y posibles debilidades.',
+        tlssimulation: 'Simula handshakes TLS con distintos perfiles para observar compatibilidad.',
+        httpsecurity: 'Agrupa cabeceras de seguridad HTTP principales.',
+        firewall: 'Detecta señales de WAF/CDN como Cloudflare, Akamai, Sucuri o ModSecurity.'
+    };
+
+    // Vocabulario compartido de estado — mismos 4 valores que devuelve cada
+    // check (ok/fail/error/info) y que usa también el PDF del reporte batch
+    // (medicionesBatchReport.exporter.js, STATUS_ICON). "_empty" es el caso
+    // sin datos (check no ejecutado para ese dominio), no un estado real.
+    const STATUS_SYMBOL = {
+        ok:    { icon: '✓', cls: 'text-green-600', label: 'OK — cumple / se detectó correctamente' },
+        fail:  { icon: '✗', cls: 'text-red-600',    label: 'No cumple / no se encontró' },
+        error: { icon: '⚠', cls: 'text-gray-500',   label: 'Error al verificar — no se pudo comprobar (timeout, servicio externo caído, etc.)' },
+        info:  { icon: 'ℹ', cls: 'text-blue-600',   label: 'Informativo — dato disponible, sin evaluación de "bien/mal"' },
+        _empty:{ icon: '—', cls: 'text-gray-300',   label: 'Sin datos — este check no se ejecutó para este dominio' }
+    };
+
+    function renderStatusLegend() {
+        return Object.entries(STATUS_SYMBOL).filter(([k]) => k !== '_empty').map(([, s]) =>
+            `<span class="inline-flex items-center gap-1 mr-4"><span class="font-bold ${s.cls}">${s.icon}</span><span class="text-gray-600">${escapeHtml(s.label)}</span></span>`
+        ).join('') +
+        `<span class="inline-flex items-center gap-1"><span class="font-bold text-gray-300">—</span><span class="text-gray-600">${escapeHtml(STATUS_SYMBOL._empty.label)}</span></span>`;
+    }
+
     const checkConfig = {};
     groupDefinitions.forEach(group => {
         group.checks.forEach(check => {
-            checkConfig[check.key] = { label: check.label };
+            checkConfig[check.key] = {
+                label: check.label,
+                description: checkGlossary[check.key] || 'Indicador técnico usado por el módulo de mediciones.',
+                group: group.title
+            };
         });
     });
+
+    function checkHelpButton(key) {
+        const cfg = checkConfig[key] || {};
+        return `<span class="term-help" tabindex="0" role="button" aria-label="Ayuda: ${escapeHtml(cfg.label || key)}" data-help="${escapeAttr(cfg.description || '')}">?</span>`;
+    }
+
+    function renderGlossaryBlock() {
+        return groupDefinitions.map(group => {
+            const terms = group.checks.map(check => {
+                const cfg = checkConfig[check.key];
+                return `
+                    <div class="glossary-term">
+                        <div class="text-sm font-semibold text-gray-900">${escapeHtml(cfg.label)}</div>
+                        <div class="text-xs text-gray-600 mt-1">${escapeHtml(cfg.description)}</div>
+                    </div>`;
+            }).join('');
+            return `
+                <details class="border rounded-lg bg-blue-50/40 p-3">
+                    <summary class="cursor-pointer font-semibold text-sm text-blue-800">${escapeHtml(group.title)}</summary>
+                    <div class="glossary-grid mt-3">${terms}</div>
+                </details>`;
+        }).join('');
+    }
+
+    function selectedGlossary(selectedChecks) {
+        return selectedChecks.map(key => ({
+            key,
+            label: checkConfig[key]?.label || key,
+            description: checkConfig[key]?.description || '',
+            group: checkConfig[key]?.group || ''
+        }));
+    }
 
     function renderCheckOptions() {
         const container = document.getElementById('checksContainer');
@@ -1052,7 +1989,7 @@
                 input.className = 'h-4 w-4 rounded';
                 const span = document.createElement('span');
                 span.className = 'ml-2 text-sm';
-                span.textContent = check.label;
+                span.innerHTML = `${escapeHtml(check.label)}${checkHelpButton(check.key)}`;
                 label.appendChild(input);
                 label.appendChild(span);
                 wrapper.appendChild(label);
@@ -1064,6 +2001,11 @@
     }
 
     renderCheckOptions();
+    document.getElementById('mediciones-glossary-body').innerHTML = renderGlossaryBlock();
+    document.getElementById('mediciones-status-legend').innerHTML =
+        '<span class="font-semibold text-gray-700 mr-2">Significado de los símbolos:</span>' + renderStatusLegend();
+    document.getElementById('mb-status-legend').innerHTML =
+        '<span class="font-semibold text-gray-700 mr-2">Significado de los símbolos:</span>' + renderStatusLegend();
 
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('domainHistory') || '[]');
@@ -1304,7 +2246,7 @@
                 row.className = 'result-item flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0';
                 const label = document.createElement('span');
                 label.className = 'label text-sm font-medium text-gray-600';
-                label.textContent = checkConfig[c].label;
+                label.innerHTML = `${escapeHtml(checkConfig[c].label)}${checkHelpButton(c)}`;
                 const placeholder = document.createElement('span');
                 placeholder.className = 'text-gray-500 flex items-center';
                 placeholder.innerHTML = '<div class="loader mr-2"></div><span>Cargando...</span>';
@@ -1737,7 +2679,8 @@
                 }
                 case 'whois': {
                     const data = await fetchWithTimeout(`${API_BASE}/whois/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.status === 'error_tecnico') return { label, status: 'error', details: data.message };
+                    if (data.status === 'redactado_o_no_disponible') return { label, status: 'info', details: data.message };
                     const details = data.country ? `${data.name || 'Desconocido'} (${data.country})` : (data.name || 'Desconocido');
                     return { label, status: data.name ? 'ok' : 'fail', details };
                 }
@@ -1968,20 +2911,24 @@ analyzeDnssecInline(domain);
 
     function cleanupUI() {
       // DNSSEC — ocultar resultado inline
+      // Nota: se usa classList (no style.display) porque el resto del código
+      // solo alterna la clase "hidden" al mostrar resultados; un style.display
+      // inline aquí sobrevive a ese classList.remove y deja el panel invisible
+      // para siempre tras el primer cambio de pestaña.
       const dnssecResult = document.getElementById('dnssec-inline-result');
-      if (dnssecResult) dnssecResult.style.display = 'none';
+      if (dnssecResult) dnssecResult.classList.add('hidden');
 
       // Observatorio — resetear sub-contenidos
       const obsLibContent = document.getElementById('obs-library-content');
-      if (obsLibContent) obsLibContent.style.display = 'none';
+      if (obsLibContent) obsLibContent.classList.add('hidden');
       const obsHistTable = document.getElementById('obs-history-table');
-      if (obsHistTable) obsHistTable.style.display = 'none';
+      if (obsHistTable) obsHistTable.classList.add('hidden');
 
       // Mediciones — limpiar resultados
       const results = document.getElementById('results');
       if (results) results.innerHTML = '';
       const summary = document.getElementById('summary');
-      if (summary) summary.style.display = 'none';
+      if (summary) summary.classList.add('hidden');
     }
 
     function activateTab(tabName) {
@@ -2013,8 +2960,8 @@ analyzeDnssecInline(domain);
       });
     });
 
-    // Arrancar en MEDICIONES
-    activateTab("mediciones");
+    // Arrancar en INICIO
+    activateTab("inicio");
   })();
 async function analyzeDnssecInline(domain) {
   const wrapper = document.getElementById("dnssec-inline-result");
@@ -2684,6 +3631,691 @@ function normalizeBatchDomain(value) {
     .replace(/:\d+$/, '').replace(/\.$/, '');
 }
 
+// ═══ Inicio / Blog / Eventos — contenido administrado desde /admin ══════
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/"/g, '&quot;');
+}
+
+function formatHomeDate(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+async function fetchPublishedContent(type) {
+  try {
+    const res = await fetch(`/content/${type}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.items) ? data.items : [];
+  } catch {
+    return [];
+  }
+}
+
+async function renderHomeInfo() {
+  const grid = document.getElementById('home-info-grid');
+  if (!grid) return;
+  const items = await fetchPublishedContent('materials');
+  if (!items.length) {
+    grid.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5 md:col-span-2">
+      Aún no hay material de capacitación publicado.
+    </div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item => `
+    <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
+      ${item.category ? `<div class="text-xs font-bold uppercase tracking-wide text-blue-600 mb-1">${escapeHtml(item.category)}</div>` : ''}
+      <div class="font-semibold text-gray-900 mb-1">${escapeHtml(item.title)}</div>
+      <p class="text-sm text-gray-600 flex-1">${escapeHtml(item.description)}</p>
+      <a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" class="mt-3 text-sm font-semibold text-blue-600 hover:underline">Ver material →</a>
+    </div>
+  `).join('');
+}
+
+async function renderBlogTab() {
+  const grid = document.getElementById('blog-tab-grid');
+  if (!grid) return;
+  const posts = await fetchPublishedContent('blog');
+  if (!posts.length) {
+    grid.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5 md:col-span-2 lg:col-span-3">
+      Aún no hay artículos publicados. Próximamente contenido técnico y de opinión sobre DNSSEC, RPKI y medición de infraestructura regional.
+    </div>`;
+    return;
+  }
+  grid.innerHTML = posts.map(post => `
+    <a href="${escapeAttr(post.url)}" target="_blank" rel="noopener noreferrer"
+      class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col">
+      <div class="h-1.5 bg-gradient-to-r from-blue-600 to-blue-400"></div>
+      <div class="p-5 flex flex-col flex-1">
+        ${post.category ? `<span class="self-start text-xs font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full mb-2">${escapeHtml(post.category)}</span>` : ''}
+        <h3 class="font-semibold text-gray-900 mb-1">${escapeHtml(post.title)}</h3>
+        <p class="text-sm text-gray-600 flex-1">${escapeHtml(post.summary)}</p>
+        ${post.date ? `<div class="text-xs text-gray-400 mt-3">${escapeHtml(formatHomeDate(post.date))}</div>` : ''}
+      </div>
+    </a>
+  `).join('');
+}
+
+async function renderEventosTab() {
+  const list = document.getElementById('eventos-tab-list');
+  if (!list) return;
+  const events = await fetchPublishedContent('events');
+  if (!events.length) {
+    list.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5">
+      No hay eventos programados por el momento. Aquí se publicarán cursos, seminarios y capacitaciones sobre DNSSEC y mediciones ISOC LAC.
+    </div>`;
+    return;
+  }
+  list.innerHTML = events.map(ev => `
+    <div class="border border-gray-200 rounded-xl p-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="font-semibold text-gray-900">${escapeHtml(ev.title)}</div>
+        ${ev.date ? `<span class="text-xs text-gray-400">${escapeHtml(formatHomeDate(ev.date))}</span>` : ''}
+      </div>
+      ${ev.type ? `<div class="text-xs font-bold uppercase tracking-wide text-blue-600 mt-1">${escapeHtml(ev.type)}</div>` : ''}
+      ${ev.description ? `<p class="text-sm text-gray-600 mt-2">${escapeHtml(ev.description)}</p>` : ''}
+      ${ev.url ? `<a href="${escapeAttr(ev.url)}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-blue-600 hover:underline mt-2 inline-block">Más información →</a>` : ''}
+    </div>
+  `).join('');
+}
+
+renderHomeInfo();
+renderBlogTab();
+renderEventosTab();
+
+// ═══ Preparación de datasets de dominios — Fuente → Carga → Normalización ═══
+// NO incluye validación DNS, clasificación VALID/NXDOMAIN/REVIEW, ZIP ni PDF.
+
+let _prepStage = 'fuente';
+let _prepFileText = '';
+let _prepInputSha256 = '';
+let _prepFileSizeBytes = 0;
+let _prepNormalizeResult = null;
+let _prepDnsResult = null;
+let _prepDnsJob = null;
+let _prepDnsEventSource = null;
+
+const PREP_STAGE_ORDER = ['fuente', 'carga', 'normalizacion', 'validacion', 'resultado'];
+
+function prepGoToStage(stage) {
+  _prepStage = stage;
+  ['fuente', 'carga', 'normalizacion', 'validacion', 'resultado'].forEach((s) => {
+    const el = document.getElementById('prep-stage-' + s);
+    if (el) el.classList.toggle('hidden', s !== stage);
+  });
+  if (stage === 'validacion' && _prepNormalizeResult) {
+    const n = _prepNormalizeResult.normalized.length;
+    document.getElementById('prep-dns-start-btn').textContent =
+      `Iniciar validación DNS (${n.toLocaleString('es-EC')} dominios)`;
+  }
+  prepUpdateStepper();
+}
+
+function prepUpdateStepper() {
+  const currentIndex = PREP_STAGE_ORDER.indexOf(_prepStage);
+  document.querySelectorAll('.prep-step-badge').forEach((badge) => {
+    const idx = PREP_STAGE_ORDER.indexOf(badge.dataset.step);
+    badge.classList.remove('prep-step-active', 'prep-step-done');
+    if (idx < currentIndex) {
+      badge.classList.add('prep-step-done');
+      badge.textContent = '✓';
+    } else if (idx === currentIndex) {
+      badge.classList.add('prep-step-active');
+      badge.textContent = String(idx + 1);
+    } else {
+      badge.textContent = String(idx + 1);
+    }
+  });
+}
+
+function prepFormatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function prepFormatPercent(count, total) {
+  if (!total) return '0.00%';
+  return ((count / total) * 100).toFixed(2) + '%';
+}
+
+async function prepSha256(file) {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Réplica de la línea de detección de fecha del validador Python (DATE_RE).
+function prepDetectDate(filename) {
+  const m = filename.match(/(20\d{2}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
+
+// Heurística de detección de ccTLD (el validador Python exige --tld explícito;
+// aquí se propone un valor editable a partir del nombre de archivo y una
+// muestra del contenido, pero el usuario debe confirmarlo/corregirlo).
+function prepDetectTld(filename, lines) {
+  const nameMatch = filename.toLowerCase().match(/^([a-z]{2,10})[_.\-]/);
+  const fromName = nameMatch ? nameMatch[1] : '';
+
+  const sample = lines.filter((l) => l.trim() && l.includes('.')).slice(0, 200);
+  const counts = {};
+  for (const line of sample) {
+    const first = line.split(',')[0].trim().toLowerCase().replace(/\.$/, '');
+    const parts = first.split('.');
+    const last = parts[parts.length - 1];
+    if (/^[a-z]{2,10}$/.test(last)) counts[last] = (counts[last] || 0) + 1;
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const majority = sorted.length ? sorted[0][0] : '';
+
+  if (fromName && sample.length && counts[fromName] && counts[fromName] / sample.length > 0.5) {
+    return fromName;
+  }
+  return majority || fromName;
+}
+
+// Invalida Validación DNS y Resultados — un resultado DNS anterior no debe
+// quedar asociado visualmente a un input distinto (archivo o ccTLD nuevos).
+function prepInvalidateDnsAndResultados() {
+  _prepDnsResult = null;
+  _prepDnsJob = null;
+  if (_prepDnsEventSource) { _prepDnsEventSource.close(); _prepDnsEventSource = null; }
+  const dnsResults = document.getElementById('prep-dns-results');
+  if (dnsResults) { dnsResults.classList.add('hidden'); dnsResults.innerHTML = ''; }
+  document.getElementById('prep-dns-idle').classList.remove('hidden');
+  document.getElementById('prep-dns-progress').classList.add('hidden');
+  document.getElementById('prep-dns-preflight-error').classList.add('hidden');
+  const resultadoContent = document.getElementById('prep-resultado-content');
+  if (resultadoContent) resultadoContent.innerHTML = '';
+}
+
+// Invalida Normalización y todo lo posterior — se usa al elegir un archivo
+// nuevo, ya que cambia el universo de dominios de origen.
+function prepInvalidateFromNormalize() {
+  _prepNormalizeResult = null;
+  const normResults = document.getElementById('prep-normalize-results');
+  if (normResults) { normResults.classList.add('hidden'); normResults.innerHTML = ''; }
+  document.getElementById('prep-normalize-idle').classList.remove('hidden');
+  prepInvalidateDnsAndResultados();
+}
+
+async function prepHandleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  prepInvalidateFromNormalize();
+
+  const errorEl = document.getElementById('prep-file-error');
+  errorEl.classList.add('hidden');
+
+  const MAX_BYTES = 20 * 1024 * 1024;
+  if (file.size > MAX_BYTES) {
+    errorEl.textContent = 'El archivo excede el tamaño máximo admitido (20 MB).';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  let text;
+  try {
+    text = await file.text();
+  } catch (e) {
+    errorEl.textContent = 'No se pudo leer el archivo.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  _prepFileText = text;
+
+  const endsWithNewline = /[\r\n]$/.test(text);
+  const rawLines = text.split(/\r\n|\r|\n/);
+  if (endsWithNewline && rawLines[rawLines.length - 1] === '') rawLines.pop();
+
+  let sha256;
+  try {
+    sha256 = await prepSha256(file);
+  } catch (e) {
+    // crypto.subtle solo existe en contextos seguros (HTTPS o localhost).
+    sha256 = 'No disponible en este contexto (requiere HTTPS).';
+  }
+  const detectedDate = prepDetectDate(file.name);
+  const detectedTld = prepDetectTld(file.name, rawLines);
+
+  document.getElementById('prep-meta-name').textContent = file.name;
+  document.getElementById('prep-meta-size').textContent = prepFormatBytes(file.size);
+  document.getElementById('prep-meta-lines').textContent = rawLines.length.toLocaleString('es-EC');
+  document.getElementById('prep-meta-date').textContent = detectedDate || 'no se pudo inferir del nombre';
+  document.getElementById('prep-meta-sha256').textContent = sha256;
+  document.getElementById('prep-tld-input').value = detectedTld || '';
+  _prepInputSha256 = sha256;
+  _prepFileSizeBytes = file.size;
+
+  document.getElementById('prep-file-meta').classList.remove('hidden');
+  document.getElementById('prep-continue-to-normalize').classList.remove('hidden');
+}
+
+async function prepRunNormalize() {
+  const tldInput = document.getElementById('prep-tld-input').value.trim().toLowerCase().replace(/^\./, '');
+  const errorEl = document.getElementById('prep-normalize-error');
+
+  if (!/^[a-z]{2,24}$/.test(tldInput)) {
+    errorEl.textContent = 'Ingresa un ccTLD válido (solo letras), por ejemplo: ec';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  // Cualquier corrida de Validación DNS/Resultados anterior corresponde a
+  // una normalización distinta (ccTLD u origen pudo cambiar) — se invalida.
+  prepInvalidateDnsAndResultados();
+
+  document.getElementById('prep-normalize-idle').classList.add('hidden');
+  errorEl.classList.add('hidden');
+  document.getElementById('prep-normalize-results').classList.add('hidden');
+  document.getElementById('prep-normalize-loading').classList.remove('hidden');
+
+  try {
+    const res = await fetch('/dataset/normalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: _prepFileText, tld: tldInput }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'No se pudo normalizar el archivo.');
+
+    _prepNormalizeResult = data;
+    prepRenderNormalizeResults(data);
+    document.getElementById('prep-normalize-loading').classList.add('hidden');
+    document.getElementById('prep-normalize-results').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('prep-normalize-loading').classList.add('hidden');
+    document.getElementById('prep-normalize-idle').classList.remove('hidden');
+    errorEl.textContent = e.message;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+function prepStatCard(label, value) {
+  return `<div class="border border-gray-200 rounded-lg p-3 text-center">
+    <div class="text-xl font-bold text-gray-900">${(value || 0).toLocaleString('es-EC')}</div>
+    <div class="text-xs text-gray-500 mt-0.5">${label}</div>
+  </div>`;
+}
+
+function prepRenderNormalizeResults(data) {
+  const s = data.stats;
+  const summaryHtml = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+      ${prepStatCard('Líneas originales', s.raw_lines)}
+      ${prepStatCard('Vacías', s.empty)}
+      ${prepStatCard('Duplicados eliminados', s.duplicates)}
+      ${prepStatCard('Rechazados', s.rejected)}
+      ${prepStatCard('Dominios normalizados', s.normalized)}
+      ${prepStatCard('Sufijos detectados', s.suffixes_detected)}
+    </div>`;
+
+  const tableRows = data.suffix_summary.map((row) => `
+    <tr class="border-b border-gray-100">
+      <td class="px-3 py-1.5 font-mono text-xs">${row.suffix}</td>
+      <td class="px-3 py-1.5 text-right">${row.count.toLocaleString('es-EC')}</td>
+    </tr>`).join('');
+
+  const tableHtml = `
+    <div class="overflow-x-auto border border-gray-200 rounded-xl mb-5">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr><th class="px-3 py-2 text-left">Sufijo</th><th class="px-3 py-2 text-right">Dominios</th></tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+
+  const rejectedBtn = data.rejected.length
+    ? `<button onclick="prepDownloadRejected()" class="text-sm font-semibold border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">⬇ rechazados_estructura.csv</button>`
+    : '';
+
+  const pslDate = data.psl.fetched_at ? new Date(data.psl.fetched_at).toLocaleString('es-EC') : 'desconocida';
+  const reproHtml = `
+    <div class="border border-gray-200 rounded-xl p-4 mb-5 text-xs space-y-1.5">
+      <div class="font-semibold text-gray-800 text-sm mb-1">Reproducibilidad — input X + PSL Y → output Z</div>
+      <div><span class="text-gray-500">SHA-256 archivo de entrada:</span> <span class="font-mono break-all">${_prepInputSha256 || 'no disponible'}</span></div>
+      <div><span class="text-gray-500">SHA-256 dominios_normalizados.txt:</span> <span class="font-mono break-all">${data.normalized_sha256}</span></div>
+      <div><span class="text-gray-500">Public Suffix List — origen:</span> <span class="font-medium">${data.psl.origin}</span> · obtenida: <span class="font-medium">${pslDate}</span></div>
+      <div><span class="text-gray-500">SHA-256 Public Suffix List:</span> <span class="font-mono break-all">${data.psl.sha256}</span></div>
+      <div><span class="text-gray-500">Fuente PSL:</span> <a href="${data.psl.source_url}" target="_blank" class="text-blue-600 hover:underline">${data.psl.source_url}</a></div>
+    </div>`;
+
+  document.getElementById('prep-normalize-results').innerHTML = `
+    ${summaryHtml}
+    <h4 class="font-semibold text-gray-900 mb-2">Dominios por sufijo</h4>
+    ${tableHtml}
+    <div class="flex flex-wrap gap-3 mb-5">
+      <button onclick="prepDownloadNormalized()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">⬇ dominios_normalizados.txt</button>
+      ${rejectedBtn}
+    </div>
+    ${reproHtml}
+    <button onclick="prepGoToStage('validacion')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      Continuar a Validación DNS →
+    </button>`;
+}
+
+function prepCsvEscape(value) {
+  const s = String(value);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function prepDownloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function prepDownloadNormalized() {
+  if (!_prepNormalizeResult) return;
+  const list = _prepNormalizeResult.normalized;
+  const text = list.join('\n') + (list.length ? '\n' : '');
+  prepDownloadBlob(text, 'dominios_normalizados.txt', 'text/plain');
+}
+
+function prepDownloadRejected() {
+  if (!_prepNormalizeResult || !_prepNormalizeResult.rejected.length) return;
+  const rows = [['input_value', 'reason'], ..._prepNormalizeResult.rejected];
+  const csv = rows.map((r) => r.map(prepCsvEscape).join(',')).join('\n') + '\n';
+  prepDownloadBlob(csv, 'rechazados_estructura.csv', 'text/csv');
+}
+
+// ═══ Validación DNS ═════════════════════════════════════════════════════
+// Réplica del validador Python: NS/SOA contra Cloudflare+Google, CD=1,
+// VALID/NXDOMAIN/REVIEW, reintento automático de REVIEW.
+
+async function prepRunDnsValidation() {
+  if (!_prepNormalizeResult) return;
+  const domains = _prepNormalizeResult.normalized;
+
+  document.getElementById('prep-dns-idle').classList.add('hidden');
+  document.getElementById('prep-dns-preflight-error').classList.add('hidden');
+  document.getElementById('prep-dns-results').classList.add('hidden');
+  const progressEl = document.getElementById('prep-dns-progress');
+  progressEl.classList.remove('hidden');
+  document.getElementById('prep-dns-progress-bar').style.width = '0%';
+  document.getElementById('prep-dns-progress-pct').textContent = '0%';
+  document.getElementById('prep-dns-progress-label').textContent = 'Preflight de resolvers…';
+  document.getElementById('prep-dns-progress-last').textContent = '';
+
+  let data;
+  try {
+    const res = await fetch('/dataset/validate-dns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        domains,
+        tld: document.getElementById('prep-tld-input').value.trim().toLowerCase().replace(/^\./, ''),
+        source: {
+          name: document.getElementById('prep-meta-name').textContent || null,
+          size: _prepFileSizeBytes || null,
+          sha256: _prepInputSha256 || null,
+          date: prepDetectDate(document.getElementById('prep-meta-name').textContent || ''),
+        },
+        normalize: {
+          stats: _prepNormalizeResult.stats,
+          rejected: _prepNormalizeResult.rejected,
+          normalized_sha256: _prepNormalizeResult.normalized_sha256,
+          psl: _prepNormalizeResult.psl,
+        },
+      }),
+    });
+    data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'No se pudo iniciar la validación DNS.');
+  } catch (e) {
+    progressEl.classList.add('hidden');
+    document.getElementById('prep-dns-idle').classList.remove('hidden');
+    const errBox = document.getElementById('prep-dns-preflight-error');
+    errBox.textContent = e.message;
+    errBox.classList.remove('hidden');
+    return;
+  }
+
+  const jobId = data.jobId;
+
+  if (_prepDnsEventSource) _prepDnsEventSource.close();
+  const es = new EventSource(data.progressUrl);
+  _prepDnsEventSource = es;
+
+  const updateBar = (done, total, phase, domain, status) => {
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById('prep-dns-progress-bar').style.width = pct + '%';
+    document.getElementById('prep-dns-progress-pct').textContent = pct + '%';
+    const phaseLabel = phase === 'review_retry' ? 'Reintentando REVIEW' : 'Validando';
+    document.getElementById('prep-dns-progress-label').textContent = `${phaseLabel} (${done.toLocaleString('es-EC')}/${total.toLocaleString('es-EC')})`;
+    if (domain) {
+      document.getElementById('prep-dns-progress-last').textContent = `${domain} → ${status}`;
+    }
+  };
+
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.event === 'progress' || msg.event === 'current') {
+      updateBar(msg.done || 0, msg.total || domains.length, msg.phase, msg.domain, msg.status);
+    }
+    if (msg.event === 'done') {
+      es.close();
+      prepFetchDnsResult(jobId);
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    prepFetchDnsResult(jobId);
+  };
+}
+
+async function prepFetchDnsResult(jobId) {
+  const res = await fetch(`/dataset/validate-dns/${jobId}`);
+  const job = await res.json();
+  document.getElementById('prep-dns-progress').classList.add('hidden');
+
+  if (job.status === 'failed') {
+    document.getElementById('prep-dns-idle').classList.remove('hidden');
+    const errBox = document.getElementById('prep-dns-preflight-error');
+    if (job.preflightFailed) {
+      const lines = Object.entries(job.preflight || {})
+        .map(([name, a]) => `${name} (${a.server}): ${a.rcode}${a.error ? ' — ' + a.error : ''}`)
+        .join('<br>');
+      errBox.innerHTML = `<strong>Preflight de resolvers falló</strong> — no se inició el lote de validación DNS (mismo criterio que Python: evita producir REVIEW masivos por un problema de red/firewall).<br>${lines}`;
+    } else {
+      errBox.textContent = job.error || 'La validación DNS falló.';
+    }
+    errBox.classList.remove('hidden');
+    return;
+  }
+
+  if (job.status !== 'completed') return; // aún corriendo; no debería pasar tras 'done'
+
+  _prepDnsResult = job.summary;
+  _prepDnsJob = job;
+  prepRenderDnsResults(job.summary);
+  document.getElementById('prep-dns-results').classList.remove('hidden');
+}
+
+function prepRenderDnsResults(summary) {
+  const fs = summary.final_status;
+
+  const summaryHtml = `
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      ${prepStatCard('VALID', fs.VALID)}
+      ${prepStatCard('NXDOMAIN', fs.NXDOMAIN)}
+      ${prepStatCard('REVIEW', fs.REVIEW)}
+    </div>`;
+
+  let subtypesHtml = '';
+  const subtypeEntries = Object.entries(summary.review_subtypes);
+  if (subtypeEntries.length) {
+    subtypesHtml = `
+      <h4 class="font-semibold text-gray-900 mb-2">Tipos de REVIEW</h4>
+      <ul class="text-sm text-gray-700 list-disc pl-5 mb-5">
+        ${subtypeEntries.map(([k, v]) => `<li>${k}: ${v.toLocaleString('es-EC')}</li>`).join('')}
+      </ul>`;
+  }
+
+  const rr = summary.review_retry;
+  const retryHtml = `
+    <div class="text-sm text-gray-600 mb-5 border border-gray-200 rounded-xl p-4">
+      <div>Reintento automático de REVIEW: <strong>${rr.retried.toLocaleString('es-EC')}</strong> reintentados
+        — <strong>${rr.became_VALID}</strong> pasaron a VALID,
+        <strong>${rr.became_NXDOMAIN}</strong> a NXDOMAIN,
+        <strong>${rr.remained_REVIEW}</strong> siguieron en REVIEW.</div>
+      <div class="mt-1">Discrepancias entre resolvers: <strong>${summary.discrepancies.toLocaleString('es-EC')}</strong>.</div>
+    </div>`;
+
+  document.getElementById('prep-dns-results').innerHTML = `
+    ${summaryHtml}
+    ${subtypesHtml}
+    ${retryHtml}
+    <button onclick="prepGoToStage('resultado')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      Ver resultados y descarga completos →
+    </button>`;
+
+  prepRenderResultado(_prepDnsJob);
+}
+
+// ═══ Resultados y descarga ══════════════════════════════════════════════
+// Construido EXCLUSIVAMENTE a partir de job.resultsPackage, ya congelado
+// por el backend al terminar la validación DNS — esta función no calcula
+// nada, solo formatea lo ya calculado (sin nuevas consultas DNS).
+
+function prepRenderResultado(job) {
+  const container = document.getElementById('prep-resultado-content');
+  if (!container) return;
+
+  if (!job || !job.resultsPackage) {
+    container.innerHTML = `<p class="text-sm text-red-600">No hay un paquete de resultados disponible para esta corrida (${job && job.resultsPackageError ? job.resultsPackageError : 'aún no se ha ejecutado la validación DNS'}).</p>`;
+    return;
+  }
+
+  const pkg = job.resultsPackage;
+  const meta = pkg.metadata;
+  const fs = job.summary.final_status;
+  const total = job.summary.total;
+  const integrity = pkg.integrity;
+  const execDate = meta.dns_validation.completed_at ? new Date(meta.dns_validation.completed_at).toLocaleString('es-EC') : '—';
+
+  let integrityHtml;
+  if (integrity.passed) {
+    integrityHtml = `
+      <div class="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-5">
+        ✓ Verificación de consistencia: VALID (${fs.VALID}) + NXDOMAIN (${fs.NXDOMAIN}) + REVIEW (${fs.REVIEW}) =
+        ${integrity.status_sum} = dominios normalizados (${integrity.normalized_count}). CSV: ${integrity.csv_rows.toLocaleString('es-EC')} filas.
+      </div>`;
+  } else {
+    integrityHtml = `
+      <div class="text-sm text-red-800 bg-red-50 border-2 border-red-300 rounded-lg px-4 py-3 mb-5">
+        ⚠ <strong>Corrida inconsistente — no se debe usar este paquete como dataset operativo.</strong>
+        VALID+NXDOMAIN+REVIEW (${integrity.status_sum}) no coincide con los dominios normalizados
+        (${integrity.normalized_count}), o el CSV maestro no tiene una fila por dominio
+        (${integrity.csv_rows.toLocaleString('es-EC')} filas). Vuelve a ejecutar Normalización y Validación DNS.
+      </div>`;
+  }
+
+  const summaryHtml = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm mb-5">
+      <div><span class="text-gray-500">Archivo original:</span> <span class="font-medium">${meta.source.filename || '—'}</span></div>
+      <div><span class="text-gray-500">ccTLD analizado:</span> <span class="font-medium">${meta.cctld}</span></div>
+      <div><span class="text-gray-500">Fecha y hora de ejecución:</span> <span class="font-medium">${execDate}</span></div>
+      <div><span class="text-gray-500">Líneas originales:</span> <span class="font-medium">${(meta.normalization.raw_lines || 0).toLocaleString('es-EC')}</span></div>
+      <div><span class="text-gray-500">Dominios normalizados:</span> <span class="font-medium">${(meta.normalization.normalized || 0).toLocaleString('es-EC')}</span></div>
+      <div><span class="text-gray-500">Rechazados en normalización:</span> <span class="font-medium">${(meta.normalization.rejected || 0).toLocaleString('es-EC')}</span></div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 mb-1">
+      ${prepStatCard('VALID', fs.VALID)}
+      ${prepStatCard('NXDOMAIN', fs.NXDOMAIN)}
+      ${prepStatCard('REVIEW', fs.REVIEW)}
+    </div>
+    <div class="grid grid-cols-3 gap-3 text-center text-xs text-gray-500 mb-5">
+      <div>${prepFormatPercent(fs.VALID, total)}</div>
+      <div>${prepFormatPercent(fs.NXDOMAIN, total)}</div>
+      <div>${prepFormatPercent(fs.REVIEW, total)}</div>
+    </div>`;
+
+  let downloadsHtml;
+  if (integrity.passed) {
+    const topLevelFiles = pkg.file_list.filter((f) => !f.includes('/'));
+    const downloadBtns = topLevelFiles.map((f) => `
+      <button onclick="prepDownloadResultFile('${f}')" class="text-sm font-semibold border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">⬇ ${f}</button>
+    `).join('');
+    downloadsHtml = `
+      <div class="mb-5">
+        <h4 class="font-semibold text-gray-900 mb-2">Descargas</h4>
+        <div class="flex flex-wrap gap-2 mb-3">${downloadBtns}</div>
+        <button onclick="prepDownloadResultZip()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+          ⬇ Descargar paquete completo (.zip)
+        </button>
+      </div>`;
+  } else {
+    downloadsHtml = `<p class="text-sm text-gray-400 mb-5">Descargas deshabilitadas hasta resolver la inconsistencia señalada arriba.</p>`;
+  }
+
+  const subtypeEntries = Object.entries(meta.results.review_subtypes);
+  const reviewHtml = `
+    <details class="mb-4 border border-gray-200 rounded-xl p-4">
+      <summary class="cursor-pointer font-semibold text-gray-900 text-sm">Detalle de REVIEW (${fs.REVIEW})</summary>
+      <p class="text-xs text-gray-600 mt-3 mb-3">
+        REVIEW significa que el resultado DNS no pudo determinarse de forma concluyente (por ejemplo, algún
+        resolver no respondió a tiempo) — <strong>no implica que el dominio sea inválido o inexistente</strong>.
+      </p>
+      ${subtypeEntries.length ? `
+        <ul class="text-sm text-gray-700 list-disc pl-5 mb-3">
+          ${subtypeEntries.map(([k, v]) => `<li>${k}: ${v.toLocaleString('es-EC')}</li>`).join('')}
+        </ul>` : '<p class="text-xs text-gray-400 mb-3">No hubo dominios en REVIEW en esta corrida.</p>'}
+      <div class="text-xs text-gray-500">Discrepancias entre resolvers en esta corrida: <strong>${meta.results.discrepancies.toLocaleString('es-EC')}</strong>.</div>
+    </details>`;
+
+  const dv = meta.dns_validation;
+  const pslDate = meta.public_suffix_list.fetched_at ? new Date(meta.public_suffix_list.fetched_at).toLocaleString('es-EC') : 'desconocida';
+  const rr = meta.results.review_retry_diagnostic;
+  const traceHtml = `
+    <details class="mb-4 border border-gray-200 rounded-xl p-4">
+      <summary class="cursor-pointer font-semibold text-gray-900 text-sm">Información técnica / reproducibilidad</summary>
+      <div class="text-xs text-gray-700 mt-3 space-y-1.5">
+        <div><span class="text-gray-500">SHA-256 archivo original:</span> <span class="font-mono break-all">${meta.source.sha256 || 'no disponible'}</span></div>
+        <div><span class="text-gray-500">SHA-256 dominios_normalizados.txt:</span> <span class="font-mono break-all">${meta.normalization.normalized_sha256 || '—'}</span></div>
+        <div><span class="text-gray-500">Public Suffix List:</span> ${meta.public_suffix_list.origin || '—'} · obtenida ${pslDate}</div>
+        <div><span class="text-gray-500">SHA-256 PSL:</span> <span class="font-mono break-all">${meta.public_suffix_list.sha256 || '—'}</span></div>
+        <div><span class="text-gray-500">ccTLD:</span> ${meta.cctld}</div>
+        <div><span class="text-gray-500">Resolvers:</span> Cloudflare ${dv.resolvers.cloudflare} · Google ${dv.resolvers.google}</div>
+        <div><span class="text-gray-500">Timeout:</span> ${dv.timeout_seconds}s · <span class="text-gray-500">Retries:</span> ${dv.retries} · <span class="text-gray-500">Workers:</span> ${dv.workers} · <span class="text-gray-500">review_wait:</span> ${dv.review_wait_seconds}s</div>
+        <div><span class="text-gray-500">CD (checking disabled):</span> ${dv.checking_disabled ? 'activado' : 'desactivado'}</div>
+        <div><span class="text-gray-500">Preflight:</span> ${dv.preflight_ok ? 'exitoso' : 'falló'}</div>
+        <div><span class="text-gray-500">Inicio:</span> ${new Date(dv.started_at).toLocaleString('es-EC')} · <span class="text-gray-500">Fin:</span> ${new Date(dv.completed_at).toLocaleString('es-EC')} · <span class="text-gray-500">Duración:</span> ${(dv.duration_ms / 1000).toFixed(1)}s</div>
+        <div class="pt-2 mt-2 border-t border-gray-100 text-gray-400">
+          Diagnóstico de la corrida (no comparar entre ejecuciones — depende de condiciones de red
+          transitorias): REVIEW en primera pasada reintentados: ${rr.retried} ·
+          pasaron a VALID: ${rr.became_VALID} · a NXDOMAIN: ${rr.became_NXDOMAIN} ·
+          siguieron REVIEW: ${rr.remained_REVIEW}.
+        </div>
+      </div>
+    </details>`;
+
+  container.innerHTML = `${integrityHtml}${summaryHtml}${downloadsHtml}${reviewHtml}${traceHtml}`;
+}
+
+function prepDownloadResultFile(filename) {
+  if (!_prepDnsJob) return;
+  window.location.href = `/dataset/validate-dns/${_prepDnsJob.jobId}/download/${encodeURIComponent(filename)}`;
+}
+
+function prepDownloadResultZip() {
+  if (!_prepDnsJob) return;
+  window.location.href = `/dataset/validate-dns/${_prepDnsJob.jobId}/download-zip`;
+}
+
+prepUpdateStepper();
+
 // Estado global del batch
 let _batchCancelled = false;
 let _batchResults   = [];
@@ -3137,6 +4769,379 @@ function downloadBlob(blob, filename) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+</script>
+<script>
+// ─── MEDICIONES — "Análisis comparativo" (sub-tab de Mediciones) ────────────
+// Reutiliza tal cual (no se reescribe nada de esto): groupDefinitions,
+// checkConfig, getCheckResult, initializeSummary, updateSummary,
+// computeAggregate, parseBatchDomains, normalizeBatchDomain — definidos
+// arriba, en los bloques de "Un dominio" y del batch DNSSEC. Lo único nuevo
+// aquí es la cola de concurrencia para el lote y el ensamblado/envío del
+// payload final al backend (POST /mediciones-batch/report).
+
+let mbCheckboxes = [];
+let mbCancelled = false;
+let mbSourceMode = 'paste';
+let mbSourceFilename = null;
+
+function medicionesSwitchTab(tab) {
+  const single  = document.getElementById('mediciones-panel-single');
+  const batch   = document.getElementById('mediciones-panel-batch');
+  const tSingle = document.getElementById('mediciones-tab-single');
+  const tBatch  = document.getElementById('mediciones-tab-batch');
+
+  if (tab === 'single') {
+    single.classList.remove('hidden');
+    batch.classList.add('hidden');
+    tSingle.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tSingle.classList.remove('text-gray-500');
+    tBatch.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tBatch.classList.add('text-gray-500');
+  } else {
+    batch.classList.remove('hidden');
+    single.classList.add('hidden');
+    tBatch.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tBatch.classList.remove('text-gray-500');
+    tSingle.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
+    tSingle.classList.add('text-gray-500');
+  }
+}
+
+// Mismo árbol de checks que "Un dominio" (groupDefinitions compartido),
+// renderizado en un contenedor propio para no tocar #checksContainer ni la
+// variable global `checkboxes` de la que depende handleAnalysis().
+function renderMbCheckOptions() {
+  const container = document.getElementById('mb-checksContainer');
+  container.innerHTML = '';
+  groupDefinitions.forEach(group => {
+    const details = document.createElement('details');
+    details.className = 'border rounded-lg bg-white shadow-sm';
+    details.open = true;
+    const summary = document.createElement('summary');
+    summary.className = 'cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between';
+    summary.innerHTML = `<span>${group.title}</span><span class="text-xs text-gray-500">${group.checks.length} checks</span>`;
+    details.appendChild(summary);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 px-3 pb-3';
+    group.checks.forEach(check => {
+      const label = document.createElement('label');
+      label.className = 'check-label flex items-center p-2 border rounded-lg cursor-pointer bg-gray-50';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.check = check.key;
+      if (check.default) input.checked = true;
+      input.className = 'h-4 w-4 rounded';
+      const span = document.createElement('span');
+      span.className = 'ml-2 text-sm';
+      span.innerHTML = `${escapeHtml(check.label)}${checkHelpButton(check.key)}`;
+      label.appendChild(input);
+      label.appendChild(span);
+      wrapper.appendChild(label);
+    });
+    details.appendChild(wrapper);
+    container.appendChild(details);
+  });
+  mbCheckboxes = container.querySelectorAll('input[type="checkbox"][data-check]');
+}
+renderMbCheckOptions();
+
+document.getElementById('mb-selectAll').addEventListener('click', () => {
+  mbCheckboxes.forEach(cb => cb.checked = true);
+});
+
+function medicionesBatchLoadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const text = e.target.result;
+    document.getElementById('mb-domains-input').value = text;
+    mbSourceMode = 'upload';
+    mbSourceFilename = file.name;
+    const domains = parseBatchDomains(text);
+    document.getElementById('mb-domain-count').textContent = domains.length + ' dominios';
+    const nameEl = document.getElementById('mb-file-name');
+    nameEl.textContent = '✓ Archivo cargado: ' + file.name + ' — ' + domains.length + ' dominios detectados';
+    nameEl.classList.remove('hidden');
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('mb-domains-input').addEventListener('input', function () {
+  mbSourceMode = 'paste';
+  mbSourceFilename = null;
+  const domains = parseBatchDomains(this.value);
+  document.getElementById('mb-domain-count').textContent = domains.length + ' dominios';
+});
+
+function mbGetDomainsList() {
+  const raw = document.getElementById('mb-domains-input').value;
+  return parseBatchDomains(raw).map(normalizeBatchDomain);
+}
+
+function mbSetProgress(done, total, lastDomain) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('mb-progress-bar').style.width = pct + '%';
+  document.getElementById('mb-progress-pct').textContent = pct + '%';
+  document.getElementById('mb-progress-label').textContent = `Procesando: ${done} de ${total}`;
+  if (lastDomain) document.getElementById('mb-last-domain').textContent = 'Último: ' + lastDomain;
+}
+
+function mbSetDnsStatus(text) {
+  const el = document.getElementById('mb-dns-status');
+  if (el) el.textContent = 'Validación DNS: ' + text;
+}
+
+// Por dominio: corre los checks seleccionados (getCheckResult reutilizado,
+// igual que analyzeDomain) + /dnssec-analysis?format=json (misma fuente
+// rica que usa dnssecBatchStart). No crea tarjetas de resultado en el DOM
+// (a diferencia de analyzeDomain) — este flujo solo necesita los datos.
+async function runMedicionesBatchDomain(domain, selectedChecks) {
+  const checksResult = {};
+  await Promise.all(selectedChecks.map(async (checkType) => {
+    try {
+      const res = await getCheckResult(checkType, domain);
+      checksResult[checkType] = res;
+      updateSummary(checkType, domain, res.status);
+    } catch (err) {
+      const fallback = { label: checkConfig[checkType].label, status: 'error', details: err.message };
+      checksResult[checkType] = fallback;
+      updateSummary(checkType, domain, 'error');
+    }
+  }));
+
+  let dnssec = null;
+  try {
+    const res = await fetch(`/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json`, {
+      headers: { Accept: 'application/json' }
+    });
+    dnssec = res.ok ? await res.json() : { error: `HTTP ${res.status}` };
+  } catch (e) {
+    dnssec = { error: e.message };
+  }
+
+  return { domain, checks: checksResult, dnssec };
+}
+
+// Validación DNS del lote completo — se dispara UNA vez (no por dominio) y
+// corre en paralelo a la cola de checks/DNSSEC. Reutiliza tal cual el
+// contrato ya existente de /dataset/validate-dns (sin tocar el orquestador).
+async function mbRunDnsValidation(domains) {
+  try {
+    mbSetDnsStatus('iniciando…');
+    const startRes = await fetch('/dataset/validate-dns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domains })
+    });
+    if (!startRes.ok) throw new Error(`HTTP ${startRes.status}`);
+    const { jobId } = await startRes.json();
+    mbSetDnsStatus('en curso…');
+
+    while (true) {
+      if (mbCancelled) return { ok: false, error: 'cancelado' };
+      await new Promise((r) => setTimeout(r, 1500));
+      const statusRes = await fetch(`/dataset/validate-dns/${jobId}`);
+      if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
+      const job = await statusRes.json();
+      if (job.status === 'completed') {
+        mbSetDnsStatus('completa');
+        return { ok: true, summary: job.summary };
+      }
+      if (job.status === 'failed') {
+        mbSetDnsStatus('falló — ' + (job.error || 'error desconocido'));
+        return { ok: false, error: job.error || 'job failed' };
+      }
+    }
+  } catch (e) {
+    mbSetDnsStatus('error — ' + e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+async function medicionesBatchStart() {
+  const domains = mbGetDomainsList();
+  const selectedChecks = Array.from(mbCheckboxes).filter((cb) => cb.checked).map((cb) => cb.dataset.check);
+
+  if (!domains.length) { alert('Ingresa al menos un dominio.'); return; }
+  if (!selectedChecks.length) { alert('Selecciona al menos una verificación.'); return; }
+
+  initializeSummary(selectedChecks);
+  mbCancelled = false;
+
+  const concurrency = parseInt(document.getElementById('mb-concurrency').value) || 10;
+
+  document.getElementById('mb-start-btn').classList.add('hidden');
+  document.getElementById('mb-cancel-btn').classList.remove('hidden');
+  document.getElementById('mb-progress-wrap').classList.remove('hidden');
+  document.getElementById('mb-results-wrap').classList.add('hidden');
+  document.getElementById('mb-report-error').classList.add('hidden');
+  mbSetProgress(0, domains.length, '');
+  mbSetDnsStatus('en cola…');
+
+  const domainResults = [];
+  const queue = [...domains];
+  let processed = 0;
+  const total = domains.length;
+
+  const worker = async () => {
+    while (queue.length > 0 && !mbCancelled) {
+      const domain = queue.shift();
+      const result = await runMedicionesBatchDomain(domain, selectedChecks);
+      domainResults.push(result);
+      processed++;
+      mbSetProgress(processed, total, domain);
+    }
+  };
+
+  // Checks+DNSSEC por dominio (cola de concurrencia) y validación DNS del
+  // lote completo corren en paralelo — un solo POST /dataset/validate-dns
+  // para todo el lote, no uno por dominio.
+  const dnsValidationPromise = mbRunDnsValidation(domains);
+  const workers = Array.from({ length: Math.min(concurrency, domains.length) }, () => worker());
+  const [, dnsValidationResult] = await Promise.all([Promise.all(workers), dnsValidationPromise]);
+
+  document.getElementById('mb-cancel-btn').classList.add('hidden');
+  document.getElementById('mb-start-btn').classList.remove('hidden');
+
+  if (mbCancelled) {
+    document.getElementById('mb-progress-label').textContent = 'Cancelado.';
+    return;
+  }
+
+  const dnsByDomain = new Map();
+  if (dnsValidationResult.ok && Array.isArray(dnsValidationResult.summary?.domains)) {
+    for (const d of dnsValidationResult.summary.domains) {
+      dnsByDomain.set(d.domain, {
+        final_status: d.final_status,
+        review_subtype: d.review_subtype || null,
+        discrepancy: !!d.discrepancy,
+      });
+    }
+  }
+
+  // Etiqueta genérica "Lote analizado" en vez de nombre de país — decisión
+  // de producto ya tomada: computeAggregate está calibrada para adopción
+  // DNSSEC de un país, aquí se reutiliza tal cual pero con otra etiqueta.
+  const dnssecForAggregate = [];
+  const dnssecErrors = [];
+  for (const r of domainResults) {
+    if (r.dnssec && !r.dnssec.error) dnssecForAggregate.push(r.dnssec);
+    else dnssecErrors.push({ domain: r.domain, error: r.dnssec?.error || 'sin datos' });
+  }
+  const dnssecAggregate = computeAggregate(dnssecForAggregate, dnssecErrors, 'Lote analizado');
+
+  const domainsPayload = domainResults.map((r) => ({
+    domain: r.domain,
+    dns_validation: dnsByDomain.get(r.domain) || null,
+    dnssec: r.dnssec,
+    checks: r.checks,
+  }));
+
+  const dnsValidationSummary = (dnsValidationResult.ok && dnsValidationResult.summary?.final_status)
+    ? dnsValidationResult.summary.final_status
+    : { VALID: 0, NXDOMAIN: 0, REVIEW: 0 };
+
+  const payload = {
+    meta: {
+      generated_at: new Date().toISOString(),
+      selected_checks: selectedChecks,
+      selected_checks_glossary: selectedGlossary(selectedChecks),
+      domain_count: domains.length,
+      source: { mode: mbSourceMode, filename: mbSourceFilename },
+    },
+    domains: domainsPayload,
+    comparative: {
+      // Mismo shape que produce initializeSummary/updateSummary — se
+      // clona para desacoplarlo del estado interno mutable de esas
+      // funciones (summaryData también es usado por el sub-tab "Un dominio").
+      checks_summary: JSON.parse(JSON.stringify(summaryData)),
+      dns_validation_summary: dnsValidationSummary,
+      dnssec_aggregate: dnssecAggregate,
+    },
+  };
+
+  mbRenderPreview(payload);
+
+  try {
+    const reportRes = await fetch('/mediciones-batch/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!reportRes.ok) {
+      const errBody = await reportRes.json().catch(() => ({}));
+      throw new Error(errBody.message || `HTTP ${reportRes.status}`);
+    }
+    const reportData = await reportRes.json();
+    document.getElementById('mb-download-pdf').onclick = () => { window.location.href = reportData.pdfUrl; };
+    document.getElementById('mb-download-json').onclick = () => { window.location.href = reportData.jsonUrl; };
+  } catch (e) {
+    const errEl = document.getElementById('mb-report-error');
+    errEl.textContent = 'No se pudo generar el reporte descargable: ' + e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function medicionesBatchCancel() {
+  mbCancelled = true;
+  document.getElementById('mb-progress-label').textContent = 'Cancelando…';
+  document.getElementById('mb-cancel-btn').classList.add('hidden');
+  document.getElementById('mb-start-btn').classList.remove('hidden');
+}
+
+// Vista previa en pantalla: tabla dominio × check (✓/✗), estilo similar al
+// "Resumen acumulado" de "Un dominio" pero con forma de matriz — el reporte
+// completo (con DNS/DNSSEC por dominio y detalle) se descarga en PDF/JSON.
+function mbRenderPreview(payload) {
+  document.getElementById('mb-results-wrap').classList.remove('hidden');
+
+  document.getElementById('mb-summary-total').textContent = payload.domains.length;
+
+  const adoption = payload.comparative.dnssec_aggregate?.adoptionRate;
+  document.getElementById('mb-summary-dnssec-adoption').textContent =
+    (adoption !== null && adoption !== undefined) ? adoption + '%' : 'N/D';
+
+  document.getElementById('mb-summary-dns-valid').textContent =
+    payload.comparative.dns_validation_summary?.VALID || 0;
+
+  const selectedChecks = payload.meta.selected_checks;
+  const thead = document.getElementById('mb-comparative-thead');
+  const tbody = document.getElementById('mb-comparative-tbody');
+
+  const headRow = document.createElement('tr');
+  const domainTh = document.createElement('th');
+  domainTh.className = 'px-4 py-3';
+  domainTh.textContent = 'Dominio';
+  headRow.appendChild(domainTh);
+  selectedChecks.forEach((key) => {
+    const th = document.createElement('th');
+    th.className = 'px-4 py-3 whitespace-nowrap';
+    th.textContent = checkConfig[key]?.label || key;
+    if (checkConfig[key]?.description) th.title = checkConfig[key].description;
+    headRow.appendChild(th);
+  });
+  thead.innerHTML = '';
+  thead.appendChild(headRow);
+
+  tbody.innerHTML = '';
+  payload.domains.forEach((d) => {
+    const row = document.createElement('tr');
+    const domainTd = document.createElement('td');
+    domainTd.className = 'px-4 py-3 font-medium text-gray-700 whitespace-nowrap';
+    domainTd.textContent = d.domain;
+    row.appendChild(domainTd);
+    selectedChecks.forEach((key) => {
+      const td = document.createElement('td');
+      const symbol = STATUS_SYMBOL[d.checks?.[key]?.status] || STATUS_SYMBOL._empty;
+      td.className = 'px-4 py-3 text-center ' + symbol.cls;
+      td.title = symbol.label;
+      td.textContent = symbol.icon;
+      row.appendChild(td);
+    });
+    tbody.appendChild(row);
+  });
 }
 </script>
 </body>
