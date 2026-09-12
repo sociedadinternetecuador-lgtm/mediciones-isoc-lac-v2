@@ -220,6 +220,14 @@ function errorMessage(e) {
     if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || e.code === 'SELF_SIGNED_CERT_IN_CHAIN') return 'Certificado TLS autofirmado o no confiable';
     if (e.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') return 'No se pudo verificar la cadena de certificados TLS';
     if (e.code === 'CERT_NOT_YET_VALID') return 'El certificado TLS aún no es válido';
+    // FASE 3 (2026-09-12): agregado por safeWebFetch.adapter.js
+    // (resolvePublicAddresses) cuando un dominio real (con zona delegada,
+    // NS resuelve) no tiene registro A ni AAAA — ej. gob.ec, que existe
+    // solo como paraguas DNS de subdominios (presidencia.gob.ec, etc.),
+    // sin servicio web propio. dns.lookup() no distingue esto de un
+    // dominio inexistente (ambos dan ENOTFOUND); esta consulta adicional
+    // sí lo distingue.
+    if (e.code === 'WEBFETCH_NO_ADDRESS_RECORD') return 'El dominio no tiene registros A ni AAAA (posible subdominio/zona sin servicio web propio)';
   }
   return 'Servicio no disponible';
 }
@@ -245,7 +253,7 @@ async function handleMx(domain, res) {
     // en vez de records: [].
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
       sendJSON(res, 200, { domain, records: [] });
-    else sendJSON(res, 200, { domain, error: errorMessage(e) });
+    else sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -277,7 +285,7 @@ async function handleSpf(domain, res) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
       sendJSON(res, 200, { domain, found: false });
     } else {
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     }
   }
 }
@@ -293,7 +301,7 @@ async function handleDmarc(domain, res) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
       sendJSON(res, 200, { domain, found: false });
     } else {
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     }
   }
 }
@@ -320,7 +328,7 @@ async function handleIpv4(domain, res) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
       sendJSON(res, 200, { domain, ips: [], geos: [] });
     } else {
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     }
   }
 }
@@ -334,7 +342,7 @@ async function handleIpv6(domain, res) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
       sendJSON(res, 200, { domain, ips: [] });
     } else {
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     }
   }
 }
@@ -418,7 +426,7 @@ async function handleSmtpUtf8(domain, res) {
     );
     sendJSON(res, 200, { domain, results });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -681,7 +689,7 @@ async function handleRpki(domain, res) {
     const overall = results.length && results.every(r => r.state === 'valid');
     sendJSON(res, 200, { domain, results, valid: Boolean(overall) });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -781,14 +789,32 @@ async function handleW3C(domain, res) {
     const warnings = messages.filter(m => m.type !== 'error').length;
     sendJSON(res, 200, { domain, errors, warnings });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
 async function handleHeaders(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const resolved = await resolveFinalWebTarget(`https://${domain}`, { method: 'HEAD' });
+    // FASE 3 (2026-09-12): antes, si el primer intento HTTPS al apex
+    // fallaba, handleHeaders se rendía ahí — a diferencia de
+    // handleServerStatus, que ya reintentaba con HTTP. Confirmado con
+    // evidencia real (llamadas secuenciales, sin concurrencia, mismo
+    // resultado siempre — no es un problema de ráfagas): copaair.com no
+    // escucha HTTPS en el apex (ECONNREFUSED puerto 443, solo puerto 80
+    // que redirige a www), y gub.uy/nic.us sirven ahí un certificado que
+    // no cubre el apex — en los tres casos el sitio real funciona
+    // perfectamente vía HTTP → redirección. Sin este reintento, hasta 12
+    // checks que dependen de este mismo endpoint (headers, https,
+    // redirect, hsts, csp, xfo, xcto, referrer, permissions, xxss,
+    // server, compression) fallaban juntos por la misma causa. Mismo
+    // patrón que ya tenía handleServerStatus, copiado tal cual.
+    let resolved;
+    try {
+      resolved = await resolveFinalWebTarget(`https://${domain}`, { method: 'HEAD' });
+    } catch (httpsError) {
+      resolved = await resolveFinalWebTarget(`http://${domain}`, { method: 'HEAD' });
+    }
     const httpsRes = resolved.response;
     const httpRes = await fetchHeaders(`http://${domain}`, true).catch(
       () => null
@@ -825,7 +851,7 @@ async function handleHeaders(domain, res) {
     };
     sendJSON(res, 200, result);
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -859,7 +885,7 @@ async function handleCaa(domain, res) {
   } catch (e) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
       sendJSON(res, 200, { domain, records: [], formatted: [] });
-    else sendJSON(res, 200, { domain, error: errorMessage(e) });
+    else sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -879,7 +905,7 @@ async function handleTlsa(domain, res) {
     const records = Array.isArray(data.Answer) ? data.Answer.map(a => a.data) : [];
     sendJSON(res, 200, { domain, records });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -890,7 +916,7 @@ async function handleSecurityTxt(domain, res) {
     const found = data.response.statusCode && data.response.statusCode >= 200 && data.response.statusCode < 300;
     sendJSON(res, 200, { domain, found, finalUrl: data.finalUrl, chain: data.chain });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -926,10 +952,10 @@ async function handleTls(domain, res) {
     socket.on('error', e => {
       if (settled) return;
       settled = true;
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     });
   } catch (e) {
-    if (!settled) sendJSON(res, 200, { domain, error: errorMessage(e) });
+    if (!settled) sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -947,7 +973,7 @@ async function handleIpInfo(domain, res) {
     }
     sendJSON(res, 200, { domain, ipv4, ipv6, geo });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -986,7 +1012,7 @@ async function handleSslChain(domain, res) {
     socket.on('error', e => {
       if (settled) return;
       settled = true;
-      sendJSON(res, 200, { domain, error: errorMessage(e) });
+      sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     });
     socket.setTimeout(15000, () => {
       if (settled) return;
@@ -995,7 +1021,7 @@ async function handleSslChain(domain, res) {
       sendJSON(res, 200, { domain, error: 'Timeout' });
     });
   } catch (e) {
-    if (!settled) sendJSON(res, 200, { domain, error: errorMessage(e) });
+    if (!settled) sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1011,7 +1037,7 @@ async function handleDnsRecords(domain, res) {
     records.CNAME = await dns.resolveCname(domain).catch(() => []);
     sendJSON(res, 200, { domain, records });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1022,7 +1048,7 @@ async function handleCookies(domain, res) {
     const cookies = page.headers['set-cookie'] || [];
     sendJSON(res, 200, { domain, cookies });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1046,7 +1072,7 @@ async function handleCrawlRules(domain, res) {
     }
     sendJSON(res, 200, { domain, found: false, content: '' });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1097,7 +1123,7 @@ async function handleQuality(domain, res) {
       pwa: lighthouse.pwa?.score || null
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1118,7 +1144,7 @@ async function handleServerLocation(domain, res) {
       timezone: info.timezone
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1138,7 +1164,7 @@ async function handleAssociatedHosts(domain, res) {
       .filter(h => h.host);
     sendJSON(res, 200, { domain, hosts });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1154,7 +1180,7 @@ async function handleRedirectChain(domain, res) {
     const chain = await followRedirects(`http://${domain}`);
     sendJSON(res, 200, { domain, chain });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1166,7 +1192,7 @@ async function handleTxtRecords(domain, res) {
   } catch (e) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
       sendJSON(res, 200, { domain, records: [] });
-    else sendJSON(res, 200, { domain, error: errorMessage(e) });
+    else sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1194,7 +1220,7 @@ async function handleServerStatus(domain, res) {
         chain: data.chain
       });
     } catch (err) {
-      sendJSON(res, 200, { domain, error: errorMessage(err) });
+      sendJSON(res, 200, { domain, error: errorMessage(err), error_code: err && err.code });
     }
   }
 }
@@ -1254,7 +1280,7 @@ async function handleTraceroute(domain, res) {
       .filter(line => /^\d+\./.test(line));
     sendJSON(res, 200, { domain, hops });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1285,7 +1311,7 @@ async function handleServerInfo(domain, res) {
       city: info.city
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1341,7 +1367,7 @@ async function handleDomainInfo(domain, res) {
       expiration
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1368,7 +1394,7 @@ async function handleDnsSecurity(domain, res) {
       algorithms
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1447,7 +1473,7 @@ async function handleSiteFeatures(domain, res) {
     const features = analyzeSiteFeatures(page.body);
     sendJSON(res, 200, { domain, features });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1457,7 +1483,7 @@ async function handleDnsServer(domain, res) {
     const servers = await dns.resolveNs(domain);
     sendJSON(res, 200, { domain, servers });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1468,7 +1494,7 @@ async function handleTechStack(domain, res) {
     const stack = detectTechStack(page.body);
     sendJSON(res, 200, { domain, stack });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1487,7 +1513,7 @@ async function handleListedPages(domain, res) {
     }
     sendJSON(res, 200, { domain, pages: [] });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1498,7 +1524,7 @@ async function handleLinkedPages(domain, res) {
     const links = extractLinks(page.body, page.url);
     sendJSON(res, 200, { domain, links });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1509,7 +1535,7 @@ async function handleSocialTags(domain, res) {
     const tags = extractSocialTags(page.body);
     sendJSON(res, 200, { domain, tags });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1549,7 +1575,7 @@ async function handleEmailConfig(domain, res) {
       mx: mx.map(r => ({ exchange: r.exchange, priority: r.priority }))
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1578,7 +1604,7 @@ async function handleFirewall(domain, res) {
       detected: detections.length > 0
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1597,7 +1623,7 @@ async function handleHttpSecurity(domain, res) {
     };
     sendJSON(res, 200, { domain, security });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1817,7 +1843,7 @@ async function handleBlock(domain, res) {
 
     sendJSON(res, 200, { domain, results });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1869,7 +1895,7 @@ async function handleTlsCiphers(domain, res) {
     }
     sendJSON(res, 200, { domain, suites });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 
@@ -1937,7 +1963,7 @@ async function handleTlsSimulation(domain, res) {
     }
     sendJSON(res, 200, { domain, scenarios });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 

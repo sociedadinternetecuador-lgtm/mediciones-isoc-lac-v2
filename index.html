@@ -2332,6 +2332,33 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         return 'FAIL';
     }
 
+    // FASE 3 (2026-09-12): server.js agrega `error_code` (el e.code
+    // original de Node) junto a `error` en cada respuesta fallida — antes
+    // cualquier `data.error` se volvía 'MEASUREMENT_ERROR' sin distinguir
+    // causas. Dos casos ya vienen bien identificados y etiquetados por
+    // errorMessage()/resolvePublicAddresses() en el servidor, pero se
+    // perdían acá:
+    //  - Error de certificado (no cubre el hostname, expiró, autofirmado,
+    //    etc.): es un hallazgo REAL sobre el dominio (su TLS está mal
+    //    configurado), no un fallo de nuestra herramienta — FAIL, no
+    //    MEASUREMENT_ERROR.
+    //  - Dominio sin A ni AAAA pero con zona delegada real (ej. gob.ec,
+    //    paraguas de subdominios sin servicio web propio): no hay nada
+    //    que medir ahí — NOT_APPLICABLE, no MEASUREMENT_ERROR.
+    // Cualquier otra causa (timeout, conexión rechazada, DNS caído, etc.)
+    // sigue siendo MEASUREMENT_ERROR — ahí sí no podemos afirmar con
+    // certeza si la causa es del dominio o nuestra.
+    const CERTIFICATE_ERROR_CODES = new Set([
+        'ERR_TLS_CERT_ALTNAME_INVALID', 'CERT_HAS_EXPIRED',
+        'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
+        'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'CERT_NOT_YET_VALID'
+    ]);
+    function classifyDataError(data) {
+        if (CERTIFICATE_ERROR_CODES.has(data.error_code)) return 'FAIL';
+        if (data.error_code === 'WEBFETCH_NO_ADDRESS_RECORD') return 'NOT_APPLICABLE';
+        return 'MEASUREMENT_ERROR';
+    }
+
     async function getCheckResult(checkType, domain) {
         const { label } = checkConfig[checkType];
         const ascii = toASCII(domain);
@@ -2339,7 +2366,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             switch (checkType) {
                 case 'ipinfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/ipinfo/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = [];
                     if (data.ipv4?.length) lines.push(`IPv4: ${data.ipv4.join(', ')}`);
                     if (data.ipv6?.length) lines.push(`IPv6: ${data.ipv6.join(', ')}`);
@@ -2352,7 +2379,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'serverlocation': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverlocation/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const parts = [data.city, data.region, data.country].filter(Boolean).join(', ');
                     const details = [];
                     if (parts || data.ip) details.push(parts ? `${parts} (${data.ip})` : data.ip);
@@ -2368,7 +2395,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'serverinfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = [];
                     if (data.ip) lines.push(`IP analizada: ${data.ip}`);
                     if (data.asn) lines.push(`ASN: AS${data.asn}`);
@@ -2380,7 +2407,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'serverstatus': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverstatus/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const code = data.statusCode;
                     if (!code) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin respuesta' };
                     const target = data.location ? ` → ${data.location}` : '';
@@ -2389,7 +2416,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'openports': {
                     const data = await fetchWithTimeout(`${API_BASE}/openports/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const open = data.ports?.filter(p => p.open).map(p => p.port) || [];
                     const expected = new Set([53, 80, 443, 25, 110, 143, 465, 587, 993, 995]);
                     const unusual = open.filter(port => !expected.has(port));
@@ -2408,7 +2435,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'redirectchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/redirectchain/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const chain = (data.chain || []).filter(Boolean);
                     if (!chain.length) {
                         return { label, status: 'INFO', details: 'Sin redirecciones' };
@@ -2437,14 +2464,14 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'block': {
                     const data = await fetchWithTimeout(`${API_BASE}/block/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = data.results?.map(r => `${r.resolver}: ${r.blocked ? 'bloqueado' : 'acceso'}`) || [];
                     const blocked = data.results?.some(r => r.blocked);
                     return { label, status: blocked ? 'FAIL' : 'PASS', details: lines.length ? lines : 'Sin datos' };
                 }
                 case 'dnsrecords': {
                     const data = await fetchWithTimeout(`${API_BASE}/dnsrecords/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const records = [];
                     Object.entries(data.records || {}).forEach(([type, values]) => {
                         if (Array.isArray(values) && values.length) {
@@ -2458,18 +2485,18 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'txtrecords': {
                     const data = await fetchWithTimeout(`${API_BASE}/txtrecords/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const records = data.records?.map(r => r.join('')) || [];
                     return { label, status: records.length ? 'PASS' : 'FAIL', details: records.length ? records : 'Sin TXT' };
                 }
                 case 'dnsserver': {
                     const data = await fetchWithTimeout(`${API_BASE}/dnsserver/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.servers?.length ? 'PASS' : 'FAIL', details: data.servers?.length ? data.servers : 'Sin NS' };
                 }
                 case 'sitefeatures': {
                     const data = await fetchWithTimeout(`${API_BASE}/sitefeatures/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const features = data.features || {};
                     const lines = Object.entries(features).map(([k, v]) => {
                         const clean = k.replace(/^has/, '').replace(/([A-Z])/g, ' $1').trim();
@@ -2480,13 +2507,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'cookies': {
                     const data = await fetchWithTimeout(`${API_BASE}/cookies/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const cookies = data.cookies || [];
                     return { label, status: cookies.length ? 'INFO' : 'PASS', details: cookies.length ? cookies : 'Sin cookies' };
                 }
                 case 'crawlrules': {
                     const data = await fetchWithTimeout(`${API_BASE}/crawlrules/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     if (!data.found) return { label, status: 'FAIL', details: 'No encontrado' };
                     const snippet = escapeHtml((data.content || '').slice(0, 500));
                     const html = `<pre class="whitespace-pre-wrap text-xs text-gray-700">${snippet}${data.content && data.content.length > 500 ? '…' : ''}</pre>`;
@@ -2494,25 +2521,25 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'linkedpages': {
                     const data = await fetchWithTimeout(`${API_BASE}/linkedpages/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = data.links?.slice(0, 20).map(l => `${l.internal ? 'Interno' : 'Externo'}: ${l.href}`) || [];
                     return { label, status: lines.length ? 'PASS' : 'INFO', details: lines.length ? lines : 'Sin enlaces detectados' };
                 }
                 case 'listedpages': {
                     const data = await fetchWithTimeout(`${API_BASE}/listedpages/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const pages = data.pages?.slice(0, 20) || [];
                     return { label, status: pages.length ? 'PASS' : 'INFO', details: pages.length ? pages : 'Sin sitemap' };
                 }
                 case 'socialtags': {
                     const data = await fetchWithTimeout(`${API_BASE}/socialtags/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const tags = Object.entries(data.tags || {}).map(([k, v]) => `${k}: ${v}`);
                     return { label, status: tags.length ? 'PASS' : 'INFO', details: tags.length ? tags : 'Sin etiquetas sociales' };
                 }
                 case 'quality': {
                     const data = await fetchWithTimeout(`${API_BASE}/quality/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = [];
                     if (typeof data.performance === 'number') lines.push(`Performance: ${(data.performance * 100).toFixed(0)}`);
                     if (typeof data.accessibility === 'number') lines.push(`Accesibilidad: ${(data.accessibility * 100).toFixed(0)}`);
@@ -2522,13 +2549,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'archive': {
                     const data = await fetchWithTimeout(`${API_BASE}/archive/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const entries = data.entries?.map(e => `${e.timestamp}: ${e.original} (${e.status})`) || [];
                     return { label, status: entries.length ? 'PASS' : 'INFO', details: entries.length ? entries : 'Sin historial' };
                 }
                 case 'ranking': {
                     const data = await fetchWithTimeout(`${API_BASE}/ranking/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return {
                         label,
                         status: data.rank ? 'PASS' : 'INFO',
@@ -2537,38 +2564,38 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'malware': {
                     const data = await fetchWithTimeout(`${API_BASE}/malware/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const entries = data.entries?.map(e => `${e.url || e.id} (${e.status || 'listado'})`) || [];
                     const threat = data.threat && data.threat !== 'ok';
                     return { label, status: threat ? 'FAIL' : 'PASS', details: entries.length ? entries : 'Sin reportes' };
                 }
                 case 'screenshot': {
                     const data = await fetchWithTimeout(`${API_BASE}/screenshot/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const link = `<a class="text-blue-600 underline" href="${escapeHtml(data.imageUrl)}" target="_blank" rel="noopener">Ver captura</a>`;
                     return { label, status: 'INFO', details: { html: link } };
                 }
                 case 'headers': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const entries = Object.entries(data.headers || {}).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
                     return { label, status: entries.length ? 'PASS' : 'INFO', details: entries.length ? entries : 'Sin encabezados' };
                 }
                 case 'sslchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/sslchain/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const chain = data.chain?.map(c => `${c.subject?.CN || 'Certificado'} → ${c.issuer?.CN || 'Emisor'} (${c.valid_from} - ${c.valid_to})`) || [];
                     return { label, status: chain.length ? 'PASS' : 'FAIL', details: chain.length ? chain : 'Sin cadena SSL' };
                 }
                 case 'tlsciphers': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlsciphers/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const suites = data.suites?.map(s => `${s.protocol}: ${s.cipher}`) || [];
                     return { label, status: suites.length ? 'PASS' : 'INFO', details: suites.length ? suites : 'Sin información' };
                 }
                 case 'tlssimulation': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlssimulation/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const scenarios = data.scenarios?.map(s => `${s.client}: ${s.success ? `${s.protocol || 'TLS'} (${s.cipher || 'cifra desconocida'})` : 'falló'}`) || [];
                     const success = data.scenarios?.every(s => s.success);
                     return { label, status: success ? 'PASS' : 'FAIL', details: scenarios.length ? scenarios : 'Sin datos' };
@@ -2580,7 +2607,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // dando a entender que "no tener WAF" era la situación
                     // negativa. Se deja siempre INFO en ambos casos.
                     const data = await fetchWithTimeout(`${API_BASE}/firewall/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return {
                         label,
                         status: 'INFO',
@@ -2624,7 +2651,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // docs/arquitectura.md) — ahora usa el backend, igual que el
                     // resto de los checks.
                     const data = await fetchWithTimeout(`${API_BASE}/ipv4/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const ips = data.ips || [];
                     const geos = data.geos || [];
                     const details = ips.length ? ips.join(', ') : 'No tiene IPv4';
@@ -2632,13 +2659,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'ipv6': {
                     const data = await fetchWithTimeout(`${API_BASE}/ipv6/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const ips = data.ips || [];
                     return { label, status: ips.length ? 'PASS' : 'FAIL', details: ips.length ? ips.join(', ') : 'No tiene IPv6' };
                 }
                 case 'asn': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return {
                         label,
                         status: data.asn ? 'PASS' : 'FAIL',
@@ -2649,12 +2676,12 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // FASE 1 (2026-09-12): antes llamaba a dns.google directo desde
                     // el navegador — ver nota en 'ipv4' arriba.
                     const data = await fetchWithTimeout(`${API_BASE}/dmarc/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Política encontrada' : 'No permite DMARC' };
                 }
                 case 'spf': {
                     const data = await fetchWithTimeout(`${API_BASE}/spf/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Registro encontrado' : 'No permite SPF' };
                 }
                 case 'dkim': {
@@ -2664,7 +2691,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // verificación exhaustiva (DKIM requiere conocer el selector
                     // real, específico de cada proveedor de correo).
                     const data = await fetchWithTimeout(`${API_BASE}/dkim/${ascii}?selector=default`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return {
                         label,
                         status: data.found ? 'PASS' : 'INCONCLUSIVE',
@@ -2673,13 +2700,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'mx': {
                     const data = await fetchWithTimeout(`${API_BASE}/mx/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const details = data.records?.map(r => `${r.exchange} (p${r.priority})`).join(', ') || 'No permite MX';
                     return { label, status: data.records?.length ? 'PASS' : 'FAIL', details };
                 }
                 case 'smtputf8': {
                     const data = await fetchWithTimeout(`${API_BASE}/smtputf8/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const details = data.results?.map(r => {
                         switch (r.status) {
                             case 'supports': return `${r.server}: sí`;
@@ -2694,7 +2721,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'rpki': {
                     const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     if (!data.results?.length) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin datos' };
                     const details = data.results.map(r => {
                         const state = r.state === 'valid' ? 'válido' : r.state === 'invalid' ? 'inválido' : 'desconocido';
@@ -2709,7 +2736,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 }
                 case 'domaininfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/domaininfo/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const lines = [];
                     if (data.registry) lines.push(`Registro: ${data.registry}`);
                     if (Array.isArray(data.status) && data.status.length) {
@@ -2742,74 +2769,74 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // 2) en vez del booleano `https` para no confundir "no hubo
                     // conexión" con "hubo conexión con este código".
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     if (!data.statusCode) return { label, status: data.https ? 'PASS' : 'FAIL', details: data.https ? 'Accesible' : 'No responde HTTPS' };
                     return { label, status: httpStatusToCheckStatus(data.statusCode), details: `HTTP ${data.statusCode}` };
                 }
                 case 'redirect': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.redirect ? 'PASS' : 'FAIL', details: data.redirect ? 'Redirige a HTTPS' : 'No redirige' };
                 }
                 case 'hsts': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.hsts ? 'PASS' : 'FAIL', details: data.hsts ? 'Cabecera presente' : 'Sin HSTS' };
                 }
                 case 'csp': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.csp ? 'PASS' : 'FAIL', details: data.csp ? 'Cabecera presente' : 'Sin CSP' };
                 }
                 case 'xfo': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.xfo ? 'PASS' : 'FAIL', details: data.xfo ? 'Cabecera presente' : 'Sin X-Frame-Options' };
                 }
                 case 'xcto': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.xcto ? 'PASS' : 'FAIL', details: data.xcto ? 'Cabecera presente' : 'Sin X-Content-Type-Options' };
                 }
                 case 'referrer': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.referrer ? 'PASS' : 'FAIL', details: data.referrer ? 'Cabecera presente' : 'Sin Referrer-Policy' };
                 }
                 case 'permissions': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.permissions ? 'PASS' : 'FAIL', details: data.permissions ? 'Cabecera presente' : 'Sin Permissions-Policy' };
                 }
                 case 'xxss': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.xxss ? 'PASS' : 'FAIL', details: data.xxss ? 'Cabecera presente' : 'Sin X-XSS-Protection' };
                 }
                 case 'server': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.server ? 'FAIL' : 'PASS', details: data.server || 'No expuesto' };
                 }
                 case 'compression': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.compression ? 'PASS' : 'FAIL', details: data.compression ? 'Compresión habilitada' : 'Sin compresión' };
                 }
                 case 'ocsp': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.ocsp ? 'PASS' : 'FAIL', details: data.ocsp ? 'OCSP válido' : 'Sin OCSP' };
                 }
                 case 'tls': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const ok = data.protocol === 'TLSv1.3' || data.protocol === 'TLSv1.2';
                     return { label, status: ok ? 'PASS' : 'FAIL', details: data.protocol || 'Desconocido' };
                 }
                 case 'key': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const info = data.key || {};
                     let ok = false;
                     if (info.type === 'ECDH') ok = info.size >= 224;
@@ -2824,18 +2851,18 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // "[object Object]" (bug confirmado). Se usa `data.formatted`
                     // (agregado en server.js, handleCaa) con el texto ya legible.
                     const data = await fetchWithTimeout(`${API_BASE}/caa/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const formatted = data.formatted || data.records?.map(r => JSON.stringify(r)) || [];
                     return { label, status: formatted.length ? 'PASS' : 'FAIL', details: formatted.length ? formatted.join(', ') : 'No tiene CAA' };
                 }
                 case 'tlsa': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlsa/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.records?.length ? 'PASS' : 'FAIL', details: data.records?.length ? data.records.join(', ') : 'No tiene TLSA' };
                 }
                 case 'securitytxt': {
                     const data = await fetchWithTimeout(`${API_BASE}/securitytxt/${ascii}`);
-                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Encontrado' : 'No disponible' };
                 }
             }

@@ -86,6 +86,21 @@ function validateUrlPolicy(url) {
   }
 }
 
+// FASE 3 (2026-09-12): dns.lookup() (usado abajo, vía getaddrinfo) no
+// distingue "el dominio no existe" de "el dominio existe (tiene zona
+// delegada) pero no tiene A ni AAAA" — ambos casos dan ENOTFOUND por
+// igual. Confirmado con gob.ec: NS resuelve (es una zona real, paraguas
+// de subdominios como presidencia.gob.ec), pero dns.resolve4/resolve6
+// dan ENODATA específicamente, no ENOTFOUND. Esta consulta adicional
+// SOLO corre cuando el lookup principal ya falló (no agrega latencia al
+// camino feliz) — si ambos tipos de registro dan ENODATA (no otro tipo
+// de error), se re-etiqueta el error para que el resto del sistema lo
+// pueda distinguir de un fallo real de medición.
+async function hasNoAddressRecordAtAll(hostname) {
+  const checks = await Promise.allSettled([dns.resolve4(hostname), dns.resolve6(hostname)]);
+  return checks.every((r) => r.status === 'rejected' && r.reason && r.reason.code === 'ENODATA');
+}
+
 async function resolvePublicAddresses(hostname, lookup = dns.lookup) {
   if (net.isIP(hostname)) {
     if (isBlockedIp(hostname)) {
@@ -94,7 +109,15 @@ async function resolvePublicAddresses(hostname, lookup = dns.lookup) {
     return [{ address: hostname, family: net.isIP(hostname) }];
   }
 
-  const records = await lookup(hostname, { all: true, verbatim: true });
+  let records;
+  try {
+    records = await lookup(hostname, { all: true, verbatim: true });
+  } catch (lookupError) {
+    if (lookupError && lookupError.code === 'ENOTFOUND' && (await hasNoAddressRecordAtAll(hostname).catch(() => false))) {
+      throw Object.assign(new Error('Dominio sin registros A ni AAAA'), { code: 'WEBFETCH_NO_ADDRESS_RECORD' });
+    }
+    throw lookupError;
+  }
   const addresses = Array.isArray(records) ? records : [records];
   if (!addresses.length) {
     throw Object.assign(new Error('Sin direcciones IP'), { code: 'WEBFETCH_NO_ADDRESS' });

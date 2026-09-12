@@ -679,6 +679,195 @@ entre bloques `<script>`. Para eso hace falta ejecutar el JS de verdad
 el scratchpad de la sesión — no se agregó a `package.json` de
 MEDICIONES — o un navegador real si hay acceso de red para Playwright).
 
+## Auditoría técnica de Mediciones y corrección en 3 fases — 2026-09-12
+
+Pedido explícito: auditoría completa de por qué un lote real de 20 dominios
+(los mismos del "experimento" de comparación con RIPE Atlas — ver más abajo)
+dio ~60% de checks en error (`ok: 275, fail: 109, info: 53, error: 643` sobre
+1080 mediciones). La auditoría (solo lectura, sin cambios) identificó
+causas concretas con evidencia de código; se implementaron en 3 fases,
+cada una mostrada y autorizada por separado antes de avanzar a la
+siguiente. **DNSSEC y la validación/normalización DNS (módulo
+"Preparación de datasets") no se tocaron en ninguna fase** — fuera de
+alcance por diseño (CLAUDE.md).
+
+Checkpoints de git creados antes de cada fase para poder revertir:
+`c45582a` (antes de esta sesión) → `e1ed8bd` (antes de Fase 1) → `a86c4e4`
+(Fase 1) → `9f6c879` (Fase 2) → (Fase 3, este commit).
+
+### Fase 1 — spf/dmarc/ipv4/ipv6 devolvían "Servicio no disponible" en el 100% de los dominios
+
+**Causa**: de los ~54 checks, estos 4 eran los ÚNICOS que llamaban
+directo desde el **navegador** a `https://dns.google/resolve` (y `ipv4`
+además a `https://ipapi.co`) — nunca pasaban por `server.js`. Como
+`fetchWithTimeout()` (index.html) colapsa cualquier fallo del `fetch()`
+del navegador al mismo mensaje genérico, y la llamada nunca tocaba este
+proceso, no quedaba ningún rastro en `docker logs` para diagnosticarlo.
+
+**Solución**: 4 handlers nuevos en `server.js` (`handleSpf`, `handleDmarc`,
+`handleIpv4`, `handleIpv6`) con `dns.resolveTxt`/`resolve4`/`resolve6`
+nativos — mismo patrón que `handleMx`/`handleCaa`. La geolocalización de
+IPv4 reutiliza `lookupIpMeta()` (primario+fallback ya existente) en vez
+de `ipapi.co` suelto. Los 4 `case` de `index.html` pasaron a llamar
+`${API_BASE}/spf|dmarc|ipv4|ipv6/...` como el resto de los checks.
+
+**Verificación**: corrida real de 1/5/20 dominios — de 80/80 en error
+(20 dominios × 4 checks) a 0/80. Confirmado con `docker logs`: las
+llamadas ahora quedan registradas (antes, nada).
+
+### Fase 2 — HTTPS/DKIM/CAA/WAF/PageSpeed + migración de semántica de estados
+
+**Bugs funcionales**, todos con causa confirmada por código y verificados en vivo:
+
+- **HTTPS**: `handleHeaders()` marcaba `https:false` con cualquier código
+  distinto de 200 exacto — un 401/403/405/429 (TLS funciona, la app
+  responde, solo rechaza el método/autorización) se leía igual que "no
+  responde HTTPS". Se expone `statusCode` real; el cliente lo clasifica
+  con `httpStatusToCheckStatus()` (nueva función compartida).
+- **DKIM**: solo se prueba el selector `"default"` (no estándar);
+  `found:false` pasó de "No permite DKIM" a `INCONCLUSIVE` con mensaje
+  honesto — no es una verificación exhaustiva.
+- **CAA**: `dns.resolve(...,'CAA')` devuelve objetos, `.join(', ')` daba
+  `[object Object]`. `formatCaaRecord()` en `server.js` arma el texto
+  legible — **se encontró y corrigió un segundo bug durante la propia
+  verificación**: los registros CAA de Node también traen `type:'CAA'`,
+  que el primer intento de `formatCaaRecord` tomaba por error en vez del
+  tag real (`issue`/`issuewild`/`iodef`) — corregido buscando
+  explícitamente esos 3 tags del RFC 6844.
+- **WAF**: agregado fingerprinting de Imperva y Vercara (faltaban).
+  "WAF detectado" pasó de `ok` a `INFO` — no es un juicio bien/mal.
+- **PageSpeed**: corte de circuito en memoria
+  (`pageSpeedQuotaExhaustedUntil`, 10 min de cooldown) tras detectar
+  cuota agotada — confirmado con logs reales: la primera llamada agotada
+  tarda normal, las siguientes responden en 0-1ms sin repetir la llamada
+  externa.
+
+**Migración de semántica de estados**: `ok/fail/error/info` →
+`PASS/FAIL/NOT_APPLICABLE/INCONCLUSIVE/MEASUREMENT_ERROR/INFO` en los
+~54 `case` de `getCheckResult()` (index.html), `STATUS_ICON`
+(`medicionesBatchReport.exporter.js`) y `status.*` (`public/i18n.js`).
+Un fallo interno de la herramienta ya no puede leerse como un hallazgo
+real del dominio. **Bug adicional encontrado durante la migración**: el
+check genérico `case 'dnssec':` (distinto del análisis DNSSEC completo)
+devolvía un estado `'warn'` que **nunca existió** en `STATUS_SYMBOL` —
+`not_implemented`/`blocked_at_tld`/`blocked_at_parent` (ej. nic.pa,
+bloqueo porque `.pa` no está firmado) se mostraban silenciosamente como
+"—" (sin datos) en vez de la información real. Corregido a
+`INCONCLUSIVE`. (Nota: ese `case` no tiene checkbox en `groupDefinitions`
+— código no alcanzable desde la UI actual, preexistente, no introducido
+en esta sesión; se corrigió igual por si se reconecta).
+
+**Verificación**: `npm test` + smoke tests en vivo + corrida real de
+1/5/20 dominios con subconjunto de 17 checks representativos → 0
+errores de página, reporte generado sin problema.
+
+### Fase 3 — de "quizás es concurrencia" a 3 causas reales verificadas
+
+Antes de tocar código se corrió el lote **completo real** (20 dominios ×
+54 checks = 1080 mediciones) contra el código ya con Fases 1-2, para ver
+si hacía falta limitar concurrencia (hipótesis original de la auditoría:
+threadpool de libuv, tamaño 4 por defecto, compartido por `dns.lookup()`
+en todos los checks HTTP). Resultado: **19.6% de error (212/1080)**, ya
+muy por debajo del 60% original, pero concentrado de forma no uniforme
+en unos pocos dominios (`gob.ec` 31/54, `usa.gov` 27/54, `copaair.com`
+25/54, `nic.us` 22/54, `nic.pa` 22/54, `gub.uy` 18/54) — la pregunta era
+si esa concentración era un síntoma de concurrencia o de otra cosa.
+
+**Se probó la hipótesis de concurrencia directamente, antes de asumirla**:
+5 llamadas a `headers/copaair.com`, secuenciales, separadas por 1s, sin
+ninguna concurrencia — falló las 5 veces, idéntico. **Eso descarta
+concurrencia como causa** para este patrón: es un fallo constante, no
+intermitente. Conexión TCP directa confirmó la causa real:
+
+```
+HTTPS directo a copaair.com (apex, sin www): ECONNREFUSED puerto 443
+HTTP directo a copaair.com (apex): 302 → http://www.copaair.com/...
+```
+
+El dominio raíz de `copaair.com` **nunca** escucha HTTPS — solo HTTP,
+que redirige a `www` (donde HTTPS sí funciona). Mismo patrón, otra
+variante, confirmado también en `gub.uy` y `nic.us`: el certificado del
+apex no cubre el hostname exacto, pero el sitio real funciona perfecto
+vía `www`. La diferencia real: `handleServerStatus` ya tenía reintento
+HTTPS→HTTP si el primero fallaba; `handleHeaders` no — y de
+`handleHeaders` dependen **12 de los 54 checks**
+(`headers`/`https`/`redirect`/`hsts`/`csp`/`xfo`/`xcto`/`referrer`/
+`permissions`/`xxss`/`server`/`compression`), así que fallaban los 12
+juntos por la misma causa cada vez que el apex no aceptaba HTTPS directo.
+
+Investigando `gob.ec` (el caso con más errores) apareció una causa
+distinta: `dnsrecords/gob.ec` muestra `A:[]`, `AAAA:[]`, pero SÍ tiene
+`NS` reales (`n2.nic.ec`, etc.) — es un dominio real, delegado, que
+existe únicamente como paraguas DNS de subdominios
+(`presidencia.gob.ec`, etc.), sin servicio web propio en el apex. No es
+que la herramienta no pudo medir — genuinamente no hay nada que medir
+ahí vía HTTP.
+
+**Tres correcciones, todas de bajo riesgo por estar acotadas a causas ya confirmadas**:
+
+1. **`handleHeaders` (server.js) gana el mismo reintento HTTPS→HTTP que
+   ya tenía `handleServerStatus`** — copiado tal cual, sin cambiar la
+   lógica de interpretación de cabeceras/estado que ya sigue.
+2. **`error_code` agregado junto a `error`** en las respuestas de error
+   de `server.js` (bulk en las 41 apariciones idénticas del patrón
+   `sendJSON(res, 200, { domain, error: errorMessage(e) })`, más 2
+   variantes puntuales en `handleDkim`/`handleServerStatus`) — el `e.code`
+   original de Node, para que el cliente pueda clasificar sin depender
+   de matching de texto traducido.
+3. **`resolvePublicAddresses()` (`safeWebFetch.adapter.js`) distingue "no
+   existe" de "existe pero sin A/AAAA"**: `dns.lookup()` da `ENOTFOUND`
+   para ambos casos por igual; se agregó una consulta adicional
+   (`dns.resolve4`/`resolve6` explícitos) **solo cuando el lookup
+   principal ya falló** (sin latencia en el camino feliz) — si ambos dan
+   `ENODATA` específicamente, se re-etiqueta como
+   `WEBFETCH_NO_ADDRESS_RECORD`.
+4. **`classifyDataError(data)` (index.html)**, nueva función central:
+   códigos de certificado (`ERR_TLS_CERT_ALTNAME_INVALID`,
+   `CERT_HAS_EXPIRED`, `DEPTH_ZERO_SELF_SIGNED_CERT`,
+   `SELF_SIGNED_CERT_IN_CHAIN`, `UNABLE_TO_VERIFY_LEAF_SIGNATURE`,
+   `CERT_NOT_YET_VALID`) → `FAIL` (ya eran hallazgos reales bien
+   detectados por `errorMessage()`, solo mal clasificados);
+   `WEBFETCH_NO_ADDRESS_RECORD` → `NOT_APPLICABLE`; cualquier otro
+   código (timeout, conexión rechazada, DNS caído) sigue en
+   `MEASUREMENT_ERROR` sin cambios — ahí sí no se puede afirmar con
+   certeza de quién es la causa. Reemplaza, vía bulk edit, las 53
+   apariciones idénticas de `status: 'MEASUREMENT_ERROR', details:
+   data.error` en `getCheckResult()`.
+
+**Alcance explícitamente NO cubierto** (documentado para no repetir la
+investigación después): la detección de `WEBFETCH_NO_ADDRESS_RECORD`
+solo alcanza a los checks que pasan por `resolveFinalWebTarget`/
+`fetchSafePage` (la mayoría de los basados en HTTP) — los que hacen
+conexión TLS/socket cruda por su cuenta (`handleTls`, `handleSslChain`,
+`handleOpenPorts`) no se tocaron, quedan con su comportamiento previo
+ante un dominio sin A/AAAA.
+
+**Verificación**: `npm test` OK. Verificado en vivo, uno por uno, contra
+los 3 dominios reales que motivaron el fix (`copaair.com`, `gub.uy`,
+`nic.us` — los 3 ahora devuelven datos reales en vez de error) y contra
+`gob.ec` (ahora `error_code: 'WEBFETCH_NO_ADDRESS_RECORD'`). Los 6
+códigos de certificado verificados con los dominios de prueba oficiales
+de `badssl.com`. `classifyDataError()` probado con los 10 casos
+relevantes vía `jsdom`. Corrida real de 1080 mediciones repetida
+después del fix, mismos 20 dominios, mismo subconjunto de checks —
+resultado antes/después:
+
+| Estado | Antes de Fase 3 | Después de Fase 3 |
+|---|---|---|
+| PASS | 531 (49.2%) | 555 (51.4%) |
+| FAIL | 214 (19.8%) | 250 (23.1%) |
+| INCONCLUSIVE | 27 (2.5%) | 29 (2.7%) |
+| INFO | 86 (8.0%) | 82 (7.6%) |
+| NOT_APPLICABLE | 10 (0.9%) | 26 (2.4%) |
+| MEASUREMENT_ERROR | 212 (19.6%) | **138 (12.8%)** |
+
+Por dominio, la mejora es más marcada donde estaba la causa confirmada:
+`gub.uy` 18→5 errores, `nic.us` 22→7, `copaair.com` 25→12, `gob.ec`
+31→17 (parcial — el resto son checks de socket/TLS crudo, fuera del
+alcance de esta fase, ver arriba). `usa.gov` se mantuvo en 27 — como se
+documentó, es un problema real de alcanzabilidad externa, no algo que
+esta fase pretendiera resolver.
+
 ## Eliminación de la sub-pestaña "Un dominio" — flujo único de Mediciones — 2026-09-11
 
 Pedido explícito, en el mismo hilo que el bug de arriba (§ siguiente): *"debe
