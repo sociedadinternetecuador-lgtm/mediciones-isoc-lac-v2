@@ -2568,21 +2568,21 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     return { label, status: uiStatus, details: statusLabel };
                 }
                 case 'ipv4': {
-                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=A`);
-                    const ips = data.Answer?.filter(r => r.type === 1).map(r => r.data) || [];
-                    const geos = [];
-                    for (const ip of ips) {
-                        try {
-                            const info = await fetchWithTimeout(`https://ipapi.co/${ip}/json/`);
-                            geos.push({ ip, country: info.country_name, lat: info.latitude, lon: info.longitude, asn: info.asn });
-                        } catch (e) {}
-                    }
+                    // FASE 1 (2026-09-12): antes llamaba a dns.google directo desde
+                    // el navegador (mismo patrón roto que spf/dmarc/ipv6, ver
+                    // docs/arquitectura.md) — ahora usa el backend, igual que el
+                    // resto de los checks.
+                    const data = await fetchWithTimeout(`${API_BASE}/ipv4/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const ips = data.ips || [];
+                    const geos = data.geos || [];
                     const details = ips.length ? ips.join(', ') : 'No tiene IPv4';
                     return { label, status: ips.length ? 'ok' : 'fail', details, geos };
                 }
                 case 'ipv6': {
-                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=AAAA`);
-                    const ips = data.Answer?.filter(r => r.type === 28).map(r => r.data) || [];
+                    const data = await fetchWithTimeout(`${API_BASE}/ipv6/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    const ips = data.ips || [];
                     return { label, status: ips.length ? 'ok' : 'fail', details: ips.length ? ips.join(', ') : 'No tiene IPv6' };
                 }
                 case 'asn': {
@@ -2595,14 +2595,16 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     };
                 }
                 case 'dmarc': {
-                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=_dmarc.${ascii}&type=TXT`);
-                    const found = data.Answer?.some(r => r.data.includes("v=DMARC1"));
-                    return { label, status: found ? 'ok' : 'fail', details: found ? 'Política encontrada' : 'No permite DMARC' };
+                    // FASE 1 (2026-09-12): antes llamaba a dns.google directo desde
+                    // el navegador — ver nota en 'ipv4' arriba.
+                    const data = await fetchWithTimeout(`${API_BASE}/dmarc/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Política encontrada' : 'No permite DMARC' };
                 }
                 case 'spf': {
-                    const data = await fetchWithTimeout(`https://dns.google/resolve?name=${ascii}&type=TXT`);
-                    const found = data.Answer?.some(r => r.data.includes("v=spf1"));
-                    return { label, status: found ? 'ok' : 'fail', details: found ? 'Registro encontrado' : 'No permite SPF' };
+                    const data = await fetchWithTimeout(`${API_BASE}/spf/${ascii}`);
+                    if (data.error) return { label, status: 'error', details: data.error };
+                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Registro encontrado' : 'No permite SPF' };
                 }
                 case 'dkim': {
                     const data = await fetchWithTimeout(`${API_BASE}/dkim/${ascii}?selector=default`);

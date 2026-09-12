@@ -238,6 +238,96 @@ async function handleMx(domain, res) {
   }
 }
 
+// FASE 1 (2026-09-12) — spf/dmarc/ipv4/ipv6 vivían SOLO en el cliente
+// (index.html), llamando a https://dns.google/resolve y https://ipapi.co
+// directo desde el navegador del usuario — el único caso de los ~54
+// checks de Mediciones que no pasaba por este servidor. Causa raíz
+// documentada del "Servicio no disponible" uniforme en los 20/20
+// dominios: fetchWithTimeout() (index.html) colapsa cualquier fallo del
+// fetch del navegador (CORS, red del cliente, rate limit de terceros) al
+// mismo mensaje genérico, y como la llamada nunca llega a este proceso,
+// no queda ningún rastro en `docker logs` para diagnosticarlo. Se
+// resuelven aquí con dns.resolveTxt/resolve4/resolve6 nativos (mismo
+// patrón y mismos resolvers que handleMx/handleCaa/handleTlsa) —
+// consistente con el resto del sistema, con logging real, y sin depender
+// de la red del navegador de quien esté usando la herramienta.
+async function handleSpf(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const records = await dns.resolveTxt(domain);
+    const flat = records.map((parts) => parts.join(''));
+    // Mismo criterio que antes en el cliente: subcadena "v=spf1" en
+    // cualquier TXT del apex (no solo como prefijo estricto), sin
+    // distinguir mayúsculas/minúsculas de más — se preserva tal cual para
+    // no cambiar semántica en esta fase.
+    const found = flat.some((v) => v.includes('v=spf1'));
+    sendJSON(res, 200, { domain, found });
+  } catch (e) {
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
+      sendJSON(res, 200, { domain, found: false });
+    } else {
+      sendJSON(res, 200, { domain, error: errorMessage(e) });
+    }
+  }
+}
+
+async function handleDmarc(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const records = await dns.resolveTxt(`_dmarc.${domain}`);
+    const flat = records.map((parts) => parts.join(''));
+    const found = flat.some((v) => v.includes('v=DMARC1'));
+    sendJSON(res, 200, { domain, found });
+  } catch (e) {
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
+      sendJSON(res, 200, { domain, found: false });
+    } else {
+      sendJSON(res, 200, { domain, error: errorMessage(e) });
+    }
+  }
+}
+
+// Geolocalización por IP reutiliza lookupIpMeta() (primario + fallback,
+// ya usada por handleIpInfo/handleServerLocation) en vez del ipapi.co
+// directo que usaba el cliente — mismo dato (país/lat/lon/ASN por IP),
+// ahora con la resiliencia que ya tenía el resto del sistema. Fallos de
+// geolocalización por IP individual no rompen el check completo (mismo
+// criterio que el código original: catch silencioso por IP).
+async function handleIpv4(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const ips = await dns.resolve4(domain);
+    const geos = [];
+    for (const ip of ips) {
+      try {
+        const info = await lookupIpMeta(ip);
+        geos.push({ ip, country: info.country, lat: info.latitude, lon: info.longitude, asn: info.asn });
+      } catch (e) {}
+    }
+    sendJSON(res, 200, { domain, ips, geos });
+  } catch (e) {
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
+      sendJSON(res, 200, { domain, ips: [], geos: [] });
+    } else {
+      sendJSON(res, 200, { domain, error: errorMessage(e) });
+    }
+  }
+}
+
+async function handleIpv6(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const ips = await dns.resolve6(domain);
+    sendJSON(res, 200, { domain, ips });
+  } catch (e) {
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
+      sendJSON(res, 200, { domain, ips: [] });
+    } else {
+      sendJSON(res, 200, { domain, error: errorMessage(e) });
+    }
+  }
+}
+
 function smtpQuery(server, port) {
   return new Promise(resolve => {
     const socket = net.createConnection(port, server);
@@ -2862,6 +2952,10 @@ if (parsed.pathname === "/dnssec-analysis") {
   const segments = parsed.pathname.split('/').filter(Boolean);
 
   if (segments[0] === 'mx' && segments[1]) return handleMx(segments[1], res);
+  if (segments[0] === 'spf' && segments[1]) return handleSpf(segments[1], res);
+  if (segments[0] === 'dmarc' && segments[1]) return handleDmarc(segments[1], res);
+  if (segments[0] === 'ipv4' && segments[1]) return handleIpv4(segments[1], res);
+  if (segments[0] === 'ipv6' && segments[1]) return handleIpv6(segments[1], res);
   if (segments[0] === 'smtputf8' && segments[1]) return handleSmtpUtf8(segments[1], res);
   if (segments[0] === 'dnssec' && segments[1]) return handleDnssec(segments[1], res);
   if (segments[0] === 'dkim' && segments[1])
