@@ -1,1 +1,5 @@
 node_modules/
+
+# Log de mediciones (server.js, recordMeasurement()) — datos de runtime,
+# uno por día, se acumulan en el volumen data/ del deploy. No versionar.
+data/measurements/

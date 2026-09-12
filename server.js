@@ -232,12 +232,48 @@ function errorMessage(e) {
   return 'Servicio no disponible';
 }
 
+// Log de mediciones (2026-09-12) — a pedido explícito, para poder hacer
+// análisis internos de solidez/integridad del sistema (ej. detectar
+// checks que se degradan con el tiempo, patrones de timeout) sin depender
+// de scripts ad-hoc contra una corrida puntual. Un renglón JSON por cada
+// respuesta de un check real (domain, check, duración, éxito/error,
+// código de error). Reutiliza `res._startedAt` (ya seteado en el
+// callback principal de `http.createServer`, mismo timestamp que ya usa
+// el log de acceso) y `res._checkName`/`res._checkDomain` (seteados justo
+// antes del despacho por `segments[0]`/`segments[1]`, ver más abajo) —
+// server.js es la ÚNICA fuente de verdad de qué check corrió, así que se
+// engancha acá, en el único punto por el que pasan casi todos los
+// handlers (`sendJSON`), en vez de tocar cada uno de los ~50 handlers uno
+// por uno. Un archivo por día (rota solo, por nombre) en el mismo volumen
+// `data/` ya montado y persistente — sin dependencia nueva, sin base de
+// datos (ver CLAUDE.md).
+const MEASUREMENTS_DIR = path.join(__dirname, 'data', 'measurements');
+function recordMeasurement(res, data) {
+  if (!res._checkName) return;
+  try {
+    if (!fs.existsSync(MEASUREMENTS_DIR)) fs.mkdirSync(MEASUREMENTS_DIR, { recursive: true });
+    const day = new Date().toISOString().slice(0, 10);
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      check: res._checkName,
+      domain: (data && data.domain) || res._checkDomain || null,
+      duration_ms: res._startedAt ? Date.now() - res._startedAt : null,
+      success: !(data && data.error),
+      error_code: (data && data.error_code) || null,
+    });
+    fs.appendFile(path.join(MEASUREMENTS_DIR, `${day}.jsonl`), line + '\n', () => {});
+  } catch (e) {
+    // Nunca debe romper una respuesta real por un problema de logging.
+  }
+}
+
 function sendJSON(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*'
   });
   res.end(JSON.stringify(data));
+  recordMeasurement(res, data);
 }
 
 async function handleMx(domain, res) {
@@ -2933,6 +2969,7 @@ function getBaseUrl(req) {
   const _reqStartedAt = Date.now();
   const _reqMethod = req.method;
   const _reqPath = req.url.split('?')[0];
+  res._startedAt = _reqStartedAt;
   res.on('finish', () => {
     console.log(`${new Date().toISOString()} ${_reqMethod} ${_reqPath} ${res.statusCode} ${Date.now() - _reqStartedAt}ms`);
   });
@@ -3051,6 +3088,15 @@ if (parsed.pathname === "/dnssec-analysis") {
   }
 
   const segments = parsed.pathname.split('/').filter(Boolean);
+
+  // Log de mediciones: se etiqueta acá (antes del despacho real) porque
+  // este es el único lugar donde ya tenemos, listos y correctos,
+  // "cuál check" (segments[0]) y "qué dominio" (segments[1]) para
+  // cualquiera de las ~50 rutas de abajo — sendJSON() los lee de acá.
+  if (segments[1]) {
+    res._checkName = segments[0];
+    res._checkDomain = segments[1];
+  }
 
   if (segments[0] === 'mx' && segments[1]) return handleMx(segments[1], res);
   if (segments[0] === 'spf' && segments[1]) return handleSpf(segments[1], res);
