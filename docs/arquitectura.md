@@ -679,6 +679,65 @@ entre bloques `<script>`. Para eso hace falta ejecutar el JS de verdad
 el scratchpad de la sesión — no se agregó a `package.json` de
 MEDICIONES — o un navegador real si hay acceso de red para Playwright).
 
+## Log de mediciones persistente y fix de request coalescing — 2026-09-12
+
+Seguimiento directo de la auditoría de 3 fases (§ siguiente): el usuario
+seguía viendo un % de timeout preocupante en `redirect`/`hsts`/`csp`/
+`xfo`/`xcto`/`referrer`/`permissions`/`headers`/`server`/`compression`/
+`xxss`/`key` en los 20 dominios de una corrida real. Se pidió (a)
+implementar un log persistente de mediciones para poder hacer este tipo
+de análisis sin scripts ad-hoc, y (b) investigar la causa raíz exacta
+antes de tocar código.
+
+**Log de mediciones** (`server.js`): `data/measurements/YYYY-MM-DD.jsonl`,
+un renglón JSON por respuesta de check real (`domain`, `check`,
+`duration_ms`, `success`, `error_code`). Se engancha en `sendJSON()`
+(único punto de paso de casi todos los handlers) leyendo
+`res._checkName`/`res._checkDomain` (etiquetados justo antes del
+despacho por segmento de ruta) y `res._startedAt` (mismo timestamp que
+ya usa el log de acceso). Un archivo por día, en el volumen `data/` ya
+persistente; agregado a `.gitignore`.
+
+**Causa raíz confirmada con el log real**: los checks de la lista
+comparten `getSecurityHeaders()`/`getTlsInfo()` (index.html) — ambas
+funciones tenían el patrón clásico `if (cache[key]) return cache[key];
+const data = await fetch(...); cache[key] = data;`. Como hasta 12 checks
+de un mismo dominio se disparan con `Promise.all` casi en el mismo tick,
+todos pasan el chequeo de caché **antes** de que el primero termine de
+llenarlo — confirmado contando llamadas reales en el log:
+`/headers/:domain` se llamaba **12 veces por dominio** (no 1), y
+`/tlsinfo/:domain` **3 veces**, sin excepción en los 20 dominios. Mismo
+bug exacto, del lado servidor, en `fetchWebsite()` (compartida por
+`sitefeatures`/`cookies`/`linkedpages`/`socialtags`/`firewall`). El
+techo de `safeWebFetch.adapter.js` (30s total) es más largo que el del
+cliente (`fetchWithTimeout`, 20s) — el cliente se rinde antes de que el
+servidor termine de resolver las 12 llamadas duplicadas compitiendo por
+el mismo destino, de ahí el "Timeout" repetido en ese grupo específico
+de checks, en todos los dominios a la vez.
+
+**Fix — request coalescing / promise caching**: la primera llamada
+guarda la *promesa en curso* de inmediato (antes de esperarla) en un
+mapa separado del caché de resultados ya resueltos
+(`headerPending`/`tlsPending` en index.html; `htmlPending` Map en
+server.js) — llamadas concurrentes posteriores se enganchan a esa misma
+promesa en vez de disparar un fetch nuevo. Si falla, se limpia en un
+`finally` (nunca queda una promesa rechazada cacheada para siempre).
+Sin cambios de timeouts, semántica de estados, frontend visible,
+endpoints, ni concurrencia/número de workers — exclusivamente el bug de
+caché, a pedido explícito.
+
+**Verificación** (5 tests, servidor local real, `jsdom`): 12 llamadas
+concurrentes a `getSecurityHeaders()` para un mismo dominio → 1 fetch
+real (antes 12); 2 dominios simultáneos → 1 fetch real cada uno, sin
+interferencia cruzada; fetch simulado fallido → las 5 llamadas
+concurrentes reciben el mismo error, un reintento posterior sí funciona
+(no queda cacheado el rechazo); `fetchWebsite()` con sus 5 checks reales
+simultáneos → 1 consulta real + 4 reutilizaciones; corrida real de 3
+dominios × 54 checks con el fix aplicado → `headers`/`tlsinfo` en 1x por
+dominio en los 3 (antes 12x/3x), 7.3% `MEASUREMENT_ERROR` (vs. 12.8-19.6%
+en corridas previas con el bug), 0 timeouts explícitos, duración máxima
+19.1s (bajo el techo de 20s del cliente). `npm test` OK.
+
 ## Auditoría técnica de Mediciones y corrección en 3 fases — 2026-09-12
 
 Pedido explícito: auditoría completa de por qué un lote real de 20 dominios
