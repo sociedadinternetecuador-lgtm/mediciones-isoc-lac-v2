@@ -248,23 +248,41 @@ function errorMessage(e) {
 // `data/` ya montado y persistente — sin dependencia nueva, sin base de
 // datos (ver CLAUDE.md).
 const MEASUREMENTS_DIR = path.join(__dirname, 'data', 'measurements');
-function recordMeasurement(res, data) {
-  if (!res._checkName) return;
+function appendMeasurementLine(obj) {
   try {
     if (!fs.existsSync(MEASUREMENTS_DIR)) fs.mkdirSync(MEASUREMENTS_DIR, { recursive: true });
     const day = new Date().toISOString().slice(0, 10);
-    const line = JSON.stringify({
-      ts: new Date().toISOString(),
-      check: res._checkName,
-      domain: (data && data.domain) || res._checkDomain || null,
-      duration_ms: res._startedAt ? Date.now() - res._startedAt : null,
-      success: !(data && data.error),
-      error_code: (data && data.error_code) || null,
-    });
-    fs.appendFile(path.join(MEASUREMENTS_DIR, `${day}.jsonl`), line + '\n', () => {});
+    fs.appendFile(path.join(MEASUREMENTS_DIR, `${day}.jsonl`), JSON.stringify(obj) + '\n', () => {});
   } catch (e) {
     // Nunca debe romper una respuesta real por un problema de logging.
   }
+}
+
+function recordMeasurement(res, data) {
+  if (!res._checkName) return;
+  appendMeasurementLine({
+    ts: new Date().toISOString(),
+    check: res._checkName,
+    domain: (data && data.domain) || res._checkDomain || null,
+    duration_ms: res._startedAt ? Date.now() - res._startedAt : null,
+    success: !(data && data.error),
+    error_code: (data && data.error_code) || null,
+  });
+}
+
+// FIX (2026-09-12) — visibilidad del request coalescing de fetchWebsite()
+// (más abajo): a diferencia de getSecurityHeaders()/getTlsInfo() en el
+// cliente (cuya mejora ya es visible en el log de mediciones normal,
+// porque las 12 llamadas duplicadas eran al MISMO endpoint /headers/),
+// fetchWebsite() la comparten 5 checks con endpoints DISTINTOS
+// (sitefeatures/cookies/linkedpages/socialtags/firewall) — cada uno ya
+// registra su propia medición vía recordMeasurement(), pero eso no dice
+// si, puertas adentro, fetchWebsite() reusó una promesa en curso o
+// disparó una consulta real nueva. Se registra ese detalle acá, sin
+// tocar el formato de las mediciones normales — mismo archivo, un campo
+// `event` que las distingue.
+function recordCacheEvent(fn, domain, event) {
+  appendMeasurementLine({ ts: new Date().toISOString(), check: fn, domain, event });
 }
 
 function sendJSON(res, status, data) {
@@ -653,23 +671,53 @@ function cacheSet(cache, key, value) {
   cache.set(key, { timestamp: Date.now(), value });
 }
 
+// FIX (2026-09-12) — mismo bug de condición de carrera que
+// getSecurityHeaders()/getTlsInfo() (index.html), del lado servidor:
+// sitefeatures/cookies/linkedpages/socialtags/firewall llegan como
+// solicitudes HTTP simultáneas separadas (cada una su propio endpoint),
+// y cada una llamaba a fetchWebsite(domain) de forma independiente —
+// varias podían pasar el chequeo `cacheGet(htmlCache, domain)` antes de
+// que cualquiera terminara de llenarlo, disparando hasta 5 consultas
+// reales idénticas al mismo destino. htmlPending guarda la PROMESA en
+// curso (no el resultado) apenas se crea — cualquier llamada concurrente
+// posterior para el mismo `domain` se engancha a esa promesa en vez de
+// arrancar una nueva. El TTL de 60s de htmlCache/cacheGet/cacheSet no
+// cambia; el bucle de reintento HTTPS→HTTP tampoco.
+const htmlPending = new Map();
+
 async function fetchWebsite(domain) {
   const cached = cacheGet(htmlCache, domain);
-  if (cached) return cached;
-  const targets = [`https://${domain}`, `http://${domain}`];
-  for (const target of targets) {
-    try {
-      const resolved = await resolveFinalWebTarget(target);
-      const page = resolved.response;
-      if (page.statusCode && page.statusCode >= 200 && page.statusCode < 300) {
-        const value = { url: resolved.finalUrl, chain: resolved.chain, ...page };
-        cacheSet(htmlCache, domain, value);
-        cacheSet(headerCache, domain, { headers: page.headers, statusCode: page.statusCode });
-        return value;
-      }
-    } catch (e) {}
+  if (cached) {
+    recordCacheEvent('fetchWebsite', domain, 'cache_hit');
+    return cached;
   }
-  throw new Error('Servicio no disponible');
+  if (htmlPending.has(domain)) {
+    recordCacheEvent('fetchWebsite', domain, 'pending_reused');
+    return htmlPending.get(domain);
+  }
+  recordCacheEvent('fetchWebsite', domain, 'new_fetch');
+  const promise = (async () => {
+    const targets = [`https://${domain}`, `http://${domain}`];
+    for (const target of targets) {
+      try {
+        const resolved = await resolveFinalWebTarget(target);
+        const page = resolved.response;
+        if (page.statusCode && page.statusCode >= 200 && page.statusCode < 300) {
+          const value = { url: resolved.finalUrl, chain: resolved.chain, ...page };
+          cacheSet(htmlCache, domain, value);
+          cacheSet(headerCache, domain, { headers: page.headers, statusCode: page.statusCode });
+          return value;
+        }
+      } catch (e) {}
+    }
+    throw new Error('Servicio no disponible');
+  })();
+  htmlPending.set(domain, promise);
+  try {
+    return await promise;
+  } finally {
+    htmlPending.delete(domain);
+  }
 }
 
 async function rpkiValidity(ip) {

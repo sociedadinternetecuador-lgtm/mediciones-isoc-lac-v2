@@ -1742,6 +1742,12 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     const API_BASE = window.location.origin;
     const headerCache = {};
     const tlsCache = {};
+    // Request coalescing (2026-09-12) — mapas separados de "resultado ya
+    // resuelto" (headerCache/tlsCache, sin cambios) y "promesa en curso"
+    // (ver getSecurityHeaders()/getTlsInfo() más abajo, causa raíz
+    // documentada en docs/arquitectura.md).
+    const headerPending = {};
+    const tlsPending = {};
 
     aboutBtn.addEventListener('click', () => {
         aboutText.classList.toggle('hidden');
@@ -2159,20 +2165,52 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         }
     }
 
-    async function getSecurityHeaders(domain) {
+    // FIX (2026-09-12) — condición de carrera confirmada: hasta 12 checks
+    // (https/redirect/hsts/csp/xfo/xcto/referrer/permissions/xxss/server/
+    // compression/headers) llaman a getSecurityHeaders() casi en el mismo
+    // tick (Promise.all en runMedicionesBatchDomain). Antes, los 12
+    // pasaban el chequeo `if (headerCache[ascii])` ANTES de que el
+    // primero terminara de llenarlo — resultando en 12 fetch() reales
+    // idénticos en vez de 1 (confirmado contando llamadas reales en
+    // data/measurements/, ver docs/arquitectura.md). Ahora la PRIMERA
+    // llamada guarda la promesa en headerPending[ascii] de inmediato,
+    // antes de esperarla — cualquier llamada concurrente posterior
+    // encuentra esa promesa y se engancha a ella en vez de disparar un
+    // fetch nuevo. Si la promesa falla, se quita de pending en el
+    // `finally` (nunca queda una promesa rechazada cacheada para
+    // siempre) — así una llamada posterior puede reintentar. Distintos
+    // dominios (`ascii` distinto) son claves distintas, no se bloquean
+    // entre sí. Mismo patrón en getTlsInfo() inmediatamente abajo.
+    function getSecurityHeaders(domain) {
         const ascii = toASCII(domain);
-        if (headerCache[ascii]) return headerCache[ascii];
-        const data = await fetchWithTimeout(`${API_BASE}/headers/${ascii}`);
-        headerCache[ascii] = data;
-        return data;
+        if (headerCache[ascii]) return Promise.resolve(headerCache[ascii]);
+        if (headerPending[ascii]) return headerPending[ascii];
+        const promise = fetchWithTimeout(`${API_BASE}/headers/${ascii}`)
+            .then((data) => {
+                headerCache[ascii] = data;
+                return data;
+            })
+            .finally(() => {
+                delete headerPending[ascii];
+            });
+        headerPending[ascii] = promise;
+        return promise;
     }
 
-    async function getTlsInfo(domain) {
+    function getTlsInfo(domain) {
         const ascii = toASCII(domain);
-        if (tlsCache[ascii]) return tlsCache[ascii];
-        const data = await fetchWithTimeout(`${API_BASE}/tlsinfo/${ascii}`);
-        tlsCache[ascii] = data;
-        return data;
+        if (tlsCache[ascii]) return Promise.resolve(tlsCache[ascii]);
+        if (tlsPending[ascii]) return tlsPending[ascii];
+        const promise = fetchWithTimeout(`${API_BASE}/tlsinfo/${ascii}`)
+            .then((data) => {
+                tlsCache[ascii] = data;
+                return data;
+            })
+            .finally(() => {
+                delete tlsPending[ascii];
+            });
+        tlsPending[ascii] = promise;
+        return promise;
     }
 
     function escapeHtml(text) {
