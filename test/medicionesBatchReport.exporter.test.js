@@ -18,6 +18,36 @@ function assertFrontmatter(markdown) {
   assert.ok(/title:\s*"/.test(block), 'frontmatter debe incluir title');
   assert.ok(/subtitle:\s*"/.test(block), 'frontmatter debe incluir subtitle');
   assert.ok(/author:\s*"/.test(block), 'frontmatter debe incluir author');
+  assert.ok(/contact:\s*".*mediciones\.isoc\.org\.ec.*info@isoc\.org\.ec/.test(block), 'la carátula debe incluir sitio web y correo de contacto');
+}
+
+// A pedido explícito: el reporte NUNCA calcula ni compara nada sobre el
+// dataset analizado — ni agregados, ni porcentajes, ni semáforos. Se
+// verifica en cada caso que ninguna de las secciones/frases eliminadas
+// reaparezca, sin importar qué traiga el payload.
+function assertNoDatasetAnalysis(markdown) {
+  assert.ok(!markdown.includes('## Hallazgos por categoría'), 'no debe existir la sección "Hallazgos por categoría" (se eliminó)');
+  assert.ok(!markdown.includes('## Resumen comparativo'), 'no debe existir la sección "Resumen comparativo" (se eliminó)');
+  assert.ok(!markdown.includes('Validación DNS'), 'no debe reportar un resumen de Validación DNS del lote');
+  assert.ok(!markdown.includes('DNSSEC agregado'), 'no debe reportar un DNSSEC agregado del lote');
+  assert.ok(!markdown.includes('Resumen acumulado por check'), 'no debe reportar conteos Sí/No por check del lote');
+  assert.ok(
+    !/verde|amarill|rojo|semáforo|adopción|brecha|débil|sólid|crític|indicativo|confiable|muestra insuficiente/i.test(markdown),
+    'no debe usar lenguaje evaluativo/estadístico sobre el dataset en ninguna parte del reporte'
+  );
+}
+
+// La sección "Cómo leer este reporte" es la ÚNICA narrativa permitida:
+// genérica, idéntica en cualquier corrida — no depende del payload.
+function assertGenericInstructions(markdown) {
+  assert.ok(markdown.includes('## Cómo leer este reporte'));
+  assert.ok(markdown.includes('### Símbolos de resultado'));
+  assert.ok(markdown.includes('### Glosario de indicadores'));
+  assert.ok(markdown.includes('### Limitaciones del sistema'));
+  assert.ok(markdown.includes('No reemplaza auditorías técnicas especializadas.'));
+  assert.ok(markdown.includes('Depende de disponibilidad de servicios externos.'));
+  assert.ok(markdown.includes('Puede haber falsos positivos o negativos.'));
+  assert.ok(markdown.includes('No mide seguridad interna del servidor.'));
 }
 
 function run() {
@@ -30,24 +60,25 @@ function run() {
       source: { mode: 'paste', filename: null },
     },
     domains: [],
-    comparative: {
-      checks_summary: {},
-      dns_validation_summary: { VALID: 0, NXDOMAIN: 0, REVIEW: 0 },
-      dnssec_aggregate: null,
-    },
   };
   const emptyMd = buildComparativeMarkdown(emptyPayload);
   assert.strictEqual(typeof emptyMd, 'string');
   assertFrontmatter(emptyMd);
-  assert.ok(emptyMd.includes('No se analizó ningún dominio'), 'debe indicar que el lote está vacío');
+  assertGenericInstructions(emptyMd);
+  assertNoDatasetAnalysis(emptyMd);
+  // Alcance por defecto (checkbox desmarcado, meta.include_domain_detail
+  // ausente): el reporte trae solo la tabla del lote, sin la sección de
+  // detalle por dominio.
+  assert.ok(!emptyMd.includes('## Detalle por dominio'), 'sin include_domain_detail, la sección de detalle por dominio no debe existir');
 
-  // ── Caso 2: un dominio sin DNSSEC (null/error) ─────────────────────
+  // ── Caso 2: un dominio sin DNSSEC (null/error) — mediciones crudas ──
   const noDnssecPayload = {
     meta: {
       generated_at: '2026-09-08T00:00:00.000Z',
       selected_checks: ['mx', 'dmarc', 'spf'],
       domain_count: 1,
       source: { mode: 'upload', filename: 'dominios.csv' },
+      include_domain_detail: true, // caso dedicado a probar el formato de la sección de detalle
     },
     domains: [
       {
@@ -67,35 +98,21 @@ function run() {
         checks: {},
       },
     ],
-    comparative: {
-      checks_summary: {
-        mx: { label: 'MX', positive: 1, negative: 0 },
-        dmarc: { label: 'DMARC', positive: 0, negative: 1 },
-        spf: { label: 'SPF', positive: 0, negative: 1 },
-      },
-      dns_validation_summary: { VALID: 1, NXDOMAIN: 0, REVIEW: 0 },
-      dnssec_aggregate: {
-        country: 'Lote analizado',
-        semaphore: 'insufficient',
-        adoptionRate: null,
-        total: 2,
-        structural: 0,
-        actionable: 0,
-        warnings: ['Muestra insuficiente (2 dominios).'],
-      },
-    },
   };
   const noDnssecMd = buildComparativeMarkdown(noDnssecPayload);
   assertFrontmatter(noDnssecMd);
+  assertGenericInstructions(noDnssecMd);
+  assertNoDatasetAnalysis(noDnssecMd);
   assert.ok(noDnssecMd.includes('sin-dnssec.example'));
   assert.ok(noDnssecMd.includes('null-dnssec.example'));
-  assert.ok(noDnssecMd.includes('Lote analizado'), 'debe usar la etiqueta genérica, no un nombre de país');
   assert.ok(!noDnssecMd.includes('undefined'), 'no debe filtrar "undefined" al texto por campos faltantes');
-  assert.ok(noDnssecMd.includes('::: landscape'), 'la tabla comparativa (por categoría) siempre se imprime en landscape');
+  assert.ok(noDnssecMd.includes('::: landscape'), 'la tabla del lote (por categoría) siempre se imprime en landscape');
   assert.ok(noDnssecMd.includes('Informativo — dato disponible'), 'debe incluir la leyenda de símbolos (✓/✗/⚠/ℹ/—)');
   const legendIdx = noDnssecMd.indexOf('Símbolos de resultado');
-  const comparativeIdx = noDnssecMd.indexOf('## Resumen comparativo');
-  assert.ok(legendIdx !== -1 && legendIdx < comparativeIdx, 'la leyenda de símbolos debe ir al inicio del documento, no pegada a la tabla');
+  const batchTableIdx = noDnssecMd.indexOf('## Tabla de resultados — dominio × indicador');
+  assert.ok(legendIdx !== -1 && legendIdx < batchTableIdx, 'la leyenda de símbolos debe ir al inicio del documento, no pegada a la tabla');
+  assert.ok(noDnssecMd.includes('## Detalle por dominio'), 'con include_domain_detail:true debe incluir la sección de detalle por dominio');
+  assert.ok(batchTableIdx < noDnssecMd.indexOf('## Detalle por dominio'), 'la tabla del lote va antes del detalle por dominio');
 
   // ── Caso 3: un dominio con muchos checks fallidos ──────────────────
   const manyFailChecks = {};
@@ -111,6 +128,7 @@ function run() {
       selected_checks: selectedManyChecks,
       domain_count: 1,
       source: { mode: 'paste', filename: null },
+      include_domain_detail: true, // necesario: este caso prueba el truncado de detalle, que vive en esa sección
     },
     domains: [
       {
@@ -120,14 +138,10 @@ function run() {
         checks: manyFailChecks,
       },
     ],
-    comparative: {
-      checks_summary: Object.fromEntries(selectedManyChecks.map((k) => [k, { label: k, positive: 0, negative: 1 }])),
-      dns_validation_summary: { VALID: 0, NXDOMAIN: 1, REVIEW: 0 },
-      dnssec_aggregate: { country: 'Lote analizado', semaphore: 'red', adoptionRate: 0, total: 1, structural: 0, actionable: 1, warnings: [] },
-    },
   };
   const manyFailMd = buildComparativeMarkdown(manyFailPayload);
   assertFrontmatter(manyFailMd);
+  assertNoDatasetAnalysis(manyFailMd);
   assert.ok(manyFailMd.includes('muchos-fallos.example'));
   assert.ok(manyFailMd.includes('misconfigured'));
   // El detalle crudo largo no debe volcarse tal cual — cada línea de detalle
@@ -164,7 +178,6 @@ function run() {
       source: { mode: 'paste', filename: null },
     },
     domains: [],
-    comparative: { checks_summary: {}, dns_validation_summary: { VALID: 0, NXDOMAIN: 0, REVIEW: 0 }, dnssec_aggregate: null },
   };
   const glossaryMd = buildComparativeMarkdown(glossaryPayload);
   assert.ok(glossaryMd.includes('### Glosario de indicadores'), 'debe incluir siempre la sección de glosario');
@@ -208,11 +221,6 @@ function run() {
       dnssec: null,
       checks: groupedChecksResult,
     }],
-    comparative: {
-      checks_summary: {},
-      dns_validation_summary: { VALID: 1, NXDOMAIN: 0, REVIEW: 0 },
-      dnssec_aggregate: null,
-    },
   };
   const groupedMd = buildComparativeMarkdown(groupedPayload);
   assert.ok(groupedMd.includes('Server Location'), 'el encabezado debe usar la etiqueta legible, no la clave cruda "serverlocation"');
@@ -224,6 +232,67 @@ function run() {
   assert.ok(groupedMd.includes('#### Seguridad Web y TLS (2/2)'), 'y la segunda tanda (2/2)');
   // IP y Red (2 checks) no se parte, no debe llevar sufijo "(1/1)"
   assert.ok(!groupedMd.includes('#### IP y Red (1/1)'), 'un grupo que cabe en una sola tabla no debe llevar sufijo de tanda');
+
+  // ── Caso 6: sin ningún análisis del dataset, aunque el payload TRAIGA
+  // agregados a la vieja usanza (compatibilidad hacia atrás con un payload
+  // de una versión anterior del cliente) — el exportador ya no los lee ni
+  // los reproduce, los ignora por completo.
+  const legacyPayload = {
+    meta: {
+      generated_at: '2026-09-09T00:00:00.000Z',
+      selected_checks: ['https', 'hsts', 'spf', 'dmarc'],
+      selected_checks_glossary: [
+        { key: 'https', label: 'HTTPS', description: 'd', group: 'Seguridad y confianza (DNS/TLS)' },
+      ],
+      domain_count: 10,
+      source: { mode: 'paste', filename: null },
+    },
+    domains: [],
+    // Un cliente viejo podría seguir mandando esto — no debe aparecer.
+    comparative: {
+      checks_summary: { https: { label: 'HTTPS', positive: 9, negative: 1 } },
+      dns_validation_summary: { VALID: 10, NXDOMAIN: 0, REVIEW: 0 },
+      dnssec_aggregate: { country: 'Lote analizado', semaphore: 'green', adoptionRate: 85, total: 10, structural: 0, actionable: 1, warnings: [] },
+      category_findings: {
+        total: 10,
+        categories: [{ key: 'dns_tls', title: 'Seguridad y confianza (DNS/TLS)', rate: 85, positive: 17, evaluated: 20, checks: [] }],
+        lowestRates: [],
+      },
+    },
+  };
+  const legacyMd = buildComparativeMarkdown(legacyPayload);
+  assertGenericInstructions(legacyMd);
+  assertNoDatasetAnalysis(legacyMd);
+
+  // ── Caso 7: alcance personalizable — "## Detalle por dominio" es opcional
+  // (checkbox en la UI, desmarcado por defecto). Mismo payload con y sin
+  // meta.include_domain_detail, para probar ambas ramas explícitamente.
+  const scopeBasePayload = {
+    meta: {
+      generated_at: '2026-09-09T00:00:00.000Z',
+      selected_checks: ['mx'],
+      selected_checks_glossary: [{ key: 'mx', label: 'MX', description: 'd', group: 'Otros' }],
+      domain_count: 1,
+      source: { mode: 'paste', filename: null },
+    },
+    domains: [{
+      domain: 'alcance.example',
+      dns_validation: { final_status: 'VALID', review_subtype: null, discrepancy: false },
+      dnssec: null,
+      checks: { mx: { label: 'MX', status: 'ok', details: '' } },
+    }],
+  };
+  const scopeDefaultMd = buildComparativeMarkdown(scopeBasePayload);
+  assert.ok(scopeDefaultMd.includes('## Tabla de resultados — dominio × indicador'), 'la tabla de resultados siempre debe estar, sea cual sea el alcance');
+  assert.ok(scopeDefaultMd.includes('alcance.example'), 'el dominio debe aparecer en la tabla del lote aunque no se pida el detalle');
+  assert.ok(!scopeDefaultMd.includes('## Detalle por dominio'), 'por defecto (sin include_domain_detail) no debe existir la sección de detalle por dominio');
+
+  const scopeWithDetailMd = buildComparativeMarkdown({ ...scopeBasePayload, meta: { ...scopeBasePayload.meta, include_domain_detail: true } });
+  assert.ok(scopeWithDetailMd.includes('## Detalle por dominio'), 'con include_domain_detail:true debe existir la sección de detalle por dominio');
+  assert.ok(scopeWithDetailMd.includes('### alcance.example'), 'el detalle por dominio debe incluir un encabezado por dominio');
+
+  const scopeExplicitFalseMd = buildComparativeMarkdown({ ...scopeBasePayload, meta: { ...scopeBasePayload.meta, include_domain_detail: false } });
+  assert.ok(!scopeExplicitFalseMd.includes('## Detalle por dominio'), 'con include_domain_detail:false explícito tampoco debe existir la sección');
 
   // ── buildJsonExport ─────────────────────────────────────────────────
   const jsonExport = buildJsonExport(emptyPayload);

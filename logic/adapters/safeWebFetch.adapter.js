@@ -122,12 +122,25 @@ function requestPage(url, address, options = {}) {
       headers,
       timeout: options.timeoutMs || DEFAULT_TIMEOUT_MS,
       servername: url.hostname,
+      // El callback se difiere un tick (setImmediate) en vez de llamarse en
+      // el mismo stack síncrono. Node tiene un caso conocido: si un
+      // `lookup` personalizado resuelve de forma síncrona y el intento de
+      // connect() falla de inmediato a nivel de SO (ENETUNREACH — visto en
+      // producción con direcciones IPv6 sin ruta desde el contenedor), el
+      // error puede escapar como excepción no capturada en vez de emitirse
+      // por el evento 'error' normal de la request, saltándose el
+      // try/catch de fetchSafePage() y tirando abajo todo el proceso
+      // (uncaughtException -> process.exit(1) en server.js). Diferir el
+      // callback rompe esa cadena síncrona y deja que Node arme el manejo
+      // de errores normal antes de intentar conectar.
       lookup: (hostname, lookupOptions, callback) => {
-        if (lookupOptions?.all) {
-          callback(null, [{ address: address.address, family: address.family }]);
-          return;
-        }
-        callback(null, address.address, address.family);
+        setImmediate(() => {
+          if (lookupOptions?.all) {
+            callback(null, [{ address: address.address, family: address.family }]);
+            return;
+          }
+          callback(null, address.address, address.family);
+        });
       }
     };
 

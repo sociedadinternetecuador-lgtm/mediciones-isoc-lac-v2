@@ -1,13 +1,90 @@
 # Arquitectura — Mediciones ISOC LAC
 
-> Última actualización: 2026-09-09. Agrega la sub-pestaña "Análisis
-> comparativo" de Mediciones (lote de dominios, reporte PDF/JSON), un
-> glosario de indicadores conectado a la UI, varios fixes reales en el
-> módulo de checks individuales (WHOIS, RPKI, fetch seguro), y una ronda de
-> QA sobre el reporte comparativo en producción (símbolos de resultado sin
-> explicar, tabla comparativa truncada — ver § tablas anchas más abajo). La
-> sección "Preparación de datasets de dominios" (2026-08-14) sigue sin
-> cambios.
+> Última actualización: 2026-09-09. Agrega la sub-pestaña "Reporte por
+> lote" de Mediciones (varios dominios a la vez, reporte PDF/JSON; nombre
+> original "Análisis comparativo", renombrada por no comparar nada — ver
+> § "Renombre a 'Reporte por lote'"), un glosario de indicadores conectado
+> a la UI, varios fixes reales en el módulo de checks individuales (WHOIS,
+> RPKI, fetch seguro), una ronda de QA sobre ese reporte en producción
+> (símbolos de resultado sin explicar, tabla truncada — ver § tablas
+> anchas más abajo), y una reorganización de la taxonomía de checks por
+> propósito (tier core/diagnostic/content, 3 duplicados eliminados), un
+> deslizador visible para la tabla del lote en pantalla, ajustes de
+> tipografía/carátula en la plantilla PDF compartida (mdtopdf), un bug
+> real (`escapeAttr is not defined`) que dejaba vacíos el glosario y el
+> árbol de checks de "Un dominio", y — al final del día, tras tres rondas
+> de ajuste — la **eliminación completa** de todo análisis/agregado sobre
+> el dataset en el reporte (semáforo, %, Resumen comparativo con
+> Validación DNS/DNSSEC agregado/Resumen por check): a pedido explícito,
+> el reporte solo expone contenido genérico fijo (símbolos, glosario,
+> limitaciones) y mediciones crudas por dominio — ver § "Sin ningún
+> análisis del dataset" más abajo. Por el mismo pedido, la sección de
+> detalle por dominio pasó a ser opcional (desmarcada por defecto, checkbox
+> en la UI) en vez de estar siempre presente — ver § "Renombre a 'Reporte
+> por lote' + alcance personalizable". La sección "Preparación de datasets
+> de dominios" (2026-08-14) sigue sin cambios. Este encabezado y todo el
+> historial de cambios de este archivo son **de uso interno**: nunca se
+> reproducen en el reporte generado ni en la guía de usuario — ambos
+> documentos describen solo el estado actual del sistema, sin lenguaje de
+> versión ni changelog. Además, tras una validación cruzada de
+> `isoc.org.ec` contra herramientas independientes (dig/curl/openssl,
+> RIPEstat, handshake SMTP crudo — ver § "Validación cruzada con
+> herramientas independientes — primera ronda"): se corrigió
+> `handleDomainInfo` (RDAP) que
+> siempre fallaba por no seguir redirects y por un `User-Agent` ausente
+> (bloqueado por Cloudflare) — de paso se corrigió también la extracción
+> del registrador, que leía un campo que no existe en RDAP; se retiró de
+> la UI el check "TLS Security Config" porque su dependencia (Mozilla TLS
+> Observatory) fue dada de baja permanentemente en 2024 (55 checks en vez
+> de 56); y se paralelizaron los dos puertos que prueba "SMTPUTF8" para no
+> perder ~15s por dominio en un puerto bloqueado por el hosting. Un cuarto
+> hallazgo inicial (SMTPUTF8 como posible falso negativo) se investigó y
+> se descartó — el resultado ya era correcto. Una segunda ronda de esa
+> misma validación, esta vez contra producción real y recorriendo todas
+> las rutas de `server.js` (no una lista armada de memoria — ver § "Validación
+> cruzada con herramientas independientes — segunda ronda"), encontró 3 problemas más, verificados como
+> genéricos (no intermitentes, no específicos de un dominio) antes de
+> tocar código: **TLSA** fallaba siempre porque Node 20.18.0 (versión
+> fijada en el `Dockerfile`) no soporta ese rrtype — se cambió a DNS-over-
+> HTTPS de Google; **Quad9** (dentro de "Block Detection") fallaba siempre
+> porque ahora exige HTTP/2 (RFC 8484) y el código usaba HTTP/1.1 — se
+> cambió al módulo `http2` nativo de Node; **Traceroute** dependía de un
+> endpoint de HackerTarget que ahora exige API key sin excepción, sin
+> alternativa gratuita equivalente — se retiró de la UI, mismo criterio
+> que "TLS Security Config" (54 checks en vez de 55). Una tercera ronda,
+> con la lista de endpoints generada por `grep` sobre `server.js` (no de
+> memoria — ver § "Validación cruzada con herramientas independientes —
+> tercera ronda"), encontró 4 problemas más: **"Linked Pages"** clasificaba
+> mal enlaces relativos sin `/` inicial (bug propio, corregido resolviendo
+> contra la URL real con `URL` nativo); **"Archive"** y el **fallback RDAP
+> de "Whois"** fallaban por el mismo patrón que "Domain Info" en la
+> primera ronda (`fetchJSON()` sin `User-Agent`) pero en dos lugares de
+> código que ese primer fix no había tocado — se agregó un `User-Agent`
+> por defecto dentro de `fetchJSON()` (no caso por caso) y se consolidó la
+> llamada a RDAP en un helper compartido (`fetchRdap`) usado por ambos
+> checks, más un bug adicional de extracción de país encontrado al
+> verificar; **"Quality"** silenciaba el error de cuota de PageSpeed
+> Insights y devolvía `pwa: null` como si hubiera evaluado el sitio — ahora
+> muestra el error real. Se confirmó que "Ranking" (Tranco) no es un bug:
+> isoc.org.ec genuinamente no está en ese ranking. Una cuarta ronda probó
+> dos dominios más difíciles (`dominiosecuador.ec`, limpio;
+> `presidencia.gob.ec`, sí reveló problemas — ver § "cuarta ronda"):
+> `errorMessage()` no distinguía fallas de certificado TLS (ej. un
+> certificado compartido entre ~26 sitios `.gob.ec` que no cubre la
+> variante sin `www` de `presidencia.gob.ec`) del genérico "Servicio no
+> disponible", perdiendo una señal de seguridad real — ahora reconoce los
+> códigos de error de certificado más comunes; y "SMTPUTF8" con 2+
+> registros MX seguía recorriéndolos en secuencia (el fix de la primera
+> ronda solo paralelizó los puertos dentro de un mismo MX) — bajó de
+> 30.2s a ~15.1s al paralelizar también los registros MX entre sí. Una
+> quinta ronda amplió el set de dominios probados más allá de Ecuador
+> (`lacnic.net`, `gob.mx`, `cloudflare.com`, el trío de badssl.com,
+> `dnssec-failed.org`, `neverssl.com`) — 1 bug de código nuevo ("MX" no
+> distinguía "sin registros" de una falla real) y varias confirmaciones
+> positivas de los fixes anteriores. El registro completo, dominio por
+> dominio (por qué se eligió cada uno, qué se verificó, resultado —
+> incluyendo los "sin novedades"), vive en el nuevo
+> **`docs/GUIA_PRUEBAS_VALIDACION.md`**, separado de este archivo.
 
 ## Qué es este proyecto
 
@@ -181,12 +258,13 @@ sin cambiar datos preserva todo. Implementado en `index.html`
 **Pendiente explícito** (decisión del usuario, no un olvido): generación de
 PDF no implementada.
 
-## Mediciones — "Análisis comparativo" (sub-pestaña de lote)
+## Mediciones — reporte de dominios (antes "Análisis comparativo", luego "Reporte por lote")
 
-Sub-pestaña de Mediciones (junto a "Un dominio"), para correr los mismos
-checks + DNSSEC + validación DNS sobre un lote de 20-25 dominios y descargar
-un reporte final (`index.html`, panel `mediciones-panel-batch` /
-`medicionesBatchStart`).
+Flujo único de Mediciones (hasta 2026-09-11 convivía con una sub-pestaña
+"Un dominio" separada, eliminada — ver § "Eliminación de la sub-pestaña
+'Un dominio'" más abajo), para correr los mismos checks + DNSSEC +
+validación DNS sobre 1 o varios dominios y descargar un reporte final
+(`index.html`, panel `mediciones-panel-batch` / `medicionesBatchStart`).
 
 - **Todo el cálculo corre en el navegador** (reutiliza `getCheckResult`,
   `/dnssec-analysis?format=json` y `/dataset/validate-dns` tal cual, sin
@@ -244,44 +322,1508 @@ un reporte final (`index.html`, panel `mediciones-panel-batch` /
   copia del glosario en el backend — si el payload no lo trae (compatibilidad
   hacia atrás), la sección igual se genera, vacía.
 
-### Glosario de indicadores y tooltips (compartido "Un dominio" / lote)
+### Taxonomía de checks: tier + categoría (2026-09-09, reorganización)
+
+`groupDefinitions` en `index.html` pasó de agrupar por "tipo de consulta
+técnica" (IP y Red, DNS y Seguridad, etc.) a agrupar por **propósito**, tras
+revisar con el usuario qué de los 59 checks era realmente relevante para el
+objetivo del proyecto (evidencia técnica de seguridad/infraestructura, no
+marketing/UX). Cada grupo lleva un campo `tier`:
+
+- **`tier: 'core'`** (17 checks, 4 grupos: "Seguridad y confianza (DNS/TLS)",
+  "Anti-suplantación de correo", "Cabeceras de seguridad web",
+  "Transparencia y conectividad moderna") — adopción de buenas prácticas,
+  binario, con un "debería tenerlo" claro (alineado con lo que miden
+  Internet.nl/Mozilla Observatory) — a diferencia de `diagnostic`, aquí el
+  resultado sí tiene un sentido "correcto"/"incorrecto". Cada grupo `core`
+  lleva además `category`/`categoryTitle`, campos que quedaron **sin
+  consumidor** tras eliminar "Hallazgos por categoría" (ver más abajo) —
+  se dejaron (metadata inerte, bajo riesgo) en vez de tocar 4 definiciones
+  de grupo por pura prolijidad.
+- **`tier: 'diagnostic'`** (29 checks, un solo grupo "Diagnóstico técnico")
+  — dan contexto/depuración, sin un valor "correcto" universal (ej. "TLS
+  Version" muestra la versión, no dice si es aceptable).
+- **`tier: 'content'`** (10 checks, grupo "Contenido y experiencia") — miden
+  marketing/UX (SEO, redes sociales, ranking, capturas), no seguridad ni
+  infraestructura. **No se eliminaron** (pueden servir a otro tipo de
+  análisis) pero: (a) el grupo lleva un campo `note` con la explicación,
+  renderizado como aviso ámbar tanto en el árbol de selección
+  (`groupNoteHtml()`) como en el glosario
+  (`renderGlossaryBlock()`); (b) el `<details>` de ese grupo arranca
+  colapsado (`details.open = group.tier !== 'content'`); (c) todos sus
+  checks ya tenían `default: false` (no se tocó, solo se confirmó).
+
+**Duplicados eliminados** (eran resúmenes de checks que ya estaban sueltos
+en la misma lista — se quitaron de `groupDefinitions`/`checkGlossary` y de
+los `case` del switch `getCheckResult`; las rutas backend correspondientes
+en `server.js` — `/emailconfig`, `/httpsecurity`, `/dnssecurity` — se
+dejaron sin tocar, ahora inalcanzables desde la UI, mismo patrón ya
+documentado para `routes/dnssec.routes.js`):
+
+- `emailconfig` ("Email Configuration") — duplicaba `mx`+`spf`+`dmarc`+`dkim`.
+- `httpsecurity` ("HTTP Security Features") — duplicaba `csp`/`xfo`/`xcto`/
+  `referrer`/`permissions`.
+- `dnssecurity` ("DNS Security Extensions") — señal DS/DNSKEY básica que
+  duplicaba (con menos detalle) el motor DNSSEC completo que el reporte
+  batch YA corre siempre por dominio vía `/dnssec-analysis`, independiente
+  de qué checks se seleccionen.
+
+### Sin ningún análisis del dataset — el reporte solo expone mediciones crudas
+
+**Historia de esta sección (2026-09-09), útil si se retoma el tema**: el
+reporte comparativo pasó por tres versiones sucesivas de la misma idea,
+cada una a pedido explícito del usuario tras revisarla:
+
+1. **v1 — "Conclusiones y hallazgos"**: semáforo (verde/amarillo/rojo) por
+   categoría núcleo + narrativa con "adopción", "el indicador más débil",
+   "brechas más extendidas del lote".
+2. **v2 — "Hallazgos por categoría"**: se pidió que fuera objetivo, sin
+   concluir ni inferir nada. Se quitó el semáforo (el color mismo ya es un
+   juicio de "bien/mal", no solo la etiqueta de texto) y se reescribió la
+   narrativa a lenguaje puramente descriptivo: solo `%` y conteo
+   (`N/M resultados "OK"`) por categoría, con el cálculo explicado en el
+   propio texto.
+3. **v3 — eliminada por completo**: el usuario aclaró que ni siquiera v2
+   es aceptable — "no debe existir de ningún modo análisis de los
+   resultados para una medición (...) el dataset que nunca se analiza ni
+   compara (...) solo las mediciones crudas". Cualquier cómputo SOBRE el
+   lote específico (incluso neutral, incluso sin semáforo) cuenta como
+   "análisis". Se confirmó con el usuario (pregunta explícita) que esto
+   también aplicaba a las otras tres agregaciones preexistentes del
+   reporte — no solo a lo construido en la conversación — y la respuesta
+   fue eliminar las cuatro.
+
+**Qué se eliminó, completo, de `index.html` y
+`logic/exporters/medicionesBatchReport.exporter.js`**:
+
+- `computeCategoryFindings()` / `buildCategoryNarrative()` /
+  `mbRenderConclusions()` (index.html) y `buildCategoryNarrative()` /
+  `buildConclusionsSection()` (exporter) — la sección "Hallazgos por
+  categoría" completa, pantalla y PDF.
+- Sección "## Resumen comparativo" del PDF — **preexistente**, no
+  construida en esta conversación: "Validación DNS" (conteo
+  VALID/NXDOMAIN/REVIEW del lote, `buildDnsValidationSummary`), "DNSSEC
+  agregado" (adopción/semáforo/perfil vía `computeAggregate` — el mismo
+  motor que sigue usando la pestaña separada "DNSSEC por lote", no
+  tocada), "Resumen acumulado por check" (conteo Sí/No por check,
+  `buildChecksSummaryTable`).
+- En pantalla: las tarjetas "Adopción DNSSEC del lote" y "Dominios VALID"
+  (`#mb-summary-dnssec-adoption`/`#mb-summary-dns-valid`) — queda solo
+  "Dominios analizados" (un conteo del propio reporte, no un análisis del
+  resultado).
+- Del payload que arma `medicionesBatchStart()`: ya no se calcula ni se
+  manda `comparative.checks_summary` / `dns_validation_summary` /
+  `dnssec_aggregate` / `category_findings` — ni siquiera para el JSON. El
+  exportador ya no lee `payload.comparative` en absoluto (queda ignorado
+  si un cliente viejo lo sigue mandando — probado en el caso 6 del test).
+
+**Qué queda, y por qué SÍ está permitido**:
+
+- `## Cómo leer este reporte` — símbolos de resultado + glosario de
+  indicadores + **"### Limitaciones del sistema"** (nueva, texto fijo
+  idéntico al de la sección 10 de la guía: `SYSTEM_LIMITATIONS` en el
+  exporter). Es contenido **genérico**: el mismo texto exacto en cualquier
+  corrida, no depende de qué se haya medido ni de qué haya dado cada
+  resultado — coincide exactamente con lo pedido ("una indicación general
+  que siempre se incluye... esto siempre es general e idéntico
+  independientemente del análisis realizado o del dataset").
+- `## Tabla comparativa dominio × check` (antes `### `, anidada bajo
+  "Resumen comparativo" — ahora es una sección de primer nivel) y
+  `## Detalle por dominio` — mediciones crudas, dominio por dominio. El
+  `**DNSSEC**: ... riesgo: ... acción requerida: ...` que trae cada
+  dominio en el detalle es una propiedad de LA CONFIGURACIÓN DE ESE
+  dominio (viene tal cual del motor `/dnssec-analysis`), no una
+  comparación contra otros dominios del lote — se mantuvo por eso.
+- Test reescrito completo en `medicionesBatchReport.exporter.test.js`:
+  `assertNoDatasetAnalysis()` verifica con una regex negativa
+  (`!/verde|amarill|rojo|semáforo|adopción|brecha|débil|sólid|crític|
+  indicativo|confiable|muestra insuficiente/i`) más las cuatro secciones
+  eliminadas por nombre, sobre CADA markdown generado en el archivo —
+  cualquier reintroducción accidental de análisis o de las secciones
+  viejas rompe el test. `assertGenericInstructions()` verifica que
+  símbolos/glosario/limitaciones estén siempre, con el mismo texto fijo.
+- Verificado con `jsdom` (ejecutando el JS real — ver el bug de
+  `escapeAttr` más abajo, encontrado con la misma técnica) contra el HTML
+  servido real: `mbRenderPreview()` con un payload sin `comparative`
+  corre sin excepciones, `#mb-conclusions-wrap` ya no existe en el DOM,
+  `computeCategoryFindings`/`mbRenderConclusions` ya no son funciones
+  definidas.
+
+### Renombre a "Reporte por lote" + alcance personalizable (2026-09-09)
+
+Dos cambios más, mismo pedido explícito, después de que se eliminó el
+análisis del dataset (sección anterior):
+
+1. **Renombre**: "Análisis comparativo" → **"Reporte por lote"**, en todo
+   lo user-facing — pestaña (`#mediciones-tab-batch` en `index.html`),
+   encabezado de la tabla en pantalla, título del PDF (`title` en
+   `buildComparativeMarkdown`), encabezado `## Tabla comparativa dominio ×
+   check` → `## Tabla del lote — dominio × indicador`, y sección 9 de
+   `docs/GUIA_MEDICIONES_ISOC_LAC.md`. Motivo: el sistema no compara
+   dominios entre sí (eso ya había quedado establecido al eliminar el
+   análisis del dataset) — "comparativo" describía mal lo que el reporte
+   hace. Este historial de renombre es **solo para uso interno** (este
+   archivo, comentarios de código, commits) — nunca debe aparecer como
+   changelog/versión en el reporte ni en la guía, ambos documentos
+   describen únicamente el estado actual del sistema.
+2. **Alcance personalizable**: la sección `## Detalle por dominio` pasó de
+   estar siempre presente a ser **opcional**, desmarcada por defecto —
+   checkbox `#mb-include-domain-detail` en `index.html`, leído en
+   `medicionesBatchStart()` y mandado como `meta.include_domain_detail`
+   (boolean) en el payload. `buildComparativeMarkdown()`
+   (`medicionesBatchReport.exporter.js`) solo agrega la sección si
+   `meta.include_domain_detail === true`; por defecto (flag ausente o
+   `false`) el PDF trae únicamente carátula + "Cómo leer este reporte" +
+   la tabla del lote. El **JSON** no se ve afectado por este flag — sigue
+   trayendo siempre el payload completo sin condensar (`buildJsonExport`
+   no lee `include_domain_detail`, solo el Markdown/PDF lo respeta). Esto
+   (aplica igual sea 1 dominio o varios — no hay un exportador ni un flujo
+   de reporte separado para el caso de un solo dominio).
+   `test/medicionesBatchReport.exporter.test.js` (caso 7) prueba
+   explícitamente las tres variantes: flag ausente, `true` y `false`.
+
+### Glosario de indicadores y tooltips
 
 `groupDefinitions` + `checkGlossary` + `checkConfig` en `index.html` son la
-única fuente de verdad de qué hace cada uno de los ~70 checks. De ahí salen:
+única fuente de verdad de qué hace cada uno de los 54 checks (59 antes de
+quitar los 3 duplicados de la reorganización de taxonomía; 56 antes de
+retirar `tlsconfig`; 55 antes de retirar también `traceroute` — ver
+§ "Validación cruzada con herramientas independientes"). De ahí salen:
 
 - `checkHelpButton(key)` — el ícono "?" con tooltip (CSS `.term-help`) junto
-  a cada checkbox, en **ambas** sub-pestañas de Mediciones.
+  a cada checkbox.
 - `renderGlossaryBlock()` — bloque colapsable "📖 Glosario de términos",
-  montado una sola vez (compartido por "Un dominio" y "Análisis comparativo")
-  justo debajo de las sub-pestañas, con un `<details>` por grupo.
+  montado una sola vez, con un `<details>` por grupo (incluye el aviso
+  ámbar de `group.note` para el grupo `content`).
 - `selectedGlossary(selectedChecks)` — lo que arma el payload del reporte
-  batch (arriba).
+  batch (arriba); cada entrada trae `key`/`label`/`description`/`group`.
 
-## Fixes reales de checks individuales (módulo Mediciones, 2026-09-09)
+### Toggle de idioma de los nombres de los checks (2026-09-11)
 
-No relacionados al feature de lote — bugs encontrados probando en producción:
+A pedido explícito ("botón de traducción"). Investigación previa a
+escribir código: el resto de la interfaz (Inicio, Preparación de
+datasets, DNSSEC, Observatorio, Blog, Eventos, `admin.html`,
+descripciones, glosario, guía de uso) ya está en español — el **único**
+texto en inglés de todo el portal son los ~54 nombres (`label`) de los
+checks de Mediciones en `groupDefinitions` (ej. "Whois Lookup", "Server
+Location", "TLS Cipher Suites"), términos técnicos de la industria de
+seguridad. Esos mismos nombres son los que aparecen como encabezado de
+columna en la tabla del reporte PDF/JSON (vía
+`meta.selected_checks_glossary[].label`). Se confirmó con el usuario que
+el botón debía ser un **interruptor reversible** (no una traducción de
+una sola vía), recordando la preferencia entre sesiones.
 
-- **`logic/adapters/safeWebFetch.adapter.js`** (nuevo): reemplaza el viejo
-  `fetchPage` en whois/headers/security.txt/robots/sitemap/status. Resuelve
-  la cadena de redirecciones con protección SSRF (no sigue a IPs privadas),
-  algo que `fetchPage` no hacía.
-- **RPKI** (`server.js`, `rpkiValidity`): la API de Cloudflare RPKI que se
-  usaba (`rpki.cloudflare.com/api/v1/validity`) ya no existe (404 siempre,
-  se retiró) — se quitó esa llamada. Además el ASN que devuelve RIPEstat
-  viene como **string** (`"13335"`), no `number` ni objeto — el código viejo
-  lo comparaba mal y siempre caía a `state: 'unknown'`. Ahora usa solo
-  RIPEstat con `asn` (parseado) + `prefix`.
-- **WHOIS** (`server.js`, `handleWhois`): el regex de organización/país leía
-  el HTML de whois.com sin acotar sección — podía capturar el campo de
-  *Registrar* en vez de *Registrant* si el orden del HTML cambiaba. Se
-  corrigió acotando primero al bloque `"Registrant Contact"`
-  (`extractWhoisComSection`) antes de aplicar los regex. También se agregó
-  `status`/`message`/`disclaimer` en la respuesta para distinguir "sin datos
-  porque están redactados por privacidad" de "error técnico consultando la
-  fuente" — antes ambos casos se veían igual (campos vacíos).
-- **`.env` se carga al boot de `server.js`** (parser mínimo, sin dependencia
-  nueva) — necesario porque se agregó `nodemailer` (envío de contraseñas del
-  panel admin) y credenciales SMTP.
+**Diseño**: cada check en `groupDefinitions` ahora tiene `labelEs` además
+de `label` (que pasa a ser implícitamente el inglés). `checkConfig[key]`
+(construido a partir de `groupDefinitions`) guarda `labelEn`/`labelEs`
+más un campo **`label` mutable** — ese es el que leen todos los puntos de
+la UI que ya existían (`checkHelpButton`, `renderGlossaryBlock`,
+`selectedGlossary`, `getCheckResult`, `initializeSummary`, los
+encabezados de la tabla en pantalla del lote) — así que **no hizo falta
+tocar ninguno de esos puntos de consumo**, solo mutar
+`checkConfig[key].label` centralizadamente:
+
+- `setCheckLabelLanguage(lang)`: guarda la preferencia en `localStorage`
+  (`mediciones-check-label-lang`), reescribe `label` en cada entrada de
+  `checkConfig`, y vuelve a renderizar checkboxes (ambas sub-pestañas) +
+  glosario + el propio botón.
+- Botón `#mediciones-lang-toggle`, ubicado sobre el glosario compartido
+  (visible en ambas sub-pestañas, consistente con dónde ya vivía el
+  glosario).
+- `renderCheckOptions()`/`renderMbCheckOptions()` (los que dibujan los
+  árboles de checkboxes) se modificaron para (a) leer
+  `checkConfig[check.key].label` en vez de `check.label` crudo, y (b)
+  **preservar qué checks estaban marcados** al volver a renderizar —
+  antes de este cambio, cualquier re-render reseteaba todo a los valores
+  `default` de `groupDefinitions`, lo que habría borrado la selección del
+  usuario cada vez que tocara el botón. Se detecta "es un re-render, no
+  la primera carga" con `container.dataset.rendered`.
+
+**Por qué no hizo falta tocar el exportador de reportes**: el payload
+que arma `medicionesBatchStart()` construye
+`meta.selected_checks_glossary` llamando a `selectedGlossary()`, que lee
+`checkConfig[key].label` **en el momento de generar el reporte** — como
+ese valor ya refleja el idioma elegido (mutado por
+`setCheckLabelLanguage`), el PDF/JSON hereda el idioma automáticamente.
+`medicionesBatchReport.exporter.js` no sabe ni le importa qué idioma
+tiene cada `label` — solo lo imprime tal cual llega.
+
+**Verificación**: con `jsdom` (mismo patrón que el resto de la sesión) se
+confirmó: (a) sin errores en consola; (b) el botón muestra el texto
+correcto según el idioma guardado al cargar la página; (c) togglear
+cambia los labels visibles en ambas sub-pestañas (`whois`: "Whois
+Lookup" → "Consulta Whois"; `sslchain`: "SSL Chain Info" → "Cadena de
+certificados SSL") y en el glosario; (d) la selección de checks marcados
+se preserva exacta (mismo conjunto de 19 claves) antes y después de
+togglear, en ambos sentidos (EN→ES→EN); (e) `localStorage` guarda la
+preferencia; (f) `selectedGlossary()` devuelve los `label` en español una
+vez togleado. Se generó además un reporte PDF real de extremo a extremo
+(vía el servicio mdtopdf) con `meta.selected_checks_glossary` en español
+y se revisó página por página — la tabla de glosario del PDF muestra
+"Consulta Whois", "Cadena de certificados SSL", "Información del
+dominio" correctamente.
+
+**No se agregó test automatizado permanente para este feature**: la
+verificación con `jsdom` requiere esa dependencia, que solo vive en el
+scratchpad de la sesión (nunca en `package.json` del proyecto — ver
+"Sin frameworks nuevos" en `CLAUDE.md`); el proyecto tampoco tiene
+ningún test de JS de cliente hasta ahora (todos los `test/*.js`
+existentes prueban `server.js`/`logic/`, no `index.html`). Mantener esa
+frontera es consistente con el resto del proyecto — no se introdujo una
+excepción nueva para este feature puntual.
+
+### Deslizador visible en la tabla comparativa (pantalla)
+
+El contenedor de la tabla ya tenía `overflow-x-auto` (scroll horizontal
+nativo), pero con muchas columnas seleccionadas el scrollbar del sistema
+puede ser fino o estar oculto (Windows con "ocultar barras de
+desplazamiento" activado, trackpads, distintos temas de navegador) — el
+usuario no se daba cuenta de que había más columnas para ver. Fix en
+`index.html`:
+
+- CSS `.table-scroll` fuerza un scrollbar horizontal siempre visible y
+  grueso (`scrollbar-width`/`scrollbar-color` para Firefox,
+  `::-webkit-scrollbar-*` para Chrome/Edge).
+- Además, un `<input type="range">` explícito (`#mb-comparative-slider`,
+  clase `.table-scroll-slider`) debajo de la tabla, sincronizado en ambos
+  sentidos con el scroll real por `mbWireComparativeSlider()`: mover el
+  control desplaza la tabla, y desplazar la tabla (mouse/trackpad/scrollbar)
+  actualiza el control. Solo se muestra (`.is-active`) si la tabla
+  realmente no cabe completa — con pocas columnas no hay nada que
+  desplazar. Se llama después de poblar `thead`/`tbody` en
+  `mbRenderPreview()`, dentro de un `requestAnimationFrame` (el ancho real
+  solo se conoce después de que el navegador maquetó la tabla).
+
+### Tipografía y carátula de la plantilla PDF compartida (mdtopdf, 2026-09-09)
+
+A pedido explícito: los textos del PDF deben ser Arial, tamaño 12pt como
+techo (nunca mayor), para guardar proporción con material impreso
+institucional — y la carátula debe mostrar sitio web y correo de contacto.
+Cambio en `c:\PROJECTS\mdtopdf\templates\clasico.html` (plantilla única,
+compartida por cualquier documento que pase por mdtopdf, no solo
+MEDICIONES — ver `contexto.md` de ese proyecto):
+
+- Se quitó el `@import` de Google Fonts (Lora/PT Sans) — ya no depende de
+  red para tipografía. Fuente única: `'Liberation Sans', Arial, 'DejaVu
+  Sans', sans-serif`. Arial no existe en Linux; **Liberation Sans** es la
+  sustituta libre métricamente compatible (mismas medidas carácter por
+  carácter) — se instala en el contenedor vía el paquete apt
+  `fonts-liberation` (`Dockerfile` de mdtopdf).
+- Cuerpo y carátula a 12pt (antes: cuerpo 11.5pt, título de carátula
+  25pt). Los encabezados `h1`-`h4` (antes 20pt/15.5pt/12.5pt/11.5pt en
+  Lora) también quedan en 12pt — la jerarquía visual ahora es por
+  peso/mayúsculas/cursiva (h1: negrita+mayúsculas+línea inferior, h2:
+  negrita, h3: negrita cursiva, h4: cursiva), no por tamaño. Tablas a
+  10.5pt (por debajo del techo, para que las tablas anchas del reporte
+  comparativo no se apreten más de lo necesario).
+- Nuevo campo de frontmatter opcional `contact`, renderizado en la
+  carátula debajo del autor (`.cover .contact`, 10pt). MEDICIONES lo llena
+  siempre con `https://mediciones.isoc.org.ec  ·  info@isoc.org.ec` — ver
+  `REPORT_CONTACT` en `medicionesBatchReport.exporter.js` (reporte batch)
+  y el frontmatter de `docs/GUIA_MEDICIONES_ISOC_LAC.md` (guía).
+- Verificado con un contenedor Docker local aislado antes de desplegar a
+  `server1:8600` (mismo procedimiento que los fixes anteriores de esta
+  plantilla): guía completa y un reporte comparativo con tabla landscape,
+  ambos con la carátula y tipografía nuevas, sin truncamientos.
+- **Regresión post-tipografía**: el cambio de tamaños arriba compactó la
+  maquetación lo suficiente para reexponer el bug de "título suelto" (el
+  mismo problema conceptual de la sección "Tablas anchas" más abajo, pero
+  esta vez con un título quedando solo al final de una página y su tabla
+  arrancando en la siguiente). Causa exacta: `break-after: avoid` en el
+  título solo cubre un lado de la unión título↔tabla — hacía falta también
+  `break-before: avoid` en `<table>` para que el renderizador trate
+  título+tabla como una sola unidad (ver gotcha 10 en `contexto.md` de
+  mdtopdf). Reverificado con el mismo reporte de prueba de 56 checks × 7
+  dominios (28 páginas), revisando cada página: cero títulos sueltos.
+
+### Bug real: `escapeAttr is not defined` rompía "Un dominio" y el glosario
+
+Encontrado al fin recibiendo el reporte "el glosario sigue vacío" — ninguna
+revisión de sintaxis (`node --check` sobre el JS extraído) lo detectaba
+porque **es un error de orden de ejecución entre `<script>`, no de
+sintaxis**. Diagnosticado con `jsdom` (ejecutando el HTML/JS real fuera del
+navegador, capturando errores no atrapados — no había forma de verlo con
+Playwright esta sesión, sin acceso a red para bajar un Chromium
+compatible).
+
+`checkHelpButton()` (primer `<script>` de la página, define
+`groupDefinitions`/`checkConfig`/`renderCheckOptions`/`renderGlossaryBlock`)
+llama a `escapeAttr()` — pero esa función solo estaba definida en un
+`<script>` **posterior** (sección Inicio/Blog/Eventos). Los `<script>` de
+una página corren en el orden en que aparecen; una `function` declarada en
+un bloque posterior no existe todavía cuando corre uno anterior, aunque
+después queden en el mismo scope global. Resultado real: apenas
+`renderCheckOptions()` llamaba a `checkHelpButton()` para el primer check
+del primer grupo, lanzaba `ReferenceError: escapeAttr is not defined` — sin
+ningún mensaje visible en pantalla — que abortaba el resto de ese
+`<script>`, dejando **tanto `#checksContainer` ("Un dominio") como
+`#mediciones-glossary-body` (el glosario) completamente vacíos**, aunque el
+`<details>` se abriera/cerrara bien (eso es CSS/HTML nativo, no necesita
+JS). `#mb-checksContainer` (pestaña "Análisis comparativo") sí funcionaba,
+porque su `renderMbCheckOptions()` vive en un `<script>` posterior, después
+de que `escapeAttr` ya existía.
+
+Fix: se movió `escapeAttr()` al primer `<script>`, justo después de
+`escapeHtml()` (de la que depende) — una sola definición, ya no dos. Se
+verificó con `jsdom` contra el HTML servido real, local y en producción:
+cero errores, `#checksContainer` y `#mediciones-glossary-body` con
+contenido real (~25 KB cada uno).
+
+**Lección para retomar esta sesión**: para cambios en `index.html` que
+toquen la interacción entre `<script>` tags o el orden de definición de
+funciones, `node --check` sobre el JS extraído (usado varias veces antes
+en esta sesión) solo detecta errores de sintaxis — no detecta
+`ReferenceError`/`TypeError` en tiempo de ejecución ni problemas de orden
+entre bloques `<script>`. Para eso hace falta ejecutar el JS de verdad
+(`jsdom`, instalado como dependencia de desarrollo temporal y aislada en
+el scratchpad de la sesión — no se agregó a `package.json` de
+MEDICIONES — o un navegador real si hay acceso de red para Playwright).
+
+## Eliminación de la sub-pestaña "Un dominio" — flujo único de Mediciones — 2026-09-11
+
+Pedido explícito, en el mismo hilo que el bug de arriba (§ siguiente): *"debe
+eliminarse la opción de un dominio pues no tiene sentido.. se puede dejar
+solamente la opción de análisis y se puede pegar uno o varios dominios o
+subir un txt o csv con uno o varios dominios y el sistema los debe ordenar,
+depurar y proceder a analizar"*.
+
+Antes de tocar código se lanzó un agente de planificación (regla propia del
+usuario: refactor que afecta más de un módulo) para leer el estado real de
+`index.html` y separar qué era exclusivo de "Un dominio" (seguro de borrar)
+de qué era infraestructura compartida (`getCheckResult`, `groupDefinitions`,
+`checkConfig`, `initializeSummary`/`updateSummary`, `parseBatchDomains`/
+`normalizeBatchDomain` — estos dos últimos también los usa, sin relación,
+la herramienta de lote de DNSSEC, que no debía tocarse). El plan encontró 4
+decisiones de producto genuinas (no técnicas) que "Un dominio" resolvía y
+"Reporte por lote" no: Historial (localStorage), Mapa de geolocalización,
+selector rápido de país, y el hecho de que el "Resumen acumulado" en
+pantalla ya estaba conectado al flujo de lote pero vivía en el HTML del
+panel eliminado. Se confirmaron con el usuario antes de borrar nada:
+
+- **Historial**: eliminado (sin equivalente en el flujo único).
+- **Mapa**: eliminado (geocodificar muchos dominios contra
+  `restcountries.com` no escala bien a lotes grandes; solo funcionaba
+  porque "Un dominio" se usaba con pocos).
+- **Selector rápido de país**: eliminado (comodidad menor).
+- **"Resumen acumulado"**: **conservado y reconvertido en vista de progreso
+  en vivo** — `initializeSummary()`/`updateSummary()` ya estaban invocadas
+  desde `medicionesBatchStart()`/`runMedicionesBatchDomain()` (llamadas
+  preexistentes, nunca se habían tocado), pero el `<div id="summary">` al
+  que escriben vivía dentro del panel de "Un dominio" (oculto durante el
+  modo lote) — bastó con reubicar ese bloque de HTML dentro del panel
+  único, entre la barra de progreso y la tabla final, para que "solo
+  funcionara" como resumen en vivo del análisis único o por lotes.
+
+**Cambios**:
+
+- `index.html`: eliminado el panel `#mediciones-panel-single` completo
+  (país, textarea de dominios, historial, mapa, tarjetas de resultado por
+  dominio) y el selector de sub-pestañas; `#mediciones-panel-batch` pasa a
+  ser el único panel (sin `class="hidden"`). Eliminadas las funciones
+  exclusivas: `medicionesSwitchTab`, `renderCheckOptions` (queda solo
+  `renderMbCheckOptions`), `createResultCard`, `getStatusHtml`,
+  `analyzeDomain`, `handleAnalysis`, `loadHistory`, `saveHistory`,
+  `initMap`/`clearMap`/`updateMap`, el objeto `countryTlds` y su wiring.
+  Se quitó también el `<link>`/`<script>` de Leaflet (unpkg) — sin más
+  usos de `L.` en el archivo. `initializeSummary`/`updateSummary`,
+  `getCheckResult`, `groupDefinitions`, `checkConfig` y demás
+  infraestructura compartida quedaron intactas.
+- `mbGetDomainsList()` ahora depura duplicados (case-insensitive, vía
+  `normalizeBatchDomain`) y ordena la lista alfabéticamente antes de
+  analizar: `[...new Set(domains)].sort()`. `parseBatchDomains()`/
+  `normalizeBatchDomain()` en sí **no** se tocaron (siguen sin dedupe/sort
+  propios) porque también los usa la herramienta de lote de DNSSEC — el
+  dedupe/sort se agregó solo en el punto de ensamblado propio de
+  Mediciones para no cambiarle el comportamiento a esa otra herramienta.
+- `public/i18n.js`: retiradas las claves `med.subtab.*`/`med.single.*`
+  (sin uso ya); reescritas `med.summary.*` ("Resumen acumulado" →
+  "Resumen en vivo"), `med.batch.domainsHint`/`maxHint`/`tableHeading`/
+  `includeDetailHint` para dejar de asumir "20-25 dominios"/"lote" como
+  único caso de uso. Versión `?v=9` → `?v=10`.
+- `logic/exporters/medicionesBatchReport.exporter.js`: título del PDF
+  ("Reporte por lote de dominios" → "Reporte de dominios"), encabezado de
+  la tabla comparativa ("Tabla del lote" → "Tabla de resultados") y el
+  campo `export_meta.generator` del JSON, para no seguir asumiendo "lote"
+  como marco por defecto — sin cambios de lógica ni de esquema del
+  payload. `test/medicionesBatchReport.exporter.test.js` actualizado para
+  las dos aserciones que comprobaban el texto exacto del encabezado.
+- `docs/GUIA_MEDICIONES_ISOC_LAC.md`: reescritas las secciones 7 y 9 para
+  describir un solo flujo (antes: "dos formas de uso... según la
+  sub-pestaña"). `public/docs/GUIA_MEDICIONES_ISOC_LAC.pdf` queda
+  pendiente de regenerar manualmente (no hay pipeline automático en este
+  repo para ese PDF — ver `git status`, ya aparecía modificado antes de
+  esta sesión).
+
+**Verificación**: `jsdom` contra servidor local real (no un archivo
+estático) — confirmado que los 14 IDs/funciones exclusivos de "Un dominio"
+ya no existen en el DOM/`window`; que `#mediciones-panel-batch` quedó sin
+`class="hidden"`; que `#summary`/`#summaryBody` quedaron reubicados dentro
+del panel único; que `mbGetDomainsList()` sobre una lista con dominios
+repetidos (incluida una variante en mayúsculas) y líneas `# comentario`
+devuelve exactamente los dominios únicos, ordenados, sin las líneas de
+comentario; y una corrida real de extremo a extremo con **1 solo dominio**
+(`medicionesBatchStart()` para N=1: histórico gap del período "Un dominio"
+vs "lote" — antes N=1 nunca pasaba por el exportador de reportes) que
+confirmó: el resumen en vivo se llena durante la corrida, la tabla
+comparativa se puebla al terminar, y el POST a
+`/mediciones-batch/report` devuelve las URLs de PDF/JSON sin error.
+`npm test` OK (incluye el exporter con las aserciones de texto
+actualizadas). Desplegado y confirmado: `npm test` OK dentro del
+contenedor de `server1` tras el rebuild.
+
+## "Un dominio" perdía la lista completa al pegar dominios uno por línea — 2026-09-11
+
+- **Problema**: el usuario pegó una lista de 20 dominios en la pestaña "Un
+  dominio" (no "Reporte por lote"), organizada un dominio por línea con
+  encabezados de comentario (`# ARGENTINA`, `# URUGUAY`, etc.), seleccionó
+  todos los checks y ejecutó el análisis. El resultado salió "todo
+  desorganizado": la tabla resumen no mostraba nada útil, cada
+  verificación aparecía como "Servicio no disponible", el bloque de texto
+  pegado (con los `#` incluidos) aparecía literalmente en la salida, y el
+  mapa de geolocalización quedaba en un estado roto/por defecto.
+- **Causa**: 🐛 **bug real de nuestro código**, no relacionado con el
+  trabajo de la casilla "Todos/Ninguno" del mismo día (coincidencia: fue
+  la primera vez que alguien seleccionó literalmente todos los checks a
+  la vez, lo que hizo más visible el problema). `handleAnalysis()` en la
+  pestaña "Un dominio" (`index.html`, dentro del primer `<script>`)
+  parseaba la lista de dominios con
+  `domainsInput.value.trim().split(',')` — **solo** separaba por coma. La
+  pestaña "Reporte por lote" ya tenía, desde antes, un parser tolerante
+  (`parseBatchDomains()`, separa por salto de línea, coma o `;`, y
+  descarta líneas sin un `.` — por lo que las líneas `# PAÍS` se ignoran
+  solas). Como la lista pegada no tenía ninguna coma, el `split(',')`
+  devolvía **un solo "dominio"** de 292 caracteres con todos los saltos de
+  línea y comentarios incluidos — ese string basura se pasaba tal cual a
+  cada `getCheckResult()`, que fallaba en todos los checks (de ahí "Servicio
+  no disponible" repetido) y el intento de geolocalizar esa cadena rompía
+  el mapa.
+- **Solución**: `handleAnalysis()` ahora reutiliza el mismo
+  `parseBatchDomains()` que ya usaba "Reporte por lote" — ambas pestañas
+  comparten exactamente el mismo parser tolerante (salto de línea, coma,
+  `;`, líneas sin punto descartadas). Se actualizó también la etiqueta del
+  campo (`med.single.domainsLabel`, ambos idiomas en `public/i18n.js`) de
+  "Dominios (separados por coma)" a "Dominios (uno por línea o separados
+  por coma)" para que quede explícito que ambos formatos funcionan.
+- **Verificación**: `jsdom` — reproducido primero el bug aislado
+  (`split(',')` sobre el texto pegado real del usuario → 1 sola entrada de
+  292 caracteres); confirmado que `parseBatchDomains()` sobre el mismo
+  texto produce los 20 dominios limpios, en orden, sin ninguna línea `#`.
+  Luego una corrida real de extremo a extremo contra el servidor local
+  (pegando una lista reducida de 4 dominios con encabezados de comentario
+  en la pestaña "Un dominio", 1 check activo) confirmó 4 tarjetas de
+  resultado correctas — una por dominio real — y cero texto de comentario
+  filtrado en la salida. `npm test` OK local y en el contenedor de
+  `server1`. `public/i18n.js` subido de `?v=8` a `?v=9`.
+
+## Casilla "seleccionar todo/nada" por grupo de checks — 2026-09-12
+
+A pedido explícito: en cada grupo de checks de Mediciones (ambas
+sub-pestañas), una casilla en la cabecera del grupo (junto al contador
+"N checks") que marca o desmarca todos los checks de ese grupo — sin
+afectar los `default` de `groupDefinitions` que se usan al cargar la
+página de cero (ver más abajo).
+
+- **Diseño**: `buildGroupMasterCheckbox()` / `syncGroupMasterCheckbox()` /
+  `wireGroupMasterCheckbox()` (nuevas, compartidas por
+  `renderCheckOptions()` y `renderMbCheckOptions()`, mismo patrón que
+  `groupNoteHtml`/`checkHelpButton`). `stopPropagation()` en el evento
+  `click` de la casilla evita que marcarla también abra/cierre el
+  `<details>` del grupo (todo el `<summary>` es clickeable para eso por
+  diseño previo).
+- **Binaria, no de tres estados** (corregido el mismo día, a pedido
+  explícito de seguimiento): la primera versión usaba el estado nativo
+  `indeterminate` de `<input type="checkbox">` cuando algunos checks del
+  grupo estaban marcados y otros no. Se pidió que fuera estrictamente
+  "TODOS o NINGUNO, mutuamente excluyentes" — sin ese tercer estado
+  visual. `syncGroupMasterCheckbox()` ahora fuerza
+  `indeterminate = false` siempre; `checked` es `true` únicamente cuando
+  el 100% de los checks del grupo están marcados, `false` en cualquier
+  otro caso (ninguno o parcial). Un clic entonces siempre lleva a uno de
+  los dos extremos puros: si no muestra los 7 marcados (0 o algunos),
+  clickear selecciona TODOS; si ya los muestra todos marcados, clickear
+  selecciona NINGUNO.
+- **Los valores por defecto al recargar la página no cambian**: el nuevo
+  mecanismo solo lee/escribe el estado de checkboxes ya existentes en el
+  DOM — no toca `check.default` en `groupDefinitions` ni la lógica ya
+  existente de `renderCheckOptions()`/`renderMbCheckOptions()` que decide
+  el estado inicial (`isRerender ? checkedKeys.has(...) : Boolean(check.default)`).
+  Confirmado explícitamente con el pedido del usuario de que esto se
+  mantuviera así.
+- **Verificación**: `jsdom` — estado inicial mixto del primer grupo (3 de
+  7 checks marcados por default) produce `checked: false, indeterminate:
+  false` en la casilla maestra (binario, nunca un tercer estado); un clic
+  la marca → los 7 quedan marcados, `indeterminate` sigue en `false`; un
+  clic más la desmarca → los
+  7 quedan desmarcados; marcar 1 a mano deja la maestra en
+  `checked: false, indeterminate: false` (no un tercer estado); el
+  `<details>` del grupo no se abre/cierra al clickear la casilla (se
+  comparó `details.open` antes/después). Repetido en
+  `#mb-checksContainer` ("Reporte por lote") con el mismo resultado.
+
+### Seguimiento — casilla sin etiqueta visible + botón "Seleccionar todos" global — 2026-09-11
+
+- **Problema**: captura de pantalla del usuario mostró la casilla maestra
+  de grupo (recién agregada arriba) sin ningún texto junto a ella — solo
+  `title`/`aria-label` como tooltip, invisibles hasta hacer hover — y por
+  separado, arriba del árbol de checks, seguía existiendo el botón de
+  texto `"Seleccionar todos"` (`#selectAll` / `#mb-selectAll`) con
+  comportamiento **de un solo sentido** (solo marcaba, nunca desmarcaba) y
+  sin relación con las casillas de grupo. Pedido explícito: eliminar ese
+  botón y poner en su lugar una casilla con nombre visible "Todos/Ninguno".
+- **Solución**:
+  - `buildGroupMasterCheckbox()` ahora devuelve `{ wrapper, input }`: la
+    casilla queda envuelta en un `<label>` con un `<span>` de texto visible
+    (clave `med.selectAllGlobal` = "Todos/Ninguno" / "All/None"), no solo
+    tooltip. `stopPropagation()` se movió al `<label>` completo para que
+    clickear el texto también cuente como clic sobre la casilla sin abrir
+    el `<details>` del grupo.
+  - `#selectAll` y `#mb-selectAll` dejaron de ser `<button>` con handler de
+    un solo sentido — ahora son `<input type="checkbox">` dentro de un
+    `<label>` con el mismo texto visible "Todos/Ninguno", en el mismo lugar
+    del DOM donde estaba el botón (junto a "Verificaciones a realizar").
+  - Nueva función compartida `wireGlobalMasterCheckbox()` (misma lógica
+    binaria que `wireGroupMasterCheckbox()`/`syncMasterCheckbox()`, pero
+    marca/desmarca **todos** los checks del panel, no solo los de un
+    grupo). A diferencia de la maestra de cada grupo (que se recrea en cada
+    `renderCheckOptions()`), `#selectAll`/`#mb-selectAll` son elementos
+    fijos del DOM que persisten entre renders — por eso usan `onchange =`
+    (se sobrescribe) en vez de `addEventListener` (que se acumularía en
+    cada cambio de idioma).
+  - Clave `med.selectAll` (texto del botón viejo) se retiró de
+    `public/i18n.js`; se agregó `med.selectAllGlobal`.
+- **Verificación**: `jsdom` contra servidor local real — `#selectAll` y
+  `#mb-selectAll` son `type: checkbox`; el texto visible "Todos/Ninguno"
+  se confirma tanto en el `<label>` del control global como en el de cada
+  grupo; clic en el control global marca/desmarca los 54 checks del panel
+  (ambos sentidos, sin tercer estado); marcar 1 casilla a mano dentro de
+  un grupo dejó el control global en `checked: false` (no se activa con
+  selección parcial); marcar las 54 manualmente activó el control global
+  automáticamente; el `<details>` del primer grupo no cambió de estado al
+  clickear su maestra; toggle de idioma a inglés tradujo ambos textos
+  visibles ("All/None"). Repetido en `#mb-checksContainer`. Confirmado
+  también contra producción (`https://mediciones.isoc.org.ec/`) tras el
+  despliegue: mismo resultado. `npm test` OK local y en el contenedor de
+  `server1`. Versión de `public/i18n.js` en `index.html`/`admin.html`
+  subida de `?v=7` a `?v=8`.
+
+## Caché de borde de Cloudflare sirviendo `i18n.js` desactualizado — 2026-09-11
+
+- **Problema**: el usuario reportó (con captura de pantalla) el módulo
+  Mediciones mostrando claves crudas sin traducir (`med.heading`,
+  `med.subtitle`, `med.batch.domainsLabel`, etc.) en vez del texto real,
+  después de varios despliegues sucesivos de `public/i18n.js` durante la
+  construcción del toggle de idioma.
+- **Causa**: 🌐 **cambio externo (comportamiento de infraestructura, no
+  un bug de nuestro código en sentido estricto)** — verificado con
+  `curl -D -` directo a `https://mediciones.isoc.org.ec/i18n.js`:
+  `cf-cache-status: HIT` con `Cache-Control: max-age=14400` (4 horas),
+  sirviendo una versión de `i18n.js` **sin** las claves agregadas en fases
+  posteriores. `server.js` nunca mandó ningún `Cache-Control` para
+  archivos estáticos — ese header lo agrega **Cloudflare en su borde**,
+  por defecto, para archivos `.js` sin importar lo que mande el origen.
+  Cada despliegue sobreescribía el archivo en el servidor, pero
+  Cloudflare seguía sirviendo su copia cacheada desde antes del cambio —
+  afectaba a **todos** los visitantes, no solo al navegador del usuario
+  que lo reportó.
+- **Solución**: dos capas, la de arriba es la que realmente resuelve el
+  problema de raíz — (a) **principal**: `<script src="/i18n.js?v=N">` en
+  `index.html` y `admin.html` — una URL con query string nueva es, para
+  Cloudflare, un recurso distinto nunca cacheado, así que cada vez que se
+  edite `public/i18n.js` hay que subir `N` para forzar que todos los
+  visitantes obtengan la versión nueva sin depender de que Cloudflare
+  respete ningún header; (b) **respaldo**: `server.js` ahora manda
+  `Cache-Control: no-cache` explícito para cualquier `.js` servido desde
+  `public/` (no elimina el problema por sí solo — Cloudflare puede
+  igual no respetarlo, como se vio — pero es la práctica correcta y cubre
+  cualquier otro `.js` que se agregue a futuro sin acordarse de
+  versionarlo).
+- **Verificación**: `curl -D -` a la URL nueva (`?v=6`) mostró
+  `cf-cache-status: EXPIRED` (miss real, trajo la versión actual del
+  origen) en vez de `HIT`; el contenido de la respuesta ya incluye las
+  claves de fases posteriores; y con `jsdom` contra la producción real
+  (no un HTML local) se confirmó que el texto renderizado en pantalla es
+  el real ("MEDICIONES", "Lista de dominios", "Subir archivo .txt o
+  .csv") y no las claves crudas.
+
+## Logging de acceso y errores no manejados — 2026-09-11
+
+- **Problema**: un usuario reportó `"No se pudo generar el reporte
+  descargable: HTTP 502"` al correr un lote de 20 dominios en Mediciones
+  y descargar el reporte. Preguntó si había algún log para ver qué pasó —
+  **no había ninguno**: `docker logs mediciones` solo mostraba la línea de
+  arranque del proceso, sin rastro de ninguna de las miles de solicitudes
+  ya servidas en producción.
+- **Causa**: 🔴 **bug propio (ausencia de instrumentación, no un bug
+  funcional confirmado)** — `server.js` nunca tuvo logging de solicitudes
+  ni un manejador de `uncaughtException`/`unhandledRejection`. Esto
+  importa especialmente porque el callback pasado a `http.createServer`
+  es `async` — si una promesa dentro rechaza sin su propio try/catch
+  local, Node **no** la captura automáticamente: la respuesta HTTP nunca
+  se envía y la conexión queda colgada hasta que algo en el camino (ej.
+  el Cloudflare Tunnel) la corta — visto desde el cliente, eso puede
+  aparecer exactamente como un `502` sin ningún indicio del lado del
+  servidor de qué pasó. **No se pudo confirmar que esta fuera la causa
+  real del 502 reportado**: se reprodujo el flujo completo (payload
+  realista de 20 dominios × 20 checks, ~171KB, construido con datos reales
+  de `/dnssec-analysis` y `/sslchain`) contra producción 5 veces seguidas,
+  y también bajo carga concurrente simulando el fan-out real de un lote
+  (10 dominios × 2 checks pesados en paralelo + el POST del reporte al
+  mismo tiempo) — el endpoint `/mediciones-batch/report` respondió `201`
+  en <200ms en todos los casos, sin reproducir el 502. La hipótesis
+  principal que queda, sin poder confirmarla, es la misma que ya se
+  documentó con `neverssl.com` (ver § "Validación cruzada... quinta
+  ronda"): una falla intermitente puntual del Cloudflare Tunnel, no de
+  `server.js`.
+- **Solución**: se agregó (a) un log de acceso mínimo por solicitud
+  (método, ruta, status, duración — sin body ni query string, sin datos
+  personales) impreso a stdout (capturado por `docker logs`, sin
+  dependencia nueva); (b) un log específico para conexiones cerradas
+  **sin** respuesta completa (`res.on('close')` con `!res.writableEnded`)
+  — exactamente la señal que confirmaría o descartaría la hipótesis de
+  arriba si vuelve a pasar; (c) `process.on('uncaughtException')` que
+  registra el stack y termina el proceso (seguro porque
+  `docker-compose.yml` ya tiene `restart: unless-stopped` — Docker lo
+  reinicia solo) y `process.on('unhandledRejection')` que solo registra,
+  sin terminar el proceso (más conservador, dado el tamaño del código base
+  y que no fue escrito asumiendo manejo estricto de rechazos en todas
+  partes).
+- **Verificación**: probado en local (`GET /` y una ruta inexistente,
+  ambos logueados con status/duración correctos) y confirmado en
+  producción real (`docker logs` después del despliegue muestra las
+  solicitudes de verificación con timestamp, método, ruta, status y
+  duración). Si el 502 se repite, ahora hay evidencia real que revisar en
+  vez de tener que reproducirlo a ciegas.
+
+### Seguimiento — causa raíz del 502 confirmada y corregida — 2026-09-12
+
+El logging agregado arriba cumplió exactamente su propósito: el usuario
+repitió el mismo lote de 20 dominios (con todos los checks activos) y
+`docker logs mediciones` mostró la causa real de inmediato.
+
+- **Problema**: `docker logs` mostró
+  `uncaughtException: Error: connect ENETUNREACH 2801:140:5::10:443 -
+  Local (:::0)` con el stack apuntando a
+  `logic/adapters/safeWebFetch.adapter.js:127` (dentro del `lookup`
+  personalizado de `requestPage()`), seguido de un reinicio completo del
+  proceso (`restart: unless-stopped` de Docker lo trajo de vuelta, pero
+  **todas** las solicitudes en curso en ese momento — incluido el POST de
+  generación del reporte — quedaron cortadas a medio camino, lo cual el
+  cliente ve como `502`). Esto explica también "todo desorganizado" y los
+  "no disponible" en cascada del reporte del usuario: el servidor entero
+  murió mientras decenas de checks estaban en vuelo.
+- **Causa**: 🔴 **bug real de nuestro código**, ahora sí confirmado y
+  reproducido de forma aislada — `2801:140:5::10` es la dirección IPv6 de
+  `nic.ar` (LACNIC), pero el contenedor de `server1` **no tiene ruta
+  IPv6** (confirmado: el mismo `ENETUNREACH` se repite también con otra
+  IPv6 real distinta, `2600:1f18:...` de otro dominio, en el mismo log).
+  `resolvePublicAddresses()` resuelve tanto A como AAAA
+  (`dns.lookup(hostname, { all: true })`) y `fetchSafePage()` intenta cada
+  dirección en orden dentro de un `try/catch`, pensado para pasar a la
+  siguiente si una falla — pero `requestPage()` le pasa a
+  `https.request()`/`http.request()` un `lookup` **personalizado y
+  síncrono** que fuerza esa dirección específica. Es un caso conocido de
+  Node.js: cuando ese `lookup` síncrono resuelve a una dirección
+  inalcanzable a nivel de sistema operativo (`ENETUNREACH` inmediato, no
+  un timeout), el error puede escapar como excepción **no capturada** en
+  vez de emitirse por el evento `'error'` normal de la request —
+  saltándose por completo el `try/catch` de `fetchSafePage()` y llegando
+  directo al `process.on('uncaughtException')` agregado en la entrada de
+  arriba, que mata el proceso.
+  - Reproducido de forma aislada y determinística en `server1` (dentro del
+    contenedor real, usando el volumen `./data:/app/data` para inyectar un
+    script de prueba sin depender de `docker cp`, que falla en este host):
+    un `https.request()` mínimo con exactamente el mismo patrón de
+    `lookup` síncrono contra `2801:140:5::10` reproduce el **mismo stack
+    trace exacto** visto en producción (`uncaughtException` en
+    `internalConnect`/`emitLookup`/`lookupAndConnect`).
+- **Solución**: se difiere el callback del `lookup` personalizado con
+  `setImmediate()` en vez de invocarlo de forma síncrona
+  (`safeWebFetch.adapter.js`, `requestPage()`). Diferir un tick rompe la
+  cadena síncrona que causaba el escape: Node arma el manejo de errores
+  normal de la request antes de intentar conectar, así que el mismo
+  `ENETUNREACH` ahora se emite correctamente por `req.on('error', ...)`,
+  cae dentro del `try/catch` de `fetchSafePage()`, y el bucle pasa a la
+  siguiente dirección disponible (la IPv4, que sí funciona) — sin tumbar
+  el proceso.
+- **Verificación**: el mismo script de reproducción aislado, con la
+  corrección aplicada (`setImmediate`), produce ahora
+  `"normal error event fired"` en vez de `uncaughtException` para la
+  **misma** dirección IPv6 inalcanzable. `npm test` OK local y en el
+  contenedor de `server1`. Verificado en vivo contra producción tras el
+  despliegue: `GET /headers/nic.ar` responde `200` (~5.6s — consistente
+  con intentar primero la IPv6, fallar de forma segura, y caer a IPv4),
+  `docker logs` sin ningún `uncaughtException`/`ENETUNREACH` posterior al
+  despliegue, y el contenedor sigue arriba sin reinicios.
+
+## Toggle de idioma de sitio completo (EN⇄ES) — 2026-09-11
+
+A pedido explícito: un interruptor reversible, visible desde la primera
+página, que traduce toda la interfaz estática del portal (no solo los
+~54 nombres de checks de Mediciones — ver más abajo cómo ese mecanismo
+anterior se absorbe en este). Antes de escribir código se usó un Plan
+agent para inventariar el alcance real (leyendo `index.html` de 5,362
+líneas y `admin.html`) — estimación: **~450-550 strings distintos**
+repartidos en 8 fases, ejecutadas incrementalmente (cada una revisable
+por separado). Este documento se actualiza a medida que avanza cada fase
+— ver la tabla de estado más abajo.
+
+### Qué NO se traduce (decisión explícita, confirmada con el usuario)
+
+1. **La narrativa que genera el motor DNSSEC del lado del servidor**
+   (`logic/content/dnssecGuidance.content.js`, `dnssecGlossary.content.js`,
+   `logic/rules/dnssec.rules.js`, `logic/processors/dnssec.processor.js`)
+   — campos `summary`, `technical_summary`, `guidance.*`, `glossary[].*`
+   que llegan ya armados desde `/dnssec-analysis`. Es prosa ligada a
+   lógica de clasificación DNSSEC, metodológicamente cerrada según
+   `CLAUDE.md`. Queda **siempre en español**, sin importar el idioma
+   elegido — esta es una decisión de alcance para esta ronda, no una
+   imposibilidad técnica; si se quiere revisar a futuro, es un plan
+   aparte, no una extensión mecánica de este.
+2. **Los reportes PDF/JSON del módulo Mediciones**
+   (`logic/exporters/medicionesBatchReport.exporter.js`) — tiene su
+   propio texto fijo en español (categorías, "Cómo leer este reporte",
+   limitaciones), independiente de este diccionario. No se toca en esta
+   ronda.
+3. **Contenido editorial de Blog/Eventos/Materiales** — lo escriben los
+   administradores vía el panel (`data/content/*.json`), se muestra tal
+   cual lo escribieron. Solo la interfaz alrededor (títulos de sección,
+   estados de carga/vacío) entra en el alcance.
+4. **`tabPanelObservatorioLegacy`** (sección vieja de Observatorio,
+   desconectada de cualquier botón de pestaña alcanzable — código muerto
+   preexistente, no confundir con la pestaña "Observatorio" activa, que sí
+   se traduce). No vale la pena traducir algo que ningún usuario puede
+   ver.
+
+### Diseño técnico
+
+- **`public/i18n.js`** (nuevo, servido como estático desde `/i18n.js` —
+  `server.js` ya sirve cualquier archivo bajo `public/` en la raíz, mismo
+  mecanismo que `/assets/...` y `/docs/...`; no es una dependencia nueva,
+  es un archivo propio) — diccionario único `TRANSLATIONS.es`/`.en`,
+  cargado por igual en `index.html` y `admin.html` con
+  `<script src="/i18n.js">` **en `<head>`, antes de los `<script>` inline
+  del body** (para que `t()`/`currentLang` existan cuando esos bloques
+  arman HTML en su primer render — mismo cuidado de orden entre
+  `<script>` tags que ya causó el bug real de `escapeAttr` documentado
+  más arriba en este archivo).
+- Dos convenciones de uso, según el tipo de contenido:
+  - `data-i18n="clave"` (+ `data-i18n-placeholder`/`-title`/`-aria-label`)
+    en HTML **estático** — `applyLanguage(lang)` barre el DOM una vez con
+    `querySelectorAll` y actualiza `textContent`/atributos.
+  - `t('clave')` dentro de JS que arma HTML **dinámicamente** (tablas,
+    alertas, mensajes) — se evalúa en el momento del render, mismo patrón
+    que ya usaba `checkConfig[key].label` para los nombres de los checks,
+    ahora generalizado.
+- `setLanguage(lang)` guarda la preferencia en `localStorage`
+  (`isoc-lac-lang`, clave única de sitio — reemplaza a la anterior
+  `mediciones-check-label-lang`, específica de Mediciones, que se absorbe
+  en la fase 5) y llama a `applyLanguage()`.
+- Idioma por defecto: **español** (`<html lang="es">`, idioma principal
+  de todo el contenido actual) — deliberadamente distinto del default
+  `'en'` que tenía el mecanismo anterior solo para nombres de checks; con
+  alcance de sitio completo, arrancar en español es lo correcto. No se
+  migra la preferencia de la clave anterior (ver razón en el código de
+  `public/i18n.js`).
+- Hook `window.onLanguageApplied(lang)` (opcional, cada página lo define
+  si lo necesita) — `i18n.js` no conoce las funciones de render
+  específicas de `index.html` (ej. re-renderizar tablas ya construidas
+  por JS que no pasan por `data-i18n`); esto evita acoplar el archivo
+  compartido a una sola página.
+
+### Estado por fase
+
+| Fase | Contenido | Estado |
+|---|---|---|
+| 0 | Infraestructura (`public/i18n.js`, carga en ambas páginas) | ✅ hecho |
+| 1 | Cabecera global + 8 botones de pestaña + `<title>` | ✅ hecho |
+| 2 | Inicio + Observatorio | ✅ hecho |
+| 3 | Blog + Eventos + Información (solo interfaz) | ✅ hecho |
+| 4 | Preparación de datasets — contenido estático (encabezados, pasos, etapas) | ✅ hecho — **resultados de normalización/validación DNS armados por JS (`prep-normalize-results`, `prep-dns-results`, `prep-resultado-content`) quedan sin traducir, alcance grande aparte** |
+| 5 | Mediciones — cabecera, sub-pestañas, formularios, glosario, leyenda de símbolos, alertas, historial, absorbe el toggle de nombres de checks | ✅ hecho — **el texto de detalle/resultado de cada uno de los ~50 `case` de `getCheckResult()` (ej. "Sin datos de Lighthouse", líneas armadas por cada check individual) queda sin traducir, alcance grande aparte, ver nota más abajo** |
+| 6 | DNSSEC (solo interfaz, nunca la narrativa) | pendiente |
+| 7 | Panel admin (`admin.html`) | infraestructura lista (botón + script), contenido pendiente |
+
+**Verificación fases 0-1**: `jsdom` contra el servidor local real (no un
+HTML estático aislado, para que `/i18n.js` se sirva de verdad) — sin
+errores; `<title>`, subtítulo, los 8 botones de pestaña, y el atributo
+`title`/`aria-label` del link de Admin cambian correctamente en ambos
+sentidos (ES→EN→ES); `<html lang>` se actualiza; `localStorage` persiste;
+el mecanismo de checkboxes de Mediciones (`checkLabelLang`) sigue intacto
+sin interferencia (se absorbe recién en la fase 5, no antes). El botón y
+el `<script src="/i18n.js">` se confirmaron presentes en el HTML servido
+de `/admin`.
+
+**Verificación fase 2**: `jsdom` — encabezado, párrafo con `<strong>`/
+`<code>`/`<a>` embebidos (`data-i18n-html`), y las 3 tarjetas de
+Observatorio cambian correctamente en ambos sentidos.
+
+**Verificación fase 3**: `jsdom` — encabezados y estados vacíos de Blog/
+Eventos/Información cambian correctamente, incluyendo el re-render vía
+`window.onLanguageApplied` cuando el toggle se usa **después** de que la
+tarjeta ya se pintó (fetch real contra `/content/blog` etc., con el
+servidor local corriendo). Confirmado que el contenido editorial en sí
+(`item.title`/`description`, `post.title`/`summary`, `ev.title`/
+`description`) nunca pasa por `t()` — sigue tal cual lo escribió el
+administrador, como se pidió.
+
+**Verificación fase 4** (contenido estático): `jsdom` — encabezado, lista
+con marcado embebido (`data-i18n-html="prep.source.list"`), y el texto de
+la etapa de Validación DNS (con `<strong>VALID</strong>` etc.) cambian
+correctamente.
+
+**Verificación fase 5**: `jsdom` — encabezado del módulo, sub-pestañas,
+leyenda de símbolos (`STATUS_SYMBOL`, ahora sin `label` fijo — se calcula
+con `t()` en el momento de renderizar, tanto en la leyenda como en el
+`title` de cada celda de la tabla del lote), encabezado de la tabla del
+lote, y el selector de velocidad cambian correctamente. Se confirmó
+específicamente que **absorber el toggle de nombres de checks no rompió
+nada**: el checkbox de "whois" se marcó a mano, se togleó el idioma
+global, y siguió marcado — y su nombre pasó de "Consulta Whois" (español,
+default nuevo) a "Whois Lookup" (inglés) usando el mismo mecanismo
+`checkConfig[key].label` que ya existía, ahora disparado por
+`window.onLanguageApplied` en lugar de su propio setter. El botón viejo
+`#mediciones-lang-toggle` (específico de Mediciones) se eliminó — queda
+solo el del header global.
+
+**Nota de alcance importante, encontrada al ejecutar la fase 5**: la
+estimación original del Plan agent (~120-150 strings para Mediciones)
+contaba el texto fijo de la interfaz (formularios, botones, tabla), pero
+**no** el texto de *resultado* que arma cada uno de los ~50 `case` dentro
+de `getCheckResult()` — cada check individual (ej. `archive`, `quality`,
+`sslchain`, etc.) construye sus propias líneas de detalle en español
+(`'Sin datos de Lighthouse'`, `'Sin historial'`, mensajes por cada campo
+del resultado). Traducir esto es un sub-alcance grande y separado, del
+mismo orden de magnitud que la fase 5 ya hecha — no se abordó en esta
+pasada. Mismo problema aplica, casi seguro, a las funciones de render de
+resultados de la fase 4 (`prep-normalize-results`/`prep-dns-results`/
+`prep-resultado-content`) y aplicará también a la fase 6 (DNSSEC). Queda
+como alcance pendiente explícito, no un olvido — se decidió no ocultarlo
+en la tabla de arriba.
+
+## Fixes reales de checks individuales (módulo Mediciones)
+
+No relacionados al feature de lote — bugs y regresiones externas
+encontrados probando en producción. Cada entrada sigue la misma tríada:
+**Problema** (síntoma observado) → **Causa** (clasificada — de dónde viene
+realmente) → **Solución** (qué se cambió) → **Verificación** (cómo se
+confirmó que es real, general y que el fix funciona). La clasificación de
+causa usada en todo este archivo:
+
+- 🔴 **Bug propio** — código nuestro incorrecto, sin relación con terceros.
+- 🌐 **Cambio externo — protocolo/política** — un tercero cambió cómo
+  responde (ej. ahora exige HTTP/2, ahora exige key); nuestro código
+  quedó desactualizado respecto a esa nueva regla.
+- ⚰️ **Cambio externo — servicio dado de baja** — el tercero del que
+  dependíamos dejó de existir, sin reemplazo directo.
+- 🧱 **Limitación de plataforma** — no es un bug de nuestra lógica ni un
+  cambio de terceros: una pieza de la plataforma (versión de Node fijada
+  en el Dockerfile, en este proyecto) no soporta algo que el check
+  necesita.
+- ⏱️ **Ineficiencia propia (no rompe el resultado)** — el resultado ya era
+  correcto, pero el diseño desperdicia tiempo/recursos innecesariamente.
+
+### `logic/adapters/safeWebFetch.adapter.js` — 2026-09-09
+
+- **Problema**: `fetchPage` (el helper viejo, usado en whois/headers/
+  security.txt/robots/sitemap/status) no seguía cadenas de redirección con
+  ninguna protección contra SSRF (podía terminar apuntando a una IP
+  privada si un dominio redirigía ahí).
+- **Causa**: 🔴 bug propio — `fetchPage` nunca implementó esa protección.
+- **Solución**: nuevo adaptador `safeWebFetch.adapter.js`
+  (`fetchSafePage`/`resolveFinalWebTarget`) que sigue redirects con
+  guardas SSRF (bloquea IPs privadas, límite de saltos) y reemplaza a
+  `fetchPage` en todos los checks que lo usaban.
+- **Verificación**: `test/safeWebFetch.adapter.test.js` (en `npm test`).
+
+### RPKI (`server.js`, `rpkiValidity`) — 2026-09-09
+
+- **Problema**: el check de RPKI siempre devolvía `state: 'unknown'`, para
+  cualquier IP.
+- **Causa**: dos causas combinadas — ⚰️ **cambio externo (servicio dado de
+  baja)**: la API de Cloudflare RPKI que se usaba
+  (`rpki.cloudflare.com/api/v1/validity`) ya no existe (404 siempre); y
+  🔴 **bug propio**: el ASN que devuelve RIPEstat viene como **string**
+  (`"13335"`), no `number` ni objeto, y el código lo comparaba mal —
+  aunque la llamada a Cloudflare hubiera funcionado, este segundo bug
+  también habría forzado `state: 'unknown'`.
+- **Solución**: se quitó la llamada a Cloudflare; ahora usa solo RIPEstat,
+  parseando el `asn` correctamente antes de compararlo.
+- **Verificación**: verificado end-to-end en la ronda de validación cruzada
+  de más abajo (`/rpki/isoc.org.ec` → `state: valid`, ASN 13335 correcto).
+
+### WHOIS (`server.js`, `handleWhois`) — 2026-09-09
+
+- **Problema**: el campo de organización/país podía traer el dato del
+  *Registrar* en vez del *Registrant* si el HTML de la fuente cambiaba de
+  orden. Además, "sin datos porque están redactados por privacidad" y
+  "error técnico consultando la fuente" se veían idénticos (ambos como
+  campos vacíos), sin forma de distinguirlos.
+- **Causa**: 🔴 bug propio — el regex de extracción leía el HTML de
+  whois.com sin acotar primero a la sección correcta.
+- **Solución**: se acota primero al bloque `"Registrant Contact"`
+  (`extractWhoisComSection`) antes de aplicar los regex; se agregó
+  `status`/`message`/`disclaimer` en la respuesta para distinguir los dos
+  escenarios.
+- **Verificación**: probado contra dominios reales con y sin redacción de
+  privacidad, confirmando que cada caso ahora trae el `status` correcto.
+
+### Carga de `.env` al boot de `server.js` — 2026-09-09
+
+- **Problema**: no había forma de que `server.js` leyera credenciales
+  desde `.env` al arrancar.
+- **Causa**: no aplica una de las categorías de arriba — es una
+  **necesidad nueva**, no un bug: se agregó `nodemailer` (envío de
+  contraseñas del panel admin) y con eso credenciales SMTP que debían
+  cargarse desde `.env`.
+- **Solución**: parser mínimo de `.env` al inicio de `server.js`, sin
+  dependencia nueva (solo variables no definidas ya por el entorno —
+  Docker/systemd tienen prioridad).
+- **Verificación**: `npm test` (`adminAuth.session.test.js`) ejercita el
+  flujo que depende de estas credenciales.
+
+### Validación cruzada con herramientas independientes — primera ronda (2026-09-09)
+
+A pedido explícito del usuario: antes de confiar en los resultados de
+Mediciones para publicar hallazgos, se contrastó `isoc.org.ec` (dominio
+piloto, elegido por estar muy bien configurado — DNSSEC, DMARC estricto,
+CAA, CSP, HSTS, TLS 1.3, todo presente) contra herramientas externas
+reconocidas: `dig`/`curl`/`openssl s_client` a mano, DNS-over-HTTPS de
+Google, Verisign DNSSEC Debugger/DNSViz (conceptualmente — el propio motor
+`/dnssec-analysis` ya recomienda contrastar con DNSViz en su salida),
+RIPEstat (RPKI), y un handshake SMTP crudo por socket. En los checks que
+se pudieron contrastar (DNS, DNSSEC, TLS, CAA, cabeceras, RPKI, MX/TXT) el
+sistema coincidió sin discrepancias.
+
+#### 1. "Domain Info" (RDAP) — 2026-09-09
+
+- **Problema**: siempre devolvía `{"error":"Servicio no disponible"}`,
+  para cualquier dominio.
+- **Causa**: 🔴 **bug propio, doble** — (a) `fetchJSON()` (la llamada
+  original en `handleDomainInfo`) usa `http/https.request()` crudo sin
+  seguir redirecciones, y `rdap.org` responde con **302** hacia el
+  servidor RDAP autoritativo del TLD (ej. `.ec` → `rdap.registry.ec`)
+  antes de entregar el JSON real — `JSON.parse()` fallaba sobre el cuerpo
+  del 302. Confirmado con `curl -D -` sin seguir redirects (302) vs con
+  `-L` (200, JSON completo). (b) Al corregir (a) reutilizando
+  `resolveFinalWebTarget`, seguía fallando por una segunda causa propia:
+  `rdap.org` está detrás de Cloudflare y devuelve **403** a peticiones sin
+  `User-Agent` (`curl -A ""` → 403; `curl -A "Mozilla/..."` → 302), y
+  ninguna llamada de este proyecto mandaba `User-Agent` hasta ahora. (No
+  se tocó el adaptador compartido para agregar un `User-Agent` por
+  defecto — cambio de mayor alcance, fuera de lo pedido; es probable que
+  otros checks que usan el mismo adaptador, como headers/security.txt/
+  redirect-chain/server-status/associated-hosts, tengan el mismo problema
+  contra sitios con filtrado similar — **pendiente, no investigado**.)
+  (c) Bug propio adicional, encontrado al implementar el fix, no
+  reportado originalmente: aunque el redirect se siguiera, el campo
+  `registry` iba a seguir saliendo `null` porque el código leía
+  `data.registryName`, un campo que **no existe** en el esquema RDAP — el
+  nombre del registrador vive anidado en `entities[].vcardArray`.
+- **Solución**: `handleDomainInfo` (`server.js`) ahora usa
+  `resolveFinalWebTarget` con `User-Agent:
+  MedicionesISOCLAC/1.0 (+https://mediciones.isoc.org.ec)` y `Accept:
+  application/rdap+json`, parsea `resolved.response.body`, y usa la nueva
+  función `rdapEntityName(entities, role)` para extraer `registry`.
+- **Verificación**: 5 dominios reales (no solo isoc.org.ec, para no
+  sobreajustar el fix a un caso): `isoc.org.ec` (ccTLD con redirect),
+  `nic.uy` (ccTLD sin datos — responde vacío, no error, comportamiento
+  correcto), `google.com` y `lacnic.net` (gTLD), y un dominio inventado
+  (`dominio-que-no-existe-xyz123abc.ec`, también vacío sin error).
+  Cubierto por `test/domainChecks.live.smoke.test.js` (red real, no en
+  `npm test`).
+
+#### 2. "TLS Security Config" — 2026-09-09
+
+- **Problema**: siempre devolvía `{"error":"Servicio no disponible"}`,
+  para cualquier dominio.
+- **Causa**: ⚰️ **cambio externo (servicio dado de baja permanentemente)**
+  — el check llama a `tls-observatory.services.mozilla.com` (Mozilla TLS
+  Observatory). Mozilla dio de baja ese servicio en **octubre de 2024** y
+  archivó el repositorio en **diciembre de 2025** — confirmado tanto por
+  búsqueda (GitHub, changelog de Mozilla) como por `curl` directo al
+  endpoint, que no responde en absoluto (timeout de conexión, no un
+  404/500 — el host ya no atiende). No es un problema temporal ni de este
+  entorno, y no hay swap simple: no existe un servicio hosteado gratuito
+  equivalente que devuelva el mismo formato `{score, tests}`. Además el
+  check se solapaba con 4 checks que sí funcionan (`tlsinfo`, `sslchain`,
+  `tlsciphers`, `tlssimulation`).
+- **Solución**: se **retiró de la UI** (`index.html`): entrada en
+  `groupDefinitions` (grupo "Diagnóstico técnico"), `checkGlossary`, y el
+  `case 'tlsconfig'` del switch en `getCheckResult`. La ruta `/tlsconfig`
+  y `handleTlsConfig` en `server.js` se dejaron sin tocar (mismo patrón
+  que `/emailconfig`, `/httpsecurity`, `/dnssecurity` — ver § Taxonomía de
+  checks), ahora inalcanzable desde la UI, con un comentario explicando
+  por qué.
+- **Verificación**: confirmado que el endpoint de Mozilla no responde
+  (timeout) y que `tlsconfig` ya no aparece en el HTML servido
+  (`grep -c "TLS Security Config"` → 0) ni en `groupDefinitions`.
+
+#### 3. "SMTPUTF8" — 2026-09-09
+
+- **Problema (hallazgo inicial, descartado)**: se sospechó que el
+  resultado `"no"` para `isoc.org.ec` era un falso negativo por bloqueo
+  del puerto 25 saliente.
+- **Causa**: ❌ **no era un bug** — se verificó con un **handshake SMTP
+  crudo por socket TCP** (Node, sin pasar por nuestro código) contra
+  `mail.isoc.org.ec:587`: el EHLO real devuelve `SIZE`, `8BITMIME`,
+  `PIPELINING`, `AUTH`, `STARTTLS` — **sin `SMTPUTF8`**. El resultado del
+  sistema era correcto; se descartó el hallazgo.
+- **Problema real, más chico**: `checkSmtpUtf8` probaba los puertos 25 y
+  587 **en secuencia**, perdiendo ~15s por dominio.
+- **Causa**: ⏱️ **ineficiencia propia (no rompía el resultado)** — el
+  puerto 25 está bloqueado saliente tanto en `server1` (producción,
+  verificado con `/dev/tcp` por SSH) como en este entorno de desarrollo,
+  así que cada consulta perdía el timeout completo de 15s en el puerto 25
+  antes de intentar el 587 (que sí conecta), en secuencia.
+- **Solución**: `checkSmtpUtf8` ahora prueba ambos puertos **en paralelo**
+  (`Promise.all`), misma prioridad de antes (`supports` > `no` definitivo
+  > `timeout`/`connection-error`).
+- **Verificación**: mismo resultado correcto (`"no"`) para `isoc.org.ec`,
+  ahora en ~15s en vez de ~15s + ronda adicional de 587 en secuencia.
+  Cubierto por `test/domainChecks.live.smoke.test.js`.
+
+### Validación cruzada con herramientas independientes — segunda ronda (2026-09-09)
+
+Tras desplegar los 3 fixes de arriba, se pidió repetir la batería completa
+contra **producción real** (`https://mediciones.isoc.org.ec`, no un
+servidor local) recorriendo **todas** las rutas de `server.js` — la
+primera ronda se había hecho contra un servidor local en el entorno de
+desarrollo y con una lista de endpoints incompleta (le faltaban
+`tlssimulation`, `openports`, `traceroute`, `redirectchain`, `block`; ver
+"por qué no se detectaron antes" al final de esta sección). Los 3
+problemas encontrados se verificaron como **genéricos y no
+intermitentes** antes de tocar código: repetidos varias veces, contra
+varios dominios distintos, y desde dos redes distintas (este entorno de
+desarrollo y `server1`).
+
+#### 4. "TLSA" — 2026-09-09
+
+- **Problema**: siempre devolvía `{"error":"Servicio no disponible"}`,
+  para cualquier dominio.
+- **Causa**: 🧱 **limitación de plataforma** — `dns.resolve()` y
+  `dns.resolveTlsa()` no reconocen el rrtype TLSA en Node v20.18.0 (la
+  versión fijada en `ARG NODE_VERSION` del `Dockerfile`); lanzan
+  `TypeError ERR_INVALID_ARG_VALUE` **antes de siquiera consultar la
+  red** — confirmado dentro del contenedor con 3 dominios distintos,
+  incluyendo uno inventado que no existe, mismo error idéntico en los
+  tres. No es un problema de ningún dominio en particular ni del código
+  de consulta DNS del proyecto: es que esa versión de Node no implementa
+  ese tipo de registro. (La primera ronda no lo detectó porque se probó
+  contra un servidor local en este entorno de desarrollo, Node v24.11.1,
+  que sí soporta TLSA — nunca se había ejercitado este endpoint contra el
+  Node real de producción hasta esta segunda ronda.)
+- **Solución**: `handleTlsa` (`server.js`) ya no usa `dns.resolve()` —
+  consulta DNS-over-HTTPS de Google (`dns.google/resolve?...&type=TLSA`),
+  mismo patrón que `dnssecGoogle()` y los checks de IPv4/IPv6/DMARC del
+  cliente. No depende de qué rrtypes soporte el binding nativo de Node.
+- **Verificación**: 6 dominios en el primer barrido
+  (`isoc.org.ec`, `google.com`, `cloudflare.com`, `nic.uy`, `lacnic.net`,
+  `github.com`), más un dominio sin TLSA (`records: []`, sin error) y uno
+  con TLSA real (`torproject.org`, formato `"usage selector matchingtype
+  hex"` correcto). Cubierto por `test/domainChecks.live.smoke.test.js`.
+
+#### 5. "Block Detection" (resolver Quad9) — 2026-09-09
+
+- **Problema**: el resolver Quad9 (dentro de `/block`) siempre devolvía
+  `blocked:false` **junto con** un `error: "Servicio no disponible"`
+  contradictorio, para cualquier dominio. Google y Cloudflare (los otros
+  dos resolvers del mismo check) funcionaban bien.
+- **Causa**: 🌐 **cambio externo (protocolo)** — Quad9 exige HTTP/2 en su
+  servidor DoH (`dns.quad9.net`) desde 2026, citando RFC 8484 §5.2; el
+  código usaba `https.request()`, que negocia HTTP/1.1 por defecto →
+  `HTTP 505` en 3 intentos seguidos y para 3 dominios distintos. No se
+  confió solo en el mensaje de error de Quad9: se reprodujo la misma
+  consulta con el módulo `http2` nativo de Node (sin dependencia nueva)
+  contra el mismo endpoint y se obtuvo `200 OK` con la respuesta DNS
+  real — confirma que el único problema es el protocolo, no autenticación
+  ni límite de tasa.
+- **Solución**: `queryQuad9` (`server.js`) usa `http2.connect()` +
+  `client.request()` en vez de `https.request()`.
+- **Verificación**: ya no da error; y la **lógica de detección de
+  bloqueo** (no solo la ausencia de error) se confirmó probando contra
+  `blocked.test.on.quad9.net` (dominio oficial de test de Quad9,
+  documentado en su sitio) — el check reporta `blocked: true`
+  correctamente para Quad9 mientras Google/Cloudflare dan `false`.
+  Cubierto por `test/domainChecks.live.smoke.test.js`.
+
+#### 6. "Traceroute" — 2026-09-09
+
+- **Problema**: siempre devolvía `{"error":"Servicio no disponible (límite
+  alcanzado)"}`, para cualquier dominio.
+- **Causa**: 🌐 **cambio externo (política del proveedor)** — el check
+  depende de `api.hackertarget.com/mtr/`, que ahora responde `"error valid
+  key required"` de forma incondicional (verificado: mismo mensaje exacto
+  en 3 repeticiones seguidas, para 4 dominios distintos, y desde dos redes
+  distintas — este entorno y `server1`; un límite de cuota diaria
+  variaría o eventualmente se recuperaría, esto es constante y textual).
+  El mensaje de error que teníamos en el código ("límite alcanzado") ya no
+  reflejaba la causa real. No hay alternativa gratuita equivalente: se
+  investigó RIPEstat looking-glass (necesita un **prefijo IP**, no un
+  dominio, y mide anuncios BGP — dato distinto al que el check prometía) y
+  otros endpoints de HackerTarget (`/traceroute/`: 404; `/nping/`: también
+  exige key). Construir un traceroute real (ICMP/UDP crudo) queda fuera de
+  alcance — requiere privilegios elevados y es una herramienta de red
+  completa, no un ajuste de un check existente.
+- **Solución**: mismo criterio que "TLS Security Config" (#2 arriba) — se
+  **retiró de la UI** en vez de simular una funcionalidad que ya no existe
+  gratis. Quitado de `groupDefinitions`, `checkGlossary` y el switch en
+  `index.html`; `/traceroute` y `handleTraceroute` en `server.js`
+  quedaron sin tocar (mismo patrón que los checks retirados
+  anteriormente), ahora inalcanzables desde la UI.
+- **Verificación**: confirmado que `api.hackertarget.com/mtr/` exige key
+  desde dos redes distintas, y que `traceroute` ya no aparece en
+  `groupDefinitions`/`checkGlossary`/el switch de `index.html`.
+
+**Por qué la primera ronda no encontró el #5 y el #6**: no fue un fallo
+del check enmascarado — simplemente no se habían probado esas rutas. La
+primera batería de `curl` cubrió `rpki whois domaininfo tlsa mx smtputf8
+securitytxt tlsinfo sslchain tlsciphers tlsconfig firewall dnsrecords
+txtrecords dnsserver ipinfo serverinfo serverlocation serverstatus
+malware` — una lista armada de memoria, no derivada de recorrer
+`server.js`. `tlssimulation`, `openports`, `traceroute`, `redirectchain`
+y `block` quedaron fuera por simple omisión. `test/domainChecks.live.smoke.test.js`
+ahora cubre los fixes de ambas rondas (RDAP, SMTPUTF8, TLSA, Block/Quad9);
+sigue sin cubrir cada endpoint de `server.js` de forma exhaustiva y
+sistemática — si se quiere esa garantía a futuro, haría falta generar la
+lista de rutas a probar directamente desde el código (ej. parseando los
+`if (segments[0] === 'x')` de `server.js`) en vez de mantenerla a mano en
+el test.
+
+### Validación cruzada con herramientas independientes — tercera ronda (2026-09-09)
+
+Aplicando la recomendación del cierre de la segunda ronda: la lista de
+endpoints a probar se generó **con `grep` directo sobre `server.js`**
+(`segments[0] === '...'`), no de memoria — 34 rutas alcanzables desde la
+UI recorridas contra producción real. Aparecieron 4 problemas reales
+(más uno adicional encontrado al verificar el fix de uno de ellos) y se
+confirmó que "Ranking" (Tranco) **no** es un bug: `isoc.org.ec` no está en
+el ranking de Tranco (`{"ranks": [], ...}`, confirmado con `curl` directo
+al mismo endpoint) — es un sitio pequeño, esperado, no un fallo.
+
+#### 7. "Linked Pages" — 2026-09-09
+
+- **Problema**: enlaces relativos comunes en el HTML real de isoc.org.ec
+  (`index.html`, `quienes-somos.html`, `proyectos.html`, `cursos_2026/`)
+  se marcaban como `internal: false`, siendo claramente internos.
+- **Causa**: 🔴 **bug propio** — `extractLinks()` clasificaba con
+  `href.startsWith('/') || href.includes(domain)`. No contempla enlaces
+  relativos **sin** `/` inicial, un patrón HTML muy común. Es un bug
+  determinista de la función (una entrada de texto fija siempre da la
+  misma salida incorrecta) — no depende de qué dominio se consulte ni de
+  la red, por construcción.
+- **Solución**: `extractLinks(html, baseUrl)` ahora recibe la URL final
+  real de la página (`page.url`, post-redirects, ya disponible desde
+  `fetchWebsite`) y resuelve cada `href` contra ella con el `URL` nativo
+  de Node (`new URL(href, base).hostname === base.hostname`), en vez de
+  comparación de substring. Sin dependencia nueva.
+- **Verificación**: con el HTML real de isoc.org.ec, los 9 enlaces
+  relativos de navegación (`index.html`, etc.) pasaron a `internal: true`;
+  los enlaces externos reales (`internetsociety.org`, `corpece.org.ec`)
+  siguen en `internal: false`. Cubierto por
+  `test/domainChecks.live.smoke.test.js`.
+
+#### 8. "Archive" (Wayback Machine) — 2026-09-09
+
+- **Problema**: siempre devolvía `{"error":"Servicio no disponible"}`,
+  aunque isoc.org.ec sí tiene historial en Wayback Machine (snapshots
+  desde 2004, confirmado con `curl` directo al mismo endpoint).
+- **Causa**: 🔴 **bug propio** — mismo patrón que el bug #1 de RDAP (ver
+  arriba), pero en un servicio y una llamada distintos: `fetchJSON()`
+  nunca mandaba `User-Agent`, y `web.archive.org` (nginx) responde
+  `400 Bad Request` sin uno. Reproducido exacto dentro del contenedor de
+  producción: `curl -A ""` → 400; `curl -A "Mozilla/..."` → 200 con datos
+  reales. El fix de RDAP (punto 1) solo tocó la llamada puntual de
+  `handleDomainInfo`, sin revisar si otras llamadas de `fetchJSON`
+  tenían el mismo problema — acá se confirmó que sí, en un segundo
+  servicio real.
+- **Solución**: en vez de agregar el header caso por caso otra vez, se
+  agregó un `User-Agent` **por defecto dentro de `fetchJSON()`** mismo
+  (`DEFAULT_FETCH_USER_AGENT`, sobreescribible por el caller) — cubre esta
+  llamada y cualquier futura sin tener que recordar agregarlo cada vez.
+  Verificado antes de aplicarlo que ninguno de los ~14 consumidores
+  actuales de `fetchJSON` (dns.google, cloudflare-dns.com, ipwho.is,
+  RIPEstat, tranco-list.eu, urlhaus-api.abuse.ch, entre otros) es sensible
+  a este header — no rompe nada existente.
+- **Verificación**: `/archive/isoc.org.ec` trae los 5 snapshots reales de
+  2004. Cubierto por `test/domainChecks.live.smoke.test.js`.
+
+#### 9. "Whois" — el fallback a RDAP tenía el mismo bug del punto 1, sin corregir — 2026-09-09
+
+- **Problema**: para isoc.org.ec, el check reportaba
+  `status: "redactado_o_no_disponible"` — un mensaje que sugiere "los
+  datos podrían estar protegidos por privacidad, no es un problema del
+  dominio". Verificado que eso es **engañoso**: el RDAP de `.ec` no
+  redacta nada (nombre, email, organización del contacto, todo público,
+  ya confirmado en el punto 1) — el dato SÍ existe y es público, el
+  sistema simplemente no podía alcanzarlo.
+- **Causa**: 🔴 **bug propio** — `handleWhois` tiene su **propio** fallback
+  interno a RDAP (si el scraping de whois.com no encuentra nombre/país),
+  con una llamada a `fetchJSON('https://rdap.org/domain/...')` **separada
+  e independiente** de la que ya se había corregido en `handleDomainInfo`
+  (punto 1) — nunca se tocó al hacer ese fix, porque no se sabía que
+  existía una segunda copia de la misma lógica rota. Reproducido exacto
+  dentro del contenedor: `403 Forbidden` (mismo bloqueo por falta de
+  `User-Agent`). Para isoc.org.ec específicamente, el scraping de
+  whois.com tampoco encuentra la sección "Registrant Contact" en su HTML
+  (verificado con `grep` — fuente externa sin ese dato para este dominio,
+  no es algo nuestro), así que el resultado dependía **enteramente** de
+  que el fallback RDAP funcionara.
+- **Bug adicional encontrado al verificar el fix** (no reportado
+  originalmente): incluso con el fetch corregido, el campo `country`
+  seguía saliendo vacío — el código leía `item[1]?.label`, un parámetro
+  vCard que **no existe** en la respuesta real de RDAP; el país viene
+  como parámetro `cc` (ej. `{"cc":"EC"}`) o como último elemento del
+  array estructurado de dirección (`item[3]`).
+- **Solución**: se extrajo un helper compartido `fetchRdap(domain)`
+  (`resolveFinalWebTarget` + `User-Agent` + `JSON.parse`, mismo mecanismo
+  del punto 1) y `handleWhois` ahora lo usa en vez de su copia de
+  `fetchJSON` directo — consolida la lógica de fetch de RDAP en un solo
+  lugar, así un futuro bug de este tipo no puede volver a quedar
+  duplicado sin corregir. La extracción de `country` ahora lee
+  `item[1]?.cc` primero, con el último elemento de `item[3]` como
+  respaldo.
+- **Verificación**: `isoc.org.ec` → `{"name":"Francis Tigreros",
+  "country":"EC","status":"ok"}` (antes: nombre y país vacíos,
+  `"redactado_o_no_disponible"`). Probado también con `google.com`
+  (`{"name":"Google LLC","country":"US","status":"ok"}`, vía el scraping
+  de whois.com — no necesitó el fallback RDAP, pero confirma que el flujo
+  completo sigue intacto). Cubierto por
+  `test/domainChecks.live.smoke.test.js`.
+
+#### 10. "Quality" (PageSpeed Insights) — 2026-09-09
+
+- **Problema**: devolvía `{"pwa": null}` sin ningún error, pareciendo un
+  resultado válido ("el sitio no tiene PWA"), para cualquier dominio.
+- **Causa**: dos causas combinadas — 🌐 **límite de cuota de un tercero**:
+  la API de Google PageSpeed responde `HTTP 200` con un cuerpo
+  `{"error": {...}}` (`429 RESOURCE_EXHAUSTED`, cuota diaria de consultas
+  agotada — este proyecto la llama sin API key propia, con la cuota
+  anónima compartida); y 🔴 **bug propio**: el código nunca revisaba si
+  la respuesta traía `data.error` antes de leer
+  `data.lighthouseResult?.categories` (`undefined` en ese caso), así que
+  el resultado vacío se interpretaba silenciosamente como "sin PWA" en
+  vez de "no se pudo evaluar". Confirmado que la cuota agotada afecta a
+  cualquier dominio (probado también con `google.com`, mismo `429`), no
+  es algo específico de isoc.org.ec.
+- **Solución**: `handleQuality` ahora revisa `data.error` explícitamente
+  y devuelve el mensaje real de Google (`error: data.error.message`) en
+  vez de seguir leyendo campos inexistentes. No se resolvió la causa de
+  cuota en sí (eso requeriría gestionar una API key propia de Google
+  Cloud — una decisión de infraestructura/costo que no se tomó
+  unilateralmente); el fix asegura que, agotada o no la cuota, el check
+  **nunca vuelve a mentir** sobre el resultado.
+- **Verificación**: `/quality/isoc.org.ec` ahora muestra el mensaje real
+  de cuota de Google en vez de `pwa: null`. Cubierto por
+  `test/domainChecks.live.smoke.test.js` (verifica que la respuesta
+  siempre traiga o un error explícito o scores reales, nunca un
+  resultado ambiguo).
+
+**Nota sobre alcance no cubierto**: `dnssec`, `w3c`, `associatedhosts`,
+`carbon`, `techstack` son rutas de `server.js` que existen pero **no
+están conectadas a la UI** (no aparecen en `groupDefinitions` de
+`index.html`) — inventario de código muerto preexistente, no tocado en
+esta ronda por no ser alcanzable por ningún usuario. `serverlocation`/
+`serverinfo` siguen con el rate-limit de `ipwho.is` ya documentado en la
+segunda ronda (sin cambios nuevos acá).
+
+### Validación cruzada con herramientas independientes — cuarta ronda (2026-09-09)
+
+A pedido explícito: se probaron dos dominios más "difíciles" que
+`isoc.org.ec` para forzar casos borde — `dominiosecuador.ec` (el
+registrador de `.ec`, resultó limpio, sin hallazgos nuevos sobre el
+sistema) y `presidencia.gob.ec` (sí reveló 2 problemas reales). Verificado
+con `curl`/`openssl`/Node directo antes de tocar código, igual que en las
+rondas anteriores.
+
+#### 11. Mensajes de error genéricos ocultaban fallas de certificado TLS (hallazgo real, no exclusivo de un check) — 2026-09-09
+
+- **Problema**: `/headers`, `/securitytxt` y `/firewall` para
+  `presidencia.gob.ec` devolvían todos el mismo
+  `{"error":"Servicio no disponible"}` — indistinguible de "el servidor
+  no responde".
+- **Causa**: 🔴 **bug propio (pérdida de señal diagnóstica)** —
+  `presidencia.gob.ec` (sin `www`) sirve un certificado compartido entre
+  ~26 sitios `.gob.ec` (agricultura, salud, defensa, etc.) cuyo SAN
+  **no incluye** la variante sin `www` del dominio — confirmado con
+  `curl` (falla con "target principal name is incorrect") y con Node
+  (`ERR_TLS_CERT_ALTNAME_INVALID`). Esto es un hallazgo real sobre el
+  sitio del gobierno, no un bug nuestro — pero `errorMessage()` (el
+  normalizador de errores de `server.js`) no tenía ningún caso para
+  errores de certificado, así que ese hallazgo (en sí mismo valioso para
+  una herramienta que mide seguridad de dominios) se perdía detrás de un
+  mensaje genérico indistinguible de un fallo de red cualquiera. Los
+  checks de TLS (`tlsinfo`, `sslchain`, `tlsciphers`) no se ven afectados
+  porque deliberadamente no verifican el hostname del certificado (diseño
+  correcto para poder inspeccionar qué certificado sirve un servidor,
+  coincida o no con el dominio).
+- **Solución**: `errorMessage()` ahora reconoce
+  `ERR_TLS_CERT_ALTNAME_INVALID`, `CERT_HAS_EXPIRED`,
+  `DEPTH_ZERO_SELF_SIGNED_CERT`/`SELF_SIGNED_CERT_IN_CHAIN`,
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE` y `CERT_NOT_YET_VALID`, devolviendo un
+  mensaje específico para cada uno en vez del genérico — cambio aditivo,
+  no afecta ningún caso que ya funcionaba.
+- **Verificación**: `/headers/presidencia.gob.ec` ahora devuelve
+  `{"error":"El certificado TLS no cubre este dominio exacto"}`. Cubierto
+  por `test/domainChecks.live.smoke.test.js`.
+
+#### 12. "SMTPUTF8" con 2+ registros MX — mismo problema de fondo del fix anterior, en un caso no cubierto — 2026-09-09
+
+- **Problema**: `/smtputf8/presidencia.gob.ec` tardaba **30.2 segundos**.
+- **Causa**: ⏱️ **ineficiencia propia (no rompía el resultado)** —
+  `presidencia.gob.ec` tiene 2 registros MX (una pasarela de Trend Micro +
+  `webmail.presidencia.gob.ec`), y `handleSmtpUtf8` los recorría **en
+  secuencia** con un `for...of`. El fix de la primera ronda (punto 3)
+  paralelizó los 2 *puertos* (25/587) dentro de la consulta a un mismo
+  servidor, pero no tocó el bucle que recorre *registros MX distintos* —
+  `isoc.org.ec` solo tiene 1 MX, así que ese caso nunca se había
+  ejercitado hasta probar un dominio con más de uno.
+- **Solución**: `handleSmtpUtf8` ahora recorre los registros MX también
+  **en paralelo** (`Promise.all` sobre `mx.map(...)`), mismo principio ya
+  aplicado a los puertos.
+- **Verificación**: `presidencia.gob.ec` bajó de 30.2s a ~15.1s (2 MX en
+  paralelo, cada uno con ambos puertos también en paralelo). Regresión
+  confirmada: `isoc.org.ec` (1 MX) sigue en ~15s con el mismo resultado
+  correcto (`"no"`) de antes. Cubierto por
+  `test/domainChecks.live.smoke.test.js`.
+
+**Descartado — no reproducible**: `tlsciphers` devolvió `suites:[]`
+(vacío) una vez contra `presidencia.gob.ec`, pero 2 reintentos inmediatos
+después funcionaron perfecto — probablemente interferencia de una ráfaga
+de ~20 solicitudes seguidas contra un servidor modesto (no detrás de un
+CDN grande). Mismo patrón se repitió con `archive/isoc.org.ec` al correr
+`test/domainChecks.live.smoke.test.js` completo (falló una vez, pasó al
+repetir en aislado y al re-correr el script completo) — Wayback Machine
+es conocida por ser ocasionalmente lenta/inestable en su capa gratuita.
+Ninguno de los dos se trató como bug: no reproducible tras repetición
+inmediata es la señal de descarte usada en toda esta sección.
+
+### Validación cruzada con herramientas independientes — quinta ronda (2026-09-10)
+
+A pedido explícito: se amplió el set de dominios de prueba más allá de
+Ecuador, con un criterio deliberado (no aleatorio) por dominio — el
+detalle completo de por qué se eligió cada uno, qué se verificó de forma
+independiente, y el resultado (incluyendo los "sin novedades") vive en
+**`docs/GUIA_PRUEBAS_VALIDACION.md`**, un registro nuevo separado de este
+archivo — este archivo (`arquitectura.md`) sigue documentando el detalle
+técnico de los fixes de código; `GUIA_PRUEBAS_VALIDACION.md` documenta el
+registro histórico por dominio probado. 8 dominios: `lacnic.net`,
+`gob.mx`, `cloudflare.com` (contraste normal), `expired.badssl.com`,
+`self-signed.badssl.com`, `wrong.host.badssl.com` (validación directa del
+fix de certificados de la ronda 4), `dnssec-failed.org` (validación del
+motor DNSSEC detectando fallas), `neverssl.com` (caso límite de HTTPS no
+funcional a propósito). Solo 1 bug de código nuevo.
+
+#### 13. "MX" no distinguía "sin registros" de una falla real — 2026-09-10
+
+- **Problema**: `/mx/gob.mx` devolvía `{"error":"Servicio no disponible"}`,
+  aunque `gob.mx` genuinamente no tiene registros MX (declara
+  `"v=spf1 -all"` — no envía correo — y DNS-over-HTTPS confirma NODATA,
+  sin `Answer`, solo `Authority`/SOA).
+- **Causa**: 🔴 **bug propio** — `handleMx` no tenía el manejo de
+  `ENODATA`/`ENOTFOUND` que `handleCaa` y `handleTlsa` ya tenían para
+  distinguir "el dominio no tiene registros de este tipo" (caso legítimo,
+  no un error) de una falla real de red/DNS. Simple inconsistencia entre
+  handlers del mismo archivo, no una falla nueva de ningún servicio
+  externo.
+- **Solución**: `handleMx` ahora captura `e.code === 'ENODATA' ||
+  e.code === 'ENOTFOUND'` y devuelve `records: []`, mismo patrón que los
+  otros dos handlers.
+- **Verificación**: `/mx/gob.mx` → `{"records":[]}` (antes: error).
+  Regresión confirmada: `/mx/isoc.org.ec` sigue trayendo su registro MX
+  real sin cambios. Cubierto por `test/domainChecks.live.smoke.test.js`.
+
+**Hallazgo real del sitio, no un bug nuestro (documentado para contexto,
+sin acción de código)**: `/headers/gob.mx` devuelve
+`"No se pudo verificar la cadena de certificados TLS"` — verificado de
+forma independiente con `openssl s_client -verify_return_error`:
+`verify error:num=20: unable to get local issuer certificate`. El
+servidor de `gob.mx` no envía el certificado intermedio completo en el
+handshake TLS — un cliente que no haga *AIA chasing* (como Node, y como
+la mayoría de clientes no-navegador) no puede completar la cadena de
+confianza, aunque un navegador (que sí hace AIA chasing) probablemente no
+lo note. Es una configuración TLS real y mejorable del sitio, correctamente
+detectada por el sistema — no algo que corregir en `server.js`. Sirve
+además como confirmación positiva del mensaje `UNABLE_TO_VERIFY_LEAF_SIGNATURE`
+agregado en la ronda 4 (punto 11), funcionando en un caso real encontrado
+sin buscarlo a propósito (a diferencia de los dominios badssl.com, que
+están construidos deliberadamente para fallar).
+
+**Anomalía de infraestructura, no de código**: `/serverstatus/neverssl.com`
+y `/headers/neverssl.com` devolvían `502 Bad Gateway` — pero **servido por
+Cloudflare** (el Tunnel de acceso público a `mediciones.isoc.org.ec`, ver
+`CLAUDE.md` § despliegue), no por nuestro servidor. Aislado accediendo
+directo a `server1:8700` vía Tailscale (sin pasar por el Tunnel): mismo
+endpoint respondió `200 OK` correctamente. No se tocó código — queda
+anotado en `docs/GUIA_PRUEBAS_VALIDACION.md` por si se repite con otros
+dominios, para no re-investigar desde cero.
+
+### Pendientes revisados el 2026-09-10 (tras la quinta ronda)
+
+Al cierre de la quinta ronda quedaron 5 pendientes anotados (ver
+`docs/GUIA_PRUEBAS_VALIDACION.md` y el resumen de esa conversación). Se
+revisaron con criterio de "qué aporta más valor técnico con el menor
+riesgo" — 2 resueltos, 1 cerrado sin cambios (investigado, sin hallazgo),
+2 quedan explícitamente abiertos.
+
+#### 14. `safeWebFetch.adapter.js` — sospecha cerrada sin hallazgo — 2026-09-10
+
+- **Sospecha**: desde el fix de RDAP (punto 1), quedó anotado que
+  `resolveFinalWebTarget`/`fetchSafePage` (el adaptador HTML, usado por
+  `headers`, `security.txt`, `redirect-chain`, `server-status`,
+  `linkedpages`, `crawlrules`, etc.) podía tener el mismo problema de
+  `User-Agent` ausente que se encontró y corrigió en `fetchJSON()`
+  (usado por RDAP y Wayback Machine) — nunca se había verificado.
+- **Investigación**: se probó `/headers/archive.org` (el sitio principal,
+  no la API CDX que ya sabíamos sensible a este header) — mismo
+  proveedor cuya API sí bloqueaba sin `User-Agent`, para maximizar la
+  chance de encontrar el mismo patrón. Funcionó igual con y sin
+  `User-Agent` (`curl -A ""` y `curl -A "Mozilla/..."`, ambos `200`).
+  Sumado a que ninguno de los ~11 dominios probados en las 5 rondas
+  anteriores (incluyendo sitios con WAF/CDN agresivos como Cloudflare)
+  mostró nunca una falla atribuible a esto en los checks que usan este
+  adaptador.
+- **Conclusión**: sin evidencia de un problema real — se cierra la
+  sospecha sin tocar código. No se descarta que aparezca con algún sitio
+  específico en el futuro, pero no hay base hoy para un cambio preventivo
+  sin caso real que lo justifique.
+
+#### 15. Geolocalización de IP — fallback agregado — 2026-09-10
+
+- **Problema**: `lookupIpMeta()` (usado por `serverlocation`, `serverinfo`,
+  y el campo `geo` de `ipinfo`) dependía únicamente de `ipwho.is`, sin
+  respaldo — verificado con una ráfaga de solicitudes que sí lo agota
+  ("Rate limit exceeded").
+- **Causa**: 🔴 **bug propio (punto único de falla, no una dependencia
+  externa rota)** — la función nunca tuvo un segundo proveedor.
+- **Solución**: se agregó `lookupIpMetaFallback()` usando **ip-api.com**,
+  elegido deliberadamente por ser de una empresa/producto **distinto** al
+  de `ipwho.is` — se descartó `ipwhois.app` (que se había investigado como
+  candidato en la ronda de investigación previa) porque su respuesta
+  referencia `cdn.ipwhois.io`, el mismo dominio que aparece en
+  `ipwho.is` — indicio fuerte de que son el mismo backend/familia de
+  producto y probablemente comparten cuota por IP de origen, lo que
+  habría vuelto inútil el respaldo (el mismo rate limit tumbaría a
+  ambos a la vez). `ip-api.com` es explícitamente de otro proveedor. Nota:
+  su plan gratuito es solo HTTP (no HTTPS) — intencional, no un
+  descuido: es una llamada servidor-a-servidor, sin navegador de por
+  medio, así que no hay problema de contenido mixto.
+- **Verificación**: `lookupIpMeta()` sigue funcionando igual cuando el
+  primario responde (regresión confirmada: `/serverlocation/isoc.org.ec`,
+  `/serverinfo/lacnic.net`); la normalización del formato de ip-api.com
+  se probó por separado con datos reales, incluyendo el parseo del ASN
+  (`"AS13335 Cloudflare, Inc."` → `13335` numérico). No se pudo forzar de
+  forma determinista que el primario falle para probar el camino de
+  fallback en un test automatizado — sigue como limitación conocida del
+  test (ver `test/domainChecks.live.smoke.test.js`, que solo confirma la
+  forma de la respuesta, no cuál proveedor contestó).
+
+**Quedan explícitamente abiertos, sin cambios de código**:
+- **"Quality" (PageSpeed) con cuota agotada**: requeriría gestionar una
+  API key propia de Google Cloud — decisión de infraestructura/costo, no
+  se toma unilateralmente.
+- **`test/domainChecks.live.smoke.test.js` con lista de endpoints armada
+  a mano**: seguiría beneficiándose de generarse automáticamente desde
+  `server.js`, pendiente desde la segunda ronda.
 
 ## Testing
 
@@ -301,8 +1843,12 @@ Dos categorías, separadas deliberadamente:
   extremo.
 - `test/medicionesBatchReport.exporter.test.js` — Markdown/JSON del reporte
   de "Análisis comparativo": frontmatter, envoltura `::: landscape :::` con
-  >6 checks seleccionados (y ausencia con pocos), sección de glosario
-  siempre presente, truncado de detalle largo.
+  >6 checks seleccionados, sección "Cómo leer este reporte" (símbolos +
+  glosario + limitaciones) siempre presente con texto fijo, truncado de
+  detalle largo, y — el caso más importante — que **ninguna** sección ni
+  frase de análisis del dataset (Resumen comparativo, Hallazgos por
+  categoría, lenguaje evaluativo) reaparezca en ningún escenario, ni
+  siquiera si el payload la trae (compatibilidad hacia atrás: se ignora).
 - `test/medicionesBatchReport.routes.test.js` — rutas `POST /mediciones-batch/report`
   y `GET .../export`.
 - `test/safeWebFetch.adapter.test.js` — resolución de redirecciones +
@@ -319,6 +1865,23 @@ Dos categorías, separadas deliberadamente:
 - `test/downloads.integrityGuard.test.js` — corre un job real, muta
   `integrity.passed` a `false` directamente en memoria (sin tocar
   producción) y confirma que las descargas quedan bloqueadas.
+- `test/domainChecks.live.smoke.test.js` — RDAP (`/domaininfo`, 5 dominios
+  reales incluyendo ccTLD con redirect y gTLD), SMTPUTF8 (`/smtputf8`,
+  resultado + tiempo de respuesta), TLSA (`/tlsa`, dominio sin registros +
+  `torproject.org` con TLSA real), Block Detection/Quad9 (`/block`,
+  dominio normal + `blocked.test.on.quad9.net`, dominio oficial de test de
+  Quad9), Linked Pages (`/linkedpages`, enlace relativo + enlace externo
+  real), Whois vía fallback RDAP (`/whois/isoc.org.ec`, nombre + país
+  reales), Archive (`/archive`, snapshots reales de Wayback Machine) y
+  Quality (`/quality`, respuesta siempre con error explícito o scores
+  reales, nunca ambigua), mensajes de error de certificado TLS
+  (`/headers/presidencia.gob.ec`, certificado que no cubre el dominio
+  exacto; más los 3 casos de badssl.com — expirado, autofirmado, hostname
+  incorrecto), SMTPUTF8 con múltiples registros MX (`/smtputf8/
+  presidencia.gob.ec`, 2 MX en paralelo, bajo ~20s) y MX sin registros
+  (`/mx/gob.mx`, `records: []` sin error) contra `isoc.org.ec`,
+  `presidencia.gob.ec`, `gob.mx`, el trío de badssl.com y otros dominios
+  reales. Requiere el servidor local corriendo (`PORT=3500 node server.js`).
 
 Para volver a capturar valores "verdad" de Python si el validador de
 referencia cambia: `importlib.util.spec_from_file_location` + registrar en

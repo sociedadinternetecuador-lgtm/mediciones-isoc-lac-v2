@@ -6,6 +6,14 @@
 <meta name="robots" content="noindex, nofollow" />
 <title>Administración — Mediciones ISOC-LAC</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Mismo diccionario de traducción que index.html (ver public/i18n.js) —
+     el panel admin todavía no tiene sus textos marcados con data-i18n
+     (fase 7 del plan de traducción, pendiente); esto solo conecta la
+     infraestructura y el botón para que la elección de idioma sea
+     consistente entre "/" y "/admin". -->
+<!-- ?v= rompe la caché de borde de Cloudflare — ver la nota igual en
+     index.html. Subir este número cada vez que se edite public/i18n.js. -->
+<script src="/i18n.js?v=10"></script>
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; }
   .field-label { display:block; font-size:0.75rem; font-weight:600; color:#4b5563; margin-bottom:0.25rem; }
@@ -29,6 +37,11 @@
     </div>
     <div class="flex items-center gap-3">
       <a href="/" class="text-sm text-blue-600 hover:underline">← Volver al portal</a>
+      <button id="admin-lang-toggle" type="button" onclick="setLanguage(currentLang === 'es' ? 'en' : 'es')"
+        aria-pressed="false"
+        class="lang-toggle-btn text-sm text-gray-500 hover:text-blue-600 transition underline decoration-dotted">
+        🌐 English
+      </button>
       <button id="logoutBtn" onclick="doLogout()" class="hidden btn-secondary">Cerrar sesión</button>
     </div>
   </div>

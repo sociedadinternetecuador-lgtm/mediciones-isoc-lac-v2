@@ -1,10 +1,14 @@
 'use strict';
 
 /**
- * Exportadores del reporte de "Análisis comparativo" (sub-tab de
- * Mediciones — index.html, medicionesBatchStart). El navegador ya corrió
- * la medición (checks + DNSSEC + validación DNS) y ensambló el payload
- * completo; este módulo solo formatea la salida:
+ * Exportadores del reporte descargable de Mediciones (index.html,
+ * medicionesBatchStart — flujo único desde 2026-09-11, antes había un
+ * sub-tab "Un dominio" separado sin reporte propio; antes de eso este
+ * módulo se llamaba "Análisis comparativo" — renombrado porque el reporte
+ * no compara nada entre dominios, solo expone la medición cruda de cada
+ * uno, sea 1 o varios). El navegador ya corrió la medición (checks +
+ * DNSSEC + validación DNS) y ensambló el payload completo; este módulo solo
+ * formatea la salida:
  *
  *  - buildComparativeMarkdown: Markdown con frontmatter YAML para el
  *    servicio externo mdtopdf (server1:8600). Reporte EJECUTIVO
@@ -13,6 +17,26 @@
  *    y ~40 checks). El detalle completo vive solo en el JSON.
  *  - buildJsonExport: el payload completo (detalle sin condensar) más
  *    metadata de exportación.
+ *
+ * SIN análisis del dataset (2026-09-09, a pedido explícito): el reporte no
+ * calcula ni compara nada sobre el lote analizado — ni agregados, ni
+ * porcentajes, ni semáforos, ni siquiera en forma neutral. Solo hay dos
+ * tipos de contenido: (a) "Cómo leer este reporte" — genérico, idéntico en
+ * cualquier corrida (símbolos de resultado, glosario de indicadores,
+ * limitaciones del sistema) — y (b) mediciones crudas por dominio (la
+ * tabla del lote y, si se pide explícitamente, el detalle por dominio).
+ * Antes existían aquí "Hallazgos por categoría" y "Resumen comparativo"
+ * (Validación DNS, DNSSEC agregado, Resumen acumulado por check) — se
+ * eliminaron por completo. Ver docs/arquitectura.md para el detalle de qué
+ * se quitó y del historial de renombres (ese historial es solo para uso
+ * interno — nunca aparece en el reporte ni en la guía).
+ *
+ * Alcance personalizable (2026-09-09, a pedido explícito): por defecto el
+ * reporte trae únicamente la tabla del lote (dominio × indicador). El
+ * detalle completo por dominio (`## Detalle por dominio`) es opcional —
+ * solo se incluye si `payload.meta.include_domain_detail === true` (checkbox
+ * en la UI, desmarcado por defecto). Esto NO aplica al reporte de "Un
+ * dominio" (análisis individual), que siempre trae el detalle completo.
  *
  * Referencia de estilo: aggregate/exporters/exporters.js (HTML) y
  * logic/exporters/datasetResultsPackage.exporter.js (metadata/hashes) —
@@ -43,16 +67,28 @@ function buildStatusLegendTable() {
   return lines.join('\n') + '\n';
 }
 
+// NOTA (2026-09-09): existió aquí un cómputo de "Hallazgos por categoría"
+// (% de resultados "OK" por categoría núcleo, sin semáforo). Se eliminó a
+// pedido explícito: el reporte no debe calcular NADA sobre el dataset
+// analizado, ni siquiera en forma neutral/sin juicio de valor — solo puede
+// haber contenido genérico e idéntico en cualquier corrida ("Cómo leer
+// este reporte": símbolos, glosario, limitaciones) y las mediciones
+// crudas por dominio (tabla comparativa + detalle por dominio). Por el
+// mismo pedido se quitó también todo el bloque "Resumen comparativo"
+// (Validación DNS, DNSSEC agregado, Resumen acumulado por check) — eran
+// agregaciones/comparaciones sobre el lote, no mediciones crudas. Ver
+// docs/arquitectura.md para el detalle.
+
 // Mismo orden de categorías que `groupDefinitions` en index.html — solo para
 // ordenar la tabla comparativa de forma legible (no es lógica de negocio).
 // Un check con un `group` no reconocido cae en "Otros", al final.
 const CHECK_GROUP_ORDER = [
-  'IP y Red',
-  'DNS y Seguridad',
-  'Correo y Mensajería',
-  'Identidad y Cumplimiento',
-  'Contenido y Experiencia',
-  'Seguridad Web y TLS',
+  'Seguridad y confianza (DNS/TLS)',
+  'Anti-suplantación de correo',
+  'Cabeceras de seguridad web',
+  'Transparencia y conectividad moderna',
+  'Diagnóstico técnico',
+  'Contenido y experiencia',
 ];
 
 // Máximo de columnas de check por tabla. Con encabezados de una sola palabra
@@ -114,13 +150,6 @@ const DNS_VALIDATION_LABELS = {
   REVIEW: 'REVIEW',
 };
 
-const SEMAPHORE_LABELS = {
-  green: 'Verde — adopción sólida',
-  yellow: 'Amarilla — adopción parcial',
-  red: 'Roja — adopción crítica',
-  insufficient: 'Muestra insuficiente',
-};
-
 function esc(value) {
   if (value === null || value === undefined) return '';
   return String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
@@ -132,6 +161,10 @@ function truncate(value, maxLen) {
   return s.slice(0, maxLen - 1) + '…';
 }
 
+// Línea de contacto de la carátula (mismo texto para todo reporte de
+// Mediciones ISOC LAC generado por este exportador).
+const REPORT_CONTACT = 'https://mediciones.isoc.org.ec  ·  info@isoc.org.ec';
+
 function frontmatter({ title, subtitle, author }) {
   const escYaml = (v) => String(v || '').replace(/"/g, '\\"');
   return [
@@ -139,6 +172,7 @@ function frontmatter({ title, subtitle, author }) {
     `title: "${escYaml(title)}"`,
     `subtitle: "${escYaml(subtitle)}"`,
     `author: "${escYaml(author)}"`,
+    `contact: "${escYaml(REPORT_CONTACT)}"`,
     '---',
     '',
   ].join('\n');
@@ -256,59 +290,29 @@ function buildGlossarySection(glossaryEntries) {
   return lines.join('\n') + '\n';
 }
 
-function buildDnsValidationSummary(summary) {
-  const s = summary || {};
-  const total = (s.VALID || 0) + (s.NXDOMAIN || 0) + (s.REVIEW || 0);
-  return [
-    '| Estado | Dominios |',
-    '| --- | --- |',
-    `| VALID | ${s.VALID || 0} |`,
-    `| NXDOMAIN | ${s.NXDOMAIN || 0} |`,
-    `| REVIEW | ${s.REVIEW || 0} |`,
-    `| **Total** | **${total}** |`,
-  ].join('\n') + '\n';
-}
+// Texto fijo — idéntico en cualquier reporte, no depende del dataset
+// analizado (a pedido explícito). Mismo contenido que la sección
+// "Limitaciones" de la guía del sistema (docs/GUIA_MEDICIONES_ISOC_LAC.md).
+const SYSTEM_LIMITATIONS = [
+  'No reemplaza auditorías técnicas especializadas.',
+  'Depende de disponibilidad de servicios externos.',
+  'Puede haber falsos positivos o negativos.',
+  'No mide seguridad interna del servidor.',
+];
 
-function buildDnssecAggregateSummary(agg) {
-  if (!agg) return '_Sin datos DNSSEC agregados._\n';
-  const semLabel = SEMAPHORE_LABELS[agg.semaphore] || agg.semaphore || 'N/D';
-  const lines = [];
-  lines.push(`**Etiqueta**: ${esc(agg.country || 'Lote analizado')}`);
-  lines.push('');
-  lines.push(`- Semáforo: ${semLabel}`);
-  lines.push(`- Adopción DNSSEC: ${agg.adoptionRate !== null && agg.adoptionRate !== undefined ? agg.adoptionRate + '%' : 'N/D'}`);
-  lines.push(`- Dominios analizados: ${agg.total || 0}`);
-  lines.push(`- Con barrera estructural: ${agg.structural || 0}`);
-  lines.push(`- Accionables: ${agg.actionable || 0}`);
-  if (Array.isArray(agg.warnings) && agg.warnings.length) {
-    lines.push('');
-    lines.push('Advertencias:');
-    for (const w of agg.warnings) lines.push(`- ${esc(w)}`);
-  }
-  return lines.join('\n') + '\n';
-}
-
-function buildChecksSummaryTable(checksSummary) {
-  const entries = Object.entries(checksSummary || {});
-  if (!entries.length) return '_Sin checks seleccionados._\n';
-  const lines = [];
-  lines.push('| Check | Sí | No |');
-  lines.push('| --- | --- | --- |');
-  for (const [, entry] of entries) {
-    lines.push(`| ${esc(entry.label)} | ${entry.positive || 0} | ${entry.negative || 0} |`);
-  }
-  return lines.join('\n') + '\n';
+function buildLimitationsSection() {
+  return SYSTEM_LIMITATIONS.map((item) => `- ${item}`).join('\n') + '\n';
 }
 
 function buildComparativeMarkdown(payload) {
   const meta = payload?.meta || {};
   const domains = Array.isArray(payload?.domains) ? payload.domains : [];
-  const comparative = payload?.comparative || {};
   const selectedChecks = Array.isArray(meta.selected_checks) ? meta.selected_checks : [];
   const checksMeta = buildChecksMeta(meta.selected_checks_glossary);
 
   const generatedAt = meta.generated_at || new Date().toISOString();
-  const title = 'Análisis comparativo de dominios — Mediciones ISOC LAC';
+  const includeDomainDetail = meta.include_domain_detail === true;
+  const title = 'Reporte de dominios — Mediciones ISOC LAC';
   const subtitle = `${meta.domain_count ?? domains.length} dominios · generado ${generatedAt}`;
   const author = 'Mediciones ISOC LAC — Internet Society';
 
@@ -321,9 +325,15 @@ function buildComparativeMarkdown(payload) {
   parts.push(`Checks seleccionados: ${selectedChecks.length}`);
   parts.push('');
 
-  // Todo lo necesario para leer el resto del documento va primero — antes
-  // se ponía la leyenda de símbolos pegada a la tabla comparativa y quedaba
-  // perdida varias páginas después, sin que nadie la viera.
+  // "Cómo leer este reporte" — a pedido explícito, es la ÚNICA narrativa
+  // del documento, y es genérica e idéntica en cualquier corrida (no
+  // depende del dataset analizado): qué mide cada indicador, qué significa
+  // cada símbolo de resultado, y las limitaciones del sistema. El resto del
+  // documento son mediciones crudas (tabla comparativa + detalle por
+  // dominio) — nada agregado ni comparado sobre el lote. Va todo al
+  // principio — antes se ponía la leyenda de símbolos pegada a la tabla
+  // comparativa y quedaba perdida varias páginas después, sin que nadie la
+  // viera.
   parts.push('## Cómo leer este reporte');
   parts.push('');
   parts.push('### Símbolos de resultado');
@@ -334,35 +344,32 @@ function buildComparativeMarkdown(payload) {
   parts.push('Qué mide cada indicador incluido en este reporte.');
   parts.push('');
   parts.push(buildGlossarySection(meta.selected_checks_glossary));
+  parts.push('### Limitaciones del sistema');
+  parts.push('');
+  parts.push(buildLimitationsSection());
 
-  parts.push('## Resumen comparativo');
-  parts.push('');
-  parts.push('### Validación DNS');
-  parts.push('');
-  parts.push(buildDnsValidationSummary(comparative.dns_validation_summary));
-  parts.push('### DNSSEC agregado');
-  parts.push('');
-  parts.push(buildDnssecAggregateSummary(comparative.dnssec_aggregate));
-  parts.push('### Resumen acumulado por check');
-  parts.push('');
-  parts.push(buildChecksSummaryTable(comparative.checks_summary));
-
-  parts.push('### Tabla comparativa dominio × check');
+  parts.push('## Tabla de resultados — dominio × indicador');
   parts.push('');
   parts.push('_Agrupada por categoría (símbolos explicados en "Cómo leer este reporte", al inicio). Si una categoría tiene muchos indicadores, se parte en varias tablas para que no se trunquen columnas._');
   parts.push('');
   parts.push(buildComparativeTable(domains, selectedChecks, checksMeta));
 
-  parts.push('## Detalle por dominio');
-  parts.push('');
-  parts.push('_Columna "Resultado": mismos símbolos de la sección "Cómo leer este reporte"._');
-  parts.push('');
-  if (!domains.length) {
-    parts.push('_No se analizó ningún dominio en este lote._');
+  // Sección opcional (checkbox en la UI, desmarcado por defecto — a pedido
+  // explícito: el reporte no trae por defecto el detalle completo de cada
+  // dominio, solo la tabla comparativa), sea el análisis de 1 dominio o de
+  // varios.
+  if (includeDomainDetail) {
+    parts.push('## Detalle por dominio');
     parts.push('');
-  } else {
-    for (const domainEntry of domains) {
-      parts.push(buildDomainSection(domainEntry, selectedChecks, checksMeta));
+    parts.push('_Columna "Resultado": mismos símbolos de la sección "Cómo leer este reporte"._');
+    parts.push('');
+    if (!domains.length) {
+      parts.push('_No se analizó ningún dominio._');
+      parts.push('');
+    } else {
+      for (const domainEntry of domains) {
+        parts.push(buildDomainSection(domainEntry, selectedChecks, checksMeta));
+      }
     }
   }
 
@@ -374,7 +381,7 @@ function buildJsonExport(payload) {
     ...payload,
     export_meta: {
       exported_at: new Date().toISOString(),
-      generator: 'Mediciones ISOC LAC — Análisis comparativo',
+      generator: 'Mediciones ISOC LAC',
     },
   };
 }

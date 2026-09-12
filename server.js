@@ -20,12 +20,38 @@
   }
 })();
 
+// Logging de errores no manejados (2026-09-11) — antes NO había ningún log
+// de solicitudes ni de errores: `docker logs` solo mostraba la línea de
+// arranque, sin rastro de miles de solicitudes reales ya servidas.
+// Encontrado al investigar un "HTTP 502" reportado por un usuario en el
+// reporte por lote de Mediciones — no se pudo confirmar ni descartar una
+// excepción no capturada como causa porque no había ninguna evidencia que
+// revisar. Si una promesa dentro del handler de una request rechaza sin su
+// propio try/catch, la respuesta HTTP nunca se envía (el callback de
+// http.createServer no captura rechazos de promesas por su cuenta) — la
+// conexión queda colgada hasta que algo en el camino (ej. el Cloudflare
+// Tunnel) la corta, lo cual puede verse como un 502 del lado del cliente
+// sin ningún indicio de qué pasó en el servidor. Con `restart:
+// unless-stopped` en docker-compose.yml, es seguro terminar el proceso en
+// una excepción síncrona no capturada (Docker lo reinicia solo) — no lo es
+// necesariamente para cada unhandledRejection en un código base grande que
+// no fue escrito asumiendo manejo estricto de rechazos, así que esos solo
+// se registran, sin terminar el proceso.
+process.on('uncaughtException', (err) => {
+  console.error(`${new Date().toISOString()} uncaughtException:`, err && err.stack || err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error(`${new Date().toISOString()} unhandledRejection:`, reason && reason.stack || reason);
+});
+
 const http = require('http');
 const dns = require('dns').promises;
 const DEFAULT_SERVERS = ['8.8.8.8', '8.8.4.4'];
 dns.setServers(DEFAULT_SERVERS);
 const net = require('net');
 const https = require('https');
+const http2 = require('http2');
 const tls = require('tls');
 const { domainToASCII } = require('url');
 const { URL } = require('url');
@@ -60,8 +86,7 @@ async function resolveFirstIp(domain) {
   return { ip: null, family: null };
 }
 
-async function lookupIpMeta(ip) {
-  if (!ip) throw new Error('Sin dirección IP');
+async function lookupIpMetaPrimary(ip) {
   const data = await fetchJSON(`https://ipwho.is/${encodeURIComponent(ip)}`);
   if (!data || data.success === false) {
     const message =
@@ -95,6 +120,53 @@ async function lookupIpMeta(ip) {
   };
 }
 
+// Fallback de geolocalización (2026-09-10): ipwho.is tiene rate limit y no
+// tenía respaldo — verificado con una ráfaga de solicitudes ("Rate limit
+// exceeded"). ip-api.com se eligió deliberadamente de una empresa/producto
+// distinto (no la misma familia que ipwho.is/ipwhois.io/ipwhois.app, que
+// comparten CDN de assets — cdn.ipwhois.io aparece en las tres — y muy
+// probablemente comparten cuota por IP de origen, lo que habría hecho
+// inútil usar cualquiera de esas como respaldo de las otras). Nota: el
+// plan gratuito de ip-api.com es **solo HTTP, no HTTPS** — intencional,
+// no un descuido; es una llamada servidor-a-servidor (sin navegador de
+// por medio), así que no hay problema de contenido mixto.
+async function lookupIpMetaFallback(ip) {
+  const data = await fetchJSON(`http://ip-api.com/json/${encodeURIComponent(ip)}`);
+  if (!data || data.status !== 'success') {
+    throw new Error((data && data.message) || 'Servicio no disponible');
+  }
+  const asnMatch = typeof data.as === 'string' ? data.as.match(/^AS(\d+)/) : null;
+  return {
+    ip,
+    city: data.city || '',
+    region: data.regionName || data.region || '',
+    country: data.country || '',
+    latitude: data.lat ?? null,
+    longitude: data.lon ?? null,
+    timezone: data.timezone || '',
+    asn: asnMatch ? Number(asnMatch[1]) : null,
+    org: data.org || '',
+    isp: data.isp || '',
+    network: ''
+  };
+}
+
+async function lookupIpMeta(ip) {
+  if (!ip) throw new Error('Sin dirección IP');
+  try {
+    return await lookupIpMetaPrimary(ip);
+  } catch (primaryError) {
+    try {
+      return await lookupIpMetaFallback(ip);
+    } catch (fallbackError) {
+      // Se reporta el error del proveedor primario (más específico, ej.
+      // "Rate limit exceeded") — el del fallback es menos informativo si
+      // ambos fallan.
+      throw primaryError;
+    }
+  }
+}
+
 const ALGO_MAP = {
   1: 'RSA/MD5',
   2: 'Diffie-Hellman',
@@ -118,12 +190,25 @@ function normalizeDomain(domain) {
   }
 }
 
+// Casos de certificado agregados 2026-09-09: antes cualquier falla de TLS
+// (ej. certificado que no cubre el hostname exacto) caía al genérico
+// "Servicio no disponible" — indistinguible de "el servidor no responde".
+// Para una herramienta que mide dominios, "el certificado no coincide" es
+// en sí mismo un hallazgo de seguridad real, no solo un error técnico.
+// Encontrado con presidencia.gob.ec: certificado compartido entre ~26
+// sitios .gob.ec cuyo SAN no incluye la variante sin "www" del dominio
+// (ERR_TLS_CERT_ALTNAME_INVALID, verificado con curl y con Node).
 function errorMessage(e) {
   if (e && typeof e === 'object') {
     if (e.code === 'ENOTFOUND') return 'Dominio no encontrado';
     if (e.code === 'ETIMEOUT') return 'Timeout';
     if (e.code === 'ECONNREFUSED') return 'Conexión rechazada';
     if (e.code === 'EAI_AGAIN') return 'Problema de DNS';
+    if (e.code === 'ERR_TLS_CERT_ALTNAME_INVALID') return 'El certificado TLS no cubre este dominio exacto';
+    if (e.code === 'CERT_HAS_EXPIRED') return 'El certificado TLS expiró';
+    if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || e.code === 'SELF_SIGNED_CERT_IN_CHAIN') return 'Certificado TLS autofirmado o no confiable';
+    if (e.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') return 'No se pudo verificar la cadena de certificados TLS';
+    if (e.code === 'CERT_NOT_YET_VALID') return 'El certificado TLS aún no es válido';
   }
   return 'Servicio no disponible';
 }
@@ -142,7 +227,14 @@ async function handleMx(domain, res) {
     const records = await dns.resolveMx(domain);
     sendJSON(res, 200, { domain, records });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e) });
+    // gob.mx (SPF "v=spf1 -all", declara explícitamente que no envía
+    // correo) no tiene MX — dns.resolveMx() da ENODATA, un caso legítimo
+    // de "sin registros", no una falla. handleCaa/handleTlsa ya
+    // distinguen esto; handleMx no lo hacía y devolvía un error genérico
+    // en vez de records: [].
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
+      sendJSON(res, 200, { domain, records: [] });
+    else sendJSON(res, 200, { domain, error: errorMessage(e) });
   }
 }
 
@@ -191,28 +283,38 @@ function smtpQuery(server, port) {
   });
 }
 
+// Puerto 25 saliente suele estar bloqueado por el hosting (verificado en
+// server1 y en desarrollo: 25 no conecta, 587 sí) — probar los puertos en
+// paralelo evita esperar el timeout completo de 25 (15s) antes de intentar
+// 587 secuencialmente. Prioridad de resultado sin cambios: 'supports' >
+// 'no' (respuesta definitiva) > 'timeout'/'connection-error'.
 async function checkSmtpUtf8(server) {
-  // Try common SMTP ports for resilience
   const ports = [25, 587];
-  let last = { status: 'connection-error' };
-  for (const port of ports) {
-    const res = await smtpQuery(server, port);
-    if (res.status === 'supports') return res;
-    if (res.status === 'no' && last.status !== 'supports') last = res;
-    if (res.status === 'timeout' || res.status === 'connection-error') last = res;
-  }
-  return last;
+  const results = await Promise.all(ports.map(port => smtpQuery(server, port)));
+  return results.find(r => r.status === 'supports')
+    || results.find(r => r.status === 'no')
+    || results[results.length - 1];
 }
 
 async function handleSmtpUtf8(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const mx = await dns.resolveMx(domain);
-    const results = [];
-    for (const record of mx) {
-      const { status } = await checkSmtpUtf8(record.exchange);
-      results.push({ server: record.exchange, status });
-    }
+    // Antes recorría los registros MX en secuencia — cada uno puede tardar
+    // hasta 15s (checkSmtpUtf8 ya prueba sus 2 puertos en paralelo, pero
+    // un MX puede agotar igual el timeout completo si ambos puertos están
+    // filtrados). Con 2+ registros MX el total se sumaba: verificado con
+    // presidencia.gob.ec (2 MX, ambos con puertos filtrados) — 30.2s en
+    // secuencia. isoc.org.ec solo tiene 1 MX, por eso este caso no había
+    // aparecido en la ronda anterior. Ahora los registros MX también
+    // corren en paralelo entre sí — mismo principio que ya se aplicó a
+    // los puertos.
+    const results = await Promise.all(
+      mx.map(async (record) => {
+        const { status } = await checkSmtpUtf8(record.exchange);
+        return { server: record.exchange, status };
+      })
+    );
     sendJSON(res, 200, { domain, results });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e) });
@@ -272,13 +374,28 @@ function pickLib(target) {
   return url.protocol === 'http:' ? http : https;
 }
 
+// User-Agent por defecto de todas las llamadas fetchJSON (2026-09-09):
+// verificado que rdap.org (403) y web.archive.org (400) rechazan
+// peticiones sin User-Agent — mismo patrón en dos servicios de terceros
+// distintos, encontrado en dos rondas separadas de validación cruzada
+// (ver docs/arquitectura.md). En vez de agregar el header caso por caso
+// (como se hizo primero solo para RDAP), se puso acá para cubrir también
+// llamadas nuevas a futuro. Verificado que no rompe ningún consumidor
+// actual (dns.google, cloudflare-dns.com, ipwho.is, RIPEstat,
+// tranco-list.eu, urlhaus-api.abuse.ch no son sensibles a este header).
+// Un `options.headers['User-Agent']` explícito lo sobreescribe.
+const DEFAULT_FETCH_USER_AGENT = 'MedicionesISOCLAC/1.0 (+https://mediciones.isoc.org.ec)';
+
 function fetchJSON(target, options = {}) {
   return new Promise((resolve, reject) => {
     const url = typeof target === 'string' ? new URL(target) : target;
     const lib = pickLib(url);
     const req = lib.request(
       url,
-      { method: options.method || 'GET', headers: options.headers || {} },
+      {
+        method: options.method || 'GET',
+        headers: { 'User-Agent': DEFAULT_FETCH_USER_AGENT, ...(options.headers || {}) }
+      },
       r => {
         let data = '';
         r.on('data', chunk => (data += chunk));
@@ -495,15 +612,22 @@ async function handleWhois(domain, res) {
 
   if (!name && !country) {
     try {
-      const data = await fetchJSON(`https://rdap.org/domain/${domain}`);
+      // Antes usaba fetchJSON directo (no sigue el 302 de rdap.org, sin
+      // User-Agent) — mismo bug ya corregido en handleDomainInfo, nunca
+      // aplicado acá hasta ahora. Ver fetchRdap() más arriba.
+      const data = await fetchRdap(domain);
       rdapReached = true;
       const registrant = data.entities?.find(e => e.roles?.includes('registrant'));
       const vcard = registrant?.vcardArray?.[1] || [];
       for (const item of vcard) {
         if (item[0] === 'fn') name = item[3];
         if (item[0] === 'adr') {
-          const label = item[1]?.label || '';
-          country = label.split('\n').pop();
+          // Bug encontrado al verificar este fix (2026-09-09): buscaba
+          // item[1]?.label, un parámetro que no existe en RDAP real — el
+          // país viene como parámetro "cc" (ej. {"cc":"EC"}) o como último
+          // elemento del array estructurado de dirección (item[3]).
+          const addressParts = Array.isArray(item[3]) ? item[3] : [];
+          country = item[1]?.cc || addressParts[addressParts.length - 1] || '';
         }
         if (item[0] === 'country') country = item[3];
       }
@@ -599,12 +723,20 @@ async function handleCaa(domain, res) {
 async function handleTlsa(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const records = await dns.resolve(`_443._tcp.${domain}`, 'TLSA');
+    // dns.resolve()/dns.resolveTlsa() no reconocen el rrtype TLSA en la
+    // versión de Node fijada en el Dockerfile (20.18.0) — lanzan
+    // ERR_INVALID_ARG_VALUE antes de siquiera consultar la red, para
+    // cualquier dominio (verificado con varios, incluyendo uno inventado).
+    // Se usa DNS-over-HTTPS de Google (mismo patrón que dnssecGoogle() y
+    // los checks de IPv4/IPv6/DMARC del cliente), así el check no depende
+    // de qué tipos de registro soporte el binding nativo de DNS de Node.
+    // Ver docs/arquitectura.md § "Validación cruzada con herramientas
+    // independientes".
+    const data = await fetchJSON(`https://dns.google/resolve?name=_443._tcp.${domain}&type=TLSA`);
+    const records = Array.isArray(data.Answer) ? data.Answer.map(a => a.data) : [];
     sendJSON(res, 200, { domain, records });
   } catch (e) {
-    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
-      sendJSON(res, 200, { domain, records: [] });
-    else sendJSON(res, 200, { domain, error: errorMessage(e) });
+    sendJSON(res, 200, { domain, error: errorMessage(e) });
   }
 }
 
@@ -781,6 +913,20 @@ async function handleQuality(domain, res) {
     const data = await fetchJSON(
       `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://${domain}`
     );
+    // PageSpeed responde HTTP 200 con un cuerpo {"error": {...}} cuando se
+    // agota la cuota diaria (fetchJSON no revisa el status HTTP, solo
+    // parsea el JSON) — antes esto caía directo a leer
+    // data.lighthouseResult?.categories (undefined) y devolvía
+    // silenciosamente `pwa: null` como si el sitio no tuviera PWA, en vez
+    // de reportar que la consulta falló. Verificado: cuota agotada
+    // (`RESOURCE_EXHAUSTED`) reproducible para cualquier dominio, no es
+    // algo de este dominio en particular — se muestra el mensaje real de
+    // Google (más útil que el genérico "Servicio no disponible" de
+    // errorMessage()) para que quede claro que es un límite de cuota, no
+    // un fallo de red.
+    if (data.error) {
+      return sendJSON(res, 200, { domain, error: data.error.message || 'PageSpeed devolvió un error' });
+    }
     const lighthouse = data.lighthouseResult?.categories || {};
     sendJSON(res, 200, {
       domain,
@@ -791,7 +937,7 @@ async function handleQuality(domain, res) {
       pwa: lighthouse.pwa?.score || null
     });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: 'Servicio no disponible' });
+    sendJSON(res, 200, { domain, error: errorMessage(e) });
   }
 }
 
@@ -920,6 +1066,16 @@ async function handleOpenPorts(domain, res) {
   sendJSON(res, 200, { domain, ports: results });
 }
 
+// Check "Traceroute" retirado de la UI (index.html, 2026-09-09): dependía
+// de api.hackertarget.com/mtr/, que ahora exige API key ("error valid key
+// required") de forma incondicional para cualquier dominio — confirmado
+// repetido y desde dos redes distintas, no es un límite de cuota diario
+// que se recupera solo. No hay alternativa gratuita equivalente (RIPEstat
+// looking-glass necesita un prefijo IP, no un dominio, y mide anuncios
+// BGP, no saltos de red reales; los demás endpoints de HackerTarget piden
+// key también). Ruta dejada sin tocar (mismo patrón que /emailconfig,
+// /httpsecurity, /dnssecurity, /tlsconfig), ahora inalcanzable desde la
+// UI. Ver docs/arquitectura.md.
 async function handleTraceroute(domain, res) {
   domain = normalizeDomain(domain);
   try {
@@ -973,16 +1129,53 @@ async function handleServerInfo(domain, res) {
   }
 }
 
+// Extrae el nombre (campo "fn" del vCard) de la primera entidad RDAP con el
+// rol dado (ej. "registrar") — RDAP no tiene un campo "registryName" plano;
+// el nombre del registrador vive anidado en `entities[].vcardArray`.
+// Fetch RDAP compartido (2026-09-09): originalmente vivía inline solo en
+// handleDomainInfo; se consolidó acá porque handleWhois tenía su PROPIA
+// copia de esta misma llamada rota (fallback RDAP, más abajo) que nunca
+// se había corregido — dos lugares con el mismo bug en vez de uno.
+// El bootstrap de rdap.org redirige (302) al servidor RDAP autoritativo
+// del TLD (ej. .ec -> rdap.registry.ec) antes de entregar el JSON real —
+// hay que seguir esa redirección (fetchJSON no lo hace, se queda con el
+// cuerpo vacío del 302 y falla el JSON.parse). resolveFinalWebTarget ya
+// sigue redirects con guardas SSRF, mismo utilitario que usan headers/
+// security.txt/etc. También hace falta un User-Agent no vacío: rdap.org
+// está detrás de Cloudflare y devuelve 403 (no 302) a peticiones sin
+// User-Agent — verificado con curl -A "" vs -A "Mozilla/...". No se usa
+// el User-Agent por defecto de fetchJSON (DEFAULT_FETCH_USER_AGENT)
+// porque esta llamada no pasa por fetchJSON, sino por el adaptador SSRF
+// (resolveFinalWebTarget) — mismo valor, dos mecanismos de fetch.
+async function fetchRdap(domain) {
+  const resolved = await resolveFinalWebTarget(`https://rdap.org/domain/${domain}`, {
+    headers: {
+      Accept: 'application/rdap+json',
+      'User-Agent': DEFAULT_FETCH_USER_AGENT
+    }
+  });
+  return JSON.parse(resolved.response.body);
+}
+
+function rdapEntityName(entities, role) {
+  const entity = (Array.isArray(entities) ? entities : [])
+    .find(e => Array.isArray(e.roles) && e.roles.includes(role));
+  const props = entity?.vcardArray?.[1];
+  if (!Array.isArray(props)) return null;
+  const fn = props.find(p => Array.isArray(p) && p[0] === 'fn');
+  return fn?.[3] || null;
+}
+
 async function handleDomainInfo(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const data = await fetchJSON(`https://rdap.org/domain/${domain}`);
+    const data = await fetchRdap(domain);
     const events = Array.isArray(data.events) ? data.events : [];
     const creation = events.find(e => e.eventAction === 'registration')?.eventDate || null;
     const expiration = events.find(e => e.eventAction === 'expiration')?.eventDate || null;
     sendJSON(res, 200, {
       domain,
-      registry: data.registryName || null,
+      registry: rdapEntityName(data.entities, 'registrar'),
       status: data.status || [],
       creation,
       expiration
@@ -1046,13 +1239,27 @@ function detectTechStack(html) {
   return [...new Set(stack)];
 }
 
-function extractLinks(html, domain) {
+// `baseUrl` debe ser la URL final real de la página (post-redirects,
+// ej. "https://www.isoc.org.ec/") — antes se comparaba el href contra la
+// clave cruda `domain` con `startsWith('/')`/`includes(domain)`, lo que
+// clasificaba como "externo" cualquier enlace relativo sin "/" inicial
+// (ej. "quienes-somos.html", un patrón HTML común) — bug verificado con
+// el HTML real de isoc.org.ec. Resolver contra la URL base con el `URL`
+// nativo de Node y comparar hostname es la forma correcta, sin depender
+// de heurísticas de substring.
+function extractLinks(html, baseUrl) {
   const links = [];
   const regex = /<a\s+[^>]*href=["']([^"'#]+)["'][^>]*>/gi;
+  const base = new URL(baseUrl);
   let match;
   while ((match = regex.exec(html))) {
     const href = match[1];
-    const internal = href.startsWith('/') || href.includes(domain);
+    let internal = false;
+    try {
+      internal = new URL(href, base).hostname === base.hostname;
+    } catch (e) {
+      internal = false; // href no navegable como URL (ej. "javascript:...")
+    }
     links.push({ href, internal });
   }
   return links;
@@ -1128,7 +1335,7 @@ async function handleLinkedPages(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const page = await fetchWebsite(domain);
-    const links = extractLinks(page.body, domain);
+    const links = extractLinks(page.body, page.url);
     sendJSON(res, 200, { domain, links });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e) });
@@ -1265,8 +1472,17 @@ function base64UrlEncode(buf) {
 }
 //Version consulta Quad9 usando POST
 
+// Quad9 exige HTTP/2 en su servidor DoH desde 2026 (RFC 8484 §5.2) — con
+// HTTP/1.1 (lo que usa https.request) responde 505 siempre, para
+// cualquier dominio, verificado también desde server1. No es un límite de
+// tasa ni un problema de nuestra query — se confirmó reproduciendo la
+// misma consulta con el módulo http2 nativo de Node (sin dependencia
+// nueva), que sí obtiene 200 con la respuesta real. Ver
+// docs/arquitectura.md § "Validación cruzada con herramientas
+// independientes".
 function queryQuad9(domain) {
   return new Promise((resolve, reject) => {
+    let client;
     try {
       const query = dnsPacket.encode({
         type: 'query',
@@ -1280,41 +1496,53 @@ function queryQuad9(domain) {
         ]
       });
 
-      const options = {
-        hostname: 'dns.quad9.net',
-        path: '/dns-query',
-        method: 'POST',
-        headers: {
-          'content-type': 'application/dns-message',
-          accept: 'application/dns-message',
-          'content-length': query.length
-        },
-        timeout: 15000
-      };
+      client = http2.connect('https://dns.quad9.net');
+      client.on('error', reject);
 
-      const req = https.request(options, res => {
-        const chunks = [];
-        res.on('data', c => chunks.push(c));
-        res.on('end', () => {
-          try {
-            const buf = Buffer.concat(chunks);
-            const msg = dnsPacket.decode(buf);
-            resolve(msg);
-          } catch (e) {
-            reject(e);
+      const req = client.request({
+        ':method': 'POST',
+        ':path': '/dns-query',
+        'content-type': 'application/dns-message',
+        accept: 'application/dns-message',
+        'content-length': query.length
+      });
+
+      let status = null;
+      req.on('response', headers => {
+        status = Number(headers[':status']);
+      });
+
+      const chunks = [];
+      req.on('data', c => chunks.push(c));
+      req.on('end', () => {
+        client.close();
+        try {
+          if (status !== 200) {
+            reject(new Error(`Quad9 DoH respondió HTTP ${status}`));
+            return;
           }
-        });
+          const msg = dnsPacket.decode(Buffer.concat(chunks));
+          resolve(msg);
+        } catch (e) {
+          reject(e);
+        }
       });
 
-      req.on('error', reject);
+      req.on('error', e => {
+        client.close();
+        reject(e);
+      });
+
       req.setTimeout(15000, () => {
-        req.destroy(new Error('Timeout'));
+        req.close();
+        client.close();
+        reject(new Error('Timeout'));
       });
 
-      // Enviamos el mensaje DNS crudo
       req.write(query);
       req.end();
     } catch (e) {
+      if (client) client.close();
       reject(e);
     }
   });
@@ -1480,6 +1708,14 @@ async function handleTlsCiphers(domain, res) {
   }
 }
 
+// Check "TLS Security Config" retirado de la UI (index.html, 2026-09-09):
+// dependía de tls-observatory.services.mozilla.com, que Mozilla dio de baja
+// permanentemente (sunset oct-2024, repo archivado dic-2025 — verificado
+// con curl, no responde en absoluto). No hay reemplazo gratuito equivalente
+// con el mismo formato score/tests, y el check se solapaba con tlsinfo/
+// sslchain/tlsciphers/tlssimulation, que sí funcionan. Ruta dejada sin
+// tocar (mismo patrón que /emailconfig, /httpsecurity, /dnssecurity),
+// ahora inalcanzable desde la UI. Ver docs/arquitectura.md.
 async function handleTlsConfig(domain, res) {
   domain = normalizeDomain(domain);
   try {
@@ -2500,6 +2736,20 @@ function getBaseUrl(req) {
 }
 
   const server = http.createServer(async (req, res) => {
+  // Log de acceso mínimo — método, ruta, status, duración. Sin datos
+  // personales (no se loguea body ni query string completa, solo la ruta).
+  // Ver nota más arriba sobre por qué se agregó.
+  const _reqStartedAt = Date.now();
+  const _reqMethod = req.method;
+  const _reqPath = req.url.split('?')[0];
+  res.on('finish', () => {
+    console.log(`${new Date().toISOString()} ${_reqMethod} ${_reqPath} ${res.statusCode} ${Date.now() - _reqStartedAt}ms`);
+  });
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      console.error(`${new Date().toISOString()} ${_reqMethod} ${_reqPath} CONEXIÓN CERRADA SIN RESPUESTA (${Date.now() - _reqStartedAt}ms)`);
+    }
+  });
 
   const publicPath = path.join(__dirname, 'public');
   const requestPath = req.url.split('?')[0];
@@ -2518,7 +2768,17 @@ function getBaseUrl(req) {
       '.pdf': 'application/pdf'
     }[ext] || 'application/octet-stream';
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    const headers = { 'Content-Type': contentType };
+    // Defensa adicional (2026-09-11): Cloudflare cachea .js en su borde
+    // con max-age=14400 por defecto aunque el origen no mande ningún
+    // Cache-Control — encontrado porque public/i18n.js quedó sirviendo
+    // una versión vieja del diccionario de traducción durante horas tras
+    // un despliegue (claves crudas como "med.heading" en pantalla en vez
+    // del texto). El ?v= en el <script src> de index.html/admin.html es
+    // la defensa principal (URL nueva = cache miss garantizado); esto es
+    // un respaldo para cualquier otro .js que se agregue sin ese cuidado.
+    if (ext === '.js') headers['Cache-Control'] = 'no-cache';
+    res.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(res);
     return;
   }

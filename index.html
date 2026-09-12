@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suite de Análisis de Dominios</title>
+    <title data-i18n="site.title">Suite de Análisis de Dominios</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <!-- Diccionario de traducción del sitio (idioma global, ver
+         public/i18n.js) — debe cargar ANTES de los <script> inline del
+         body para que t()/currentLang existan cuando esos bloques los
+         usen en su primer render. -->
+    <!-- ?v= rompe la caché de borde de Cloudflare (max-age=14400 por
+         defecto para .js, aunque nuestro servidor no manda ningún
+         Cache-Control — es un comportamiento propio de Cloudflare).
+         Encontrado 2026-09-11: sin esto, un usuario podía quedar viendo
+         claves crudas ("med.heading") en vez del texto traducido durante
+         horas después de cada despliegue que cambiara el diccionario.
+         Subir este número cada vez que se edite public/i18n.js. -->
+    <script src="/i18n.js?v=10"></script>
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         * { box-sizing: border-box; }
@@ -274,6 +284,92 @@
   background: #ffffff;
   padding: .75rem;
 }
+/* Deslizador para tablas anchas (tabla del reporte por lote) — el
+   overflow-x-auto nativo ya permite hacer scroll, pero el scrollbar del
+   sistema puede ser fino/invisible (Windows con "ocultar barras" activado,
+   trackpads, etc.) y el usuario no se da cuenta de que hay más columnas.
+   Se agrega: (1) un scrollbar siempre visible y grueso en la tabla misma,
+   y (2) un <input type="range"> explícito debajo, sincronizado con el
+   scroll real — ver mbWireComparativeSlider() en el script del lote. */
+.table-scroll-wrap { position: relative; }
+.table-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #93c5fd #eef2ff;
+}
+.table-scroll::-webkit-scrollbar { height: 12px; }
+.table-scroll::-webkit-scrollbar-track { background: #eef2ff; }
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 9999px;
+  border: 2px solid #eef2ff;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+.table-scroll-slider {
+  display: none;
+  width: 100%;
+  margin: 0;
+  padding: .9rem 1rem;
+  box-sizing: border-box;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.table-scroll-slider-top {
+  border-top: none;
+  border-bottom: 1px solid #e5e7eb;
+}
+.table-scroll-slider.is-active { display: block; }
+/* Riel + marcador triangular (no el "bolita" nativo del navegador) —
+   requiere anular el estilo nativo del input (appearance:none arriba) y
+   redibujar riel y control a mano para Chrome/Edge/Safari (::-webkit-*) y
+   Firefox (::-moz-*) por separado, WebKit no soporta pseudo-elementos con
+   prefijo -moz y viceversa. */
+.table-scroll-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+.table-scroll-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid #2563eb;
+  margin-top: -4px;
+  cursor: pointer;
+}
+.table-scroll-slider::-moz-range-track {
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+.table-scroll-slider::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: none;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid #2563eb;
+  border-radius: 0;
+  cursor: pointer;
+}
+/* Flecha de despliegue en los grupos de checks — el <summary> de esos
+   grupos usa "display:flex" (para alinear título y contador a los
+   extremos), y eso pisa el marcador nativo del navegador (que depende de
+   "display:list-item"), dejando el <details> sin ninguna señal visual de
+   que es desplegable. Se agrega un ícono propio que rota al abrir/cerrar. */
+.disclosure-chevron {
+  display: inline-block;
+  margin-right: .5rem;
+  color: #6b7280;
+  font-size: .65rem;
+  transition: transform .15s ease;
+}
+details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
 .download-btn-isoc {
   background: #4f5fe6;
   color: #ffffff;
@@ -312,22 +408,27 @@
     Mediciones ISOC-LAC
   </h1>
 
-  <p class="mt-2 text-sm text-gray-500">
+  <p class="mt-2 text-sm text-gray-500" data-i18n="site.subtitle">
     Herramienta experimental para apoyar las mediciones y la implementación del DNSSEC en la región LAC.
   </p>
 
-  <button id="aboutBtn" class="mt-2 text-sm text-blue-600 underline">
+  <button id="aboutBtn" class="mt-2 text-sm text-blue-600 underline" data-i18n="site.aboutBtn">
     Acerca de
   </button>
-  <a href="/admin" title="Acceso administración" aria-label="Acceso administración"
+  <a href="/admin" data-i18n-title="site.adminAccess" data-i18n-aria-label="site.adminAccess" title="Acceso administración" aria-label="Acceso administración"
     class="ml-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition align-middle">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
-    Admin
+    <span data-i18n="site.adminLink">Admin</span>
   </a>
+  <button id="site-lang-toggle" type="button" onclick="setLanguage(currentLang === 'es' ? 'en' : 'es')"
+    aria-pressed="false"
+    class="lang-toggle-btn ml-3 inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition align-middle underline decoration-dotted">
+    🌐 English
+  </button>
 
-  <div id="aboutText" class="hidden mt-4 text-sm text-gray-700">
+  <div id="aboutText" class="hidden mt-4 text-sm text-gray-700" data-i18n="site.aboutText">
     Varios capítulos de ISOC en región LAC desarrollaron esta herramienta abierta para medir la adopción de tecnologías y buenas prácticas en Internet en América Latina y el Caribe.
   </div>
 
@@ -342,6 +443,7 @@
       type="button"
       class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="inicio"
+      data-i18n="tab.inicio"
     >
       INICIO
     </button>
@@ -351,6 +453,7 @@
       type="button"
       class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="preparacion"
+      data-i18n="tab.preparacion"
     >
       DataSet
     </button>
@@ -360,6 +463,7 @@
       type="button"
       class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="mediciones"
+      data-i18n="tab.mediciones"
     >
       MEDICIONES
     </button>
@@ -369,6 +473,7 @@
       type="button"
       class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="dnssec"
+      data-i18n="tab.dnssec"
     >
       DNSSEC
     </button>
@@ -378,6 +483,7 @@
       type="button"
       class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="observatorio"
+      data-i18n="tab.observatorio"
     >
       OBSERVATORIO
     </button>
@@ -392,6 +498,7 @@
       type="button"
       class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="blog"
+      data-i18n="tab.blog"
     >
       BLOG
     </button>
@@ -401,6 +508,7 @@
       type="button"
       class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="informacion"
+      data-i18n="tab.informacion"
     >
       INFORMACIÓN
     </button>
@@ -410,6 +518,7 @@
       type="button"
       class="tab-btn tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="eventos"
+      data-i18n="tab.eventos"
     >
       EVENTOS
     </button>
@@ -427,8 +536,8 @@
   data-panel="inicio"
 >
   <div class="mb-8">
-    <h2 class="text-xl font-bold text-gray-900 mb-2">¿Qué es Mediciones ISOC LAC?</h2>
-    <p class="text-sm text-gray-700 leading-relaxed">
+    <h2 class="text-xl font-bold text-gray-900 mb-2" data-i18n="inicio.about.heading">¿Qué es Mediciones ISOC LAC?</h2>
+    <p class="text-sm text-gray-700 leading-relaxed" data-i18n-html="inicio.about.body">
       Esta plataforma es una iniciativa abierta impulsada por capítulos de <strong>Internet Society (ISOC)</strong>
       en América Latina y el Caribe para generar evidencia técnica sobre la salud de la infraestructura de
       Internet en la región: adopción de DNSSEC, seguridad de enrutamiento (RPKI) y buenas prácticas en
@@ -440,37 +549,37 @@
   </div>
 
   <div class="mb-8">
-    <h2 class="text-xl font-bold text-gray-900 mb-4">Módulos de la plataforma</h2>
+    <h2 class="text-xl font-bold text-gray-900 mb-4" data-i18n="inicio.modules.heading">Módulos de la plataforma</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
       <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">Mediciones</div>
-        <p class="text-sm text-gray-600 flex-1">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="inicio.module.mediciones.title">Mediciones</div>
+        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.mediciones.body">
           Análisis individual o por lote de un dominio: MX, DKIM, RPKI, WHOIS, CAA, TLSA, cabeceras de
           seguridad, cadena TLS y más de 30 verificaciones técnicas por dominio.
         </p>
         <button onclick="document.getElementById('tabBtnMediciones').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
       </div>
 
       <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">DNSSEC</div>
-        <p class="text-sm text-gray-600 flex-1">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="inicio.module.dnssec.title">DNSSEC</div>
+        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.dnssec.body">
           Valida la cadena de firma DNSSEC completa (TLD → dominio) y las delegaciones seguras (DS/DNSKEY),
           en modo individual o por lote sobre listas de dominios.
         </p>
         <button onclick="document.getElementById('tabBtnDnssec').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
       </div>
 
       <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1">Observatorio <span class="text-amber-600 normal-case font-semibold">(en construcción)</span></div>
-        <p class="text-sm text-gray-600 flex-1">
+        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n-html="inicio.module.observatorio.title">Observatorio <span class="text-amber-600 normal-case font-semibold">(en construcción)</span></div>
+        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.observatorio.body">
           Panel de comparación de la evolución de DNSSEC por país, entre países de la región y frente a otras
           regiones del mundo — pendiente de definir las fuentes de datos.
         </p>
         <button onclick="document.getElementById('tabBtnObservatorio').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left">Ir al módulo →</button>
+          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
       </div>
 
     </div>
@@ -485,8 +594,8 @@
   data-panel="informacion"
 >
   <div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Información</h2>
-    <p class="text-sm text-gray-600 mt-1">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="info.heading">Información</h2>
+    <p class="text-sm text-gray-600 mt-1" data-i18n="info.intro">
       Guías, presentaciones y material de capacitación sobre DNSSEC y sobre la metodología de mediciones: qué se
       mide, por qué es válido hacerlo y para qué sirve.
     </p>
@@ -501,9 +610,9 @@
   data-panel="preparacion"
 >
   <div class="mb-2 flex items-center gap-3 flex-wrap">
-    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Preparación de datasets de dominios</h2>
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="prep.heading">Preparación de datasets de dominios</h2>
   </div>
-  <p class="text-sm text-gray-600 mb-8 leading-relaxed">
+  <p class="text-sm text-gray-600 mb-8 leading-relaxed" data-i18n="prep.intro">
     Esta sección prepara el universo de dominios que posteriormente utilizarán las mediciones del portal
     (Mediciones, DNSSEC y Observatorio). A partir de una fuente de dominios (por ejemplo, listas ccTLD de
     OpenINTEL basadas en Certificate Transparency), el flujo de preparación normaliza, clasifica y valida
@@ -517,9 +626,9 @@
     <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
       <div class="flex items-center gap-2 mb-2">
         <span id="prep-badge-fuente" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="fuente">1</span>
-        <span class="font-semibold text-gray-900 text-sm">Fuente</span>
+        <span class="font-semibold text-gray-900 text-sm" data-i18n="prep.step.fuente.title">Fuente</span>
       </div>
-      <p class="text-xs text-gray-600 flex-1">
+      <p class="text-xs text-gray-600 flex-1" data-i18n="prep.step.fuente.body">
         Archivo de origen de dominios (ej. listas ccTLD de OpenINTEL vía Certificate Transparency). Es una
         fuente amplia de descubrimiento, no un censo oficial del ccTLD.
       </p>
@@ -531,9 +640,9 @@
     <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
       <div class="flex items-center gap-2 mb-2">
         <span id="prep-badge-carga" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="carga">2</span>
-        <span class="font-semibold text-gray-900 text-sm">Carga</span>
+        <span class="font-semibold text-gray-900 text-sm" data-i18n="prep.step.carga.title">Carga</span>
       </div>
-      <p class="text-xs text-gray-600 flex-1">
+      <p class="text-xs text-gray-600 flex-1" data-i18n="prep.step.carga.body">
         Subida del archivo al portal (.txt/.csv, un dominio por línea o primera columna).
       </p>
     </div>
@@ -544,9 +653,9 @@
     <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
       <div class="flex items-center gap-2 mb-2">
         <span id="prep-badge-normalizacion" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="normalizacion">3</span>
-        <span class="font-semibold text-gray-900 text-sm">Normalización</span>
+        <span class="font-semibold text-gray-900 text-sm" data-i18n="prep.step.normalizacion.title">Normalización</span>
       </div>
-      <p class="text-xs text-gray-600 flex-1">
+      <p class="text-xs text-gray-600 flex-1" data-i18n="prep.step.normalizacion.body">
         Limpieza y deduplicación: minúsculas, IDNA/Punycode, validación de sintaxis y ccTLD, y clasificación
         por sufijo con la Public Suffix List (sección ICANN).
       </p>
@@ -558,9 +667,9 @@
     <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
       <div class="flex items-center gap-2 mb-2">
         <span id="prep-badge-validacion" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="validacion">4</span>
-        <span class="font-semibold text-gray-900 text-sm">Validación DNS</span>
+        <span class="font-semibold text-gray-900 text-sm" data-i18n="prep.step.validacion.title">Validación DNS</span>
       </div>
-      <p class="text-xs text-gray-600 flex-1">
+      <p class="text-xs text-gray-600 flex-1" data-i18n="prep.step.validacion.body">
         Confirmación de existencia DNS contra dos resolvers independientes (Cloudflare y Google): NS y, si es
         inconcluso, SOA. Clasifica cada dominio como VALID, NXDOMAIN o REVIEW.
       </p>
@@ -572,9 +681,9 @@
     <div class="flex-1 min-w-0 border border-gray-200 rounded-xl p-4 flex flex-col">
       <div class="flex items-center gap-2 mb-2">
         <span id="prep-badge-resultado" class="prep-step-badge w-7 h-7 flex-shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" data-step="resultado">5</span>
-        <span class="font-semibold text-gray-900 text-sm">Resultados y descarga</span>
+        <span class="font-semibold text-gray-900 text-sm" data-i18n="prep.step.resultado.title">Resultados y descarga</span>
       </div>
-      <p class="text-xs text-gray-600 flex-1">
+      <p class="text-xs text-gray-600 flex-1" data-i18n="prep.step.resultado.body">
         Dataset operativo (dominios VALID) listo para las mediciones del portal, junto con las listas de
         exclusión, discrepancias y el reporte de metodología.
       </p>
@@ -585,70 +694,70 @@
   <!-- ═══ Etapa: Fuente ═══════════════════════════════════════════════════ -->
   <div id="prep-stage-fuente">
     <div class="border-2 border-blue-200 rounded-xl p-5 bg-blue-50/40 mb-4">
-      <div class="text-xs font-bold uppercase tracking-wide text-blue-700 mb-1">Fuente recomendada</div>
+      <div class="text-xs font-bold uppercase tracking-wide text-blue-700 mb-1" data-i18n="prep.source.badge">Fuente recomendada</div>
       <h3 class="font-semibold text-gray-900 mb-2">OpenINTEL</h3>
-      <ul class="text-sm text-gray-700 space-y-1.5 list-disc pl-5 mb-3">
+      <ul class="text-sm text-gray-700 space-y-1.5 list-disc pl-5 mb-3" data-i18n-html="prep.source.list">
         <li>La lista ccTLD se descarga <strong>manualmente</strong> desde el sitio de OpenINTEL — este portal no realiza scraping ni descargas automáticas.</li>
         <li>Las listas se derivan principalmente de nombres observados en <strong>Certificate Transparency (CT)</strong>.</li>
         <li>Ofrecen una cobertura amplia, pero <strong>no son un archivo oficial de zona ni un censo completo</strong> del ccTLD.</li>
         <li>Que un dominio aparezca en la lista <strong>no garantiza que siga existiendo actualmente en DNS</strong> — por eso Mediciones realiza después una validación DNS independiente.</li>
         <li>Antes de descargar, revisa y acepta directamente los <strong>términos y licencia</strong> aplicables de OpenINTEL en su propio sitio; este portal no los gestiona ni los reemplaza.</li>
       </ul>
-      <a href="https://openintel.nl/" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:underline">
+      <a href="https://openintel.nl/" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:underline" data-i18n="prep.source.link">
         Ir al sitio oficial de OpenINTEL →
       </a>
     </div>
 
-    <button onclick="prepGoToStage('carga')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+    <button onclick="prepGoToStage('carga')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition" data-i18n="prep.source.continueBtn">
       Ya tengo el archivo — continuar a Carga →
     </button>
   </div>
 
   <!-- ═══ Etapa: Carga ════════════════════════════════════════════════════ -->
   <div id="prep-stage-carga" class="hidden">
-    <h3 class="font-semibold text-gray-900 mb-2">Carga del archivo</h3>
-    <p class="text-sm text-gray-600 mb-3">
+    <h3 class="font-semibold text-gray-900 mb-2" data-i18n="prep.upload.heading">Carga del archivo</h3>
+    <p class="text-sm text-gray-600 mb-3" data-i18n="prep.upload.body">
       Selecciona el archivo .txt o .csv descargado desde la fuente (un dominio por línea, o primera columna
       si es CSV). El archivo se procesa en este portal; no se sube a ningún tercero.
     </p>
 
     <label class="inline-block text-sm font-semibold border border-gray-300 px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-50 transition mb-4">
-      Seleccionar archivo…
+      <span data-i18n="prep.upload.selectFile">Seleccionar archivo…</span>
       <input type="file" id="prep-file-input" accept=".txt,.csv" class="hidden" onchange="prepHandleFileSelect(this)" />
     </label>
     <span id="prep-file-error" class="hidden text-sm text-red-600 mb-3 block"></span>
 
     <div id="prep-file-meta" class="hidden border border-gray-200 rounded-xl p-4 text-sm mb-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-        <div><span class="text-gray-500">Nombre:</span> <span id="prep-meta-name" class="font-medium"></span></div>
-        <div><span class="text-gray-500">Tamaño:</span> <span id="prep-meta-size" class="font-medium"></span></div>
-        <div><span class="text-gray-500">Líneas:</span> <span id="prep-meta-lines" class="font-medium"></span></div>
-        <div><span class="text-gray-500">Fecha (del nombre):</span> <span id="prep-meta-date" class="font-medium"></span></div>
+        <div><span class="text-gray-500" data-i18n="prep.upload.meta.name">Nombre:</span> <span id="prep-meta-name" class="font-medium"></span></div>
+        <div><span class="text-gray-500" data-i18n="prep.upload.meta.size">Tamaño:</span> <span id="prep-meta-size" class="font-medium"></span></div>
+        <div><span class="text-gray-500" data-i18n="prep.upload.meta.lines">Líneas:</span> <span id="prep-meta-lines" class="font-medium"></span></div>
+        <div><span class="text-gray-500" data-i18n="prep.upload.meta.date">Fecha (del nombre):</span> <span id="prep-meta-date" class="font-medium"></span></div>
       </div>
       <div class="mt-3">
-        <span class="text-gray-500 text-xs">SHA-256:</span>
+        <span class="text-gray-500 text-xs" data-i18n="prep.upload.meta.sha256">SHA-256:</span>
         <div id="prep-meta-sha256" class="font-mono text-xs break-all bg-gray-50 border border-gray-200 rounded p-2 mt-1"></div>
       </div>
       <div class="mt-3 flex items-center gap-2 flex-wrap">
-        <label for="prep-tld-input" class="text-gray-500">ccTLD detectado (editable):</label>
+        <label for="prep-tld-input" class="text-gray-500" data-i18n="prep.upload.tldLabel">ccTLD detectado (editable):</label>
         <input id="prep-tld-input" type="text" placeholder="ec" class="border border-gray-300 rounded px-2 py-1 text-sm w-24 font-mono" />
       </div>
-      <p class="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+      <p class="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5" data-i18n="prep.upload.tldWarning">
         ⚠ Cambiar el ccTLD no es solo una etiqueta: modifica el criterio de filtrado — decide qué dominios
         se aceptan o se rechazan como "outside_tld" durante la normalización. Corrígelo solo si el detectado
         es incorrecto.
       </p>
     </div>
 
-    <button id="prep-continue-to-normalize" onclick="prepGoToStage('normalizacion')" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+    <button id="prep-continue-to-normalize" onclick="prepGoToStage('normalizacion')" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition" data-i18n="prep.upload.continueBtn">
       Continuar a Normalización →
     </button>
   </div>
 
   <!-- ═══ Etapa: Normalización ═══════════════════════════════════════════ -->
   <div id="prep-stage-normalizacion" class="hidden">
-    <h3 class="font-semibold text-gray-900 mb-2">Normalización</h3>
-    <p class="text-sm text-gray-600 mb-4">
+    <h3 class="font-semibold text-gray-900 mb-2" data-i18n="prep.norm.heading">Normalización</h3>
+    <p class="text-sm text-gray-600 mb-4" data-i18n-html="prep.norm.body">
       Aplica la misma metodología del validador de referencia: trim, minúsculas, eliminación de punto final,
       IDNA/Punycode, eliminación de vacíos y duplicados, validación de longitud/sintaxis, pertenencia al
       ccTLD, y clasificación por sufijo con la Public Suffix List (sección ICANN). Todavía no se ejecutan
@@ -656,19 +765,19 @@
     </p>
 
     <div id="prep-normalize-idle">
-      <button onclick="prepRunNormalize()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      <button onclick="prepRunNormalize()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition" data-i18n="prep.norm.runBtn">
         Normalizar dominios
       </button>
     </div>
-    <div id="prep-normalize-loading" class="hidden text-sm text-gray-500">Normalizando y clasificando por sufijo (PSL, sección ICANN)…</div>
+    <div id="prep-normalize-loading" class="hidden text-sm text-gray-500" data-i18n="prep.norm.loading">Normalizando y clasificando por sufijo (PSL, sección ICANN)…</div>
     <div id="prep-normalize-error" class="hidden text-sm text-red-600"></div>
     <div id="prep-normalize-results" class="hidden"></div>
   </div>
 
   <!-- ═══ Etapa: Validación DNS ═══════════════════════════════════════════ -->
   <div id="prep-stage-validacion" class="hidden">
-    <h3 class="font-semibold text-gray-900 mb-2">Validación DNS</h3>
-    <p class="text-sm text-gray-600 mb-4">
+    <h3 class="font-semibold text-gray-900 mb-2" data-i18n="prep.dns.heading">Validación DNS</h3>
+    <p class="text-sm text-gray-600 mb-4" data-i18n-html="prep.dns.body">
       Réplica fiel del validador de referencia: confirma existencia DNS contra dos resolvers
       independientes — Cloudflare (1.1.1.1) y Google (8.8.8.8) — consultando NS y, si es inconcluso, SOA,
       con CD=1 para no depender de la validación DNSSEC del resolver. <strong>VALID</strong> = NOERROR en
@@ -678,7 +787,7 @@
     </p>
 
     <div id="prep-dns-idle">
-      <button id="prep-dns-start-btn" onclick="prepRunDnsValidation()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
+      <button id="prep-dns-start-btn" onclick="prepRunDnsValidation()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700 transition" data-i18n="prep.dns.startBtn">
         Iniciar validación DNS
       </button>
     </div>
@@ -687,7 +796,7 @@
 
     <div id="prep-dns-progress" class="hidden mt-2">
       <div class="flex items-center justify-between text-sm mb-1">
-        <span id="prep-dns-progress-label">Preflight de resolvers…</span>
+        <span id="prep-dns-progress-label" data-i18n="prep.dns.preflight">Preflight de resolvers…</span>
         <span id="prep-dns-progress-pct">0%</span>
       </div>
       <div class="w-full bg-gray-100 rounded-full h-2.5 mb-2">
@@ -1093,10 +1202,10 @@
   data-panel="observatorio"
 >
   <div class="mb-2 flex items-center gap-3 flex-wrap">
-    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Observatorio DNSSEC — LAC</h2>
-    <span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">En construcción</span>
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="obs.heading">Observatorio DNSSEC — LAC</h2>
+    <span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full" data-i18n="obs.badge">En construcción</span>
   </div>
-  <p class="text-sm text-gray-600 mb-6 max-w-3xl">
+  <p class="text-sm text-gray-600 mb-6 max-w-3xl" data-i18n-html="obs.intro">
     El Observatorio será un panel de comparación, no una herramienta de análisis por lote. En vez de correr
     verificaciones sobre listas propias, mostrará la <strong>evolución de la adopción de DNSSEC</strong> ya medida
     a partir de fuentes de datos regionales:
@@ -1104,22 +1213,22 @@
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
-      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">Por país</div>
-      <p class="text-sm text-gray-600 flex-1">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="obs.byCountry.title">Por país</div>
+      <p class="text-sm text-gray-600 flex-1" data-i18n="obs.byCountry.body">
         Evolución en el tiempo de la adopción de DNSSEC dentro de un mismo país — ¿el porcentaje de dominios
         firmados sube, baja o se estanca?
       </p>
     </div>
     <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
-      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">Entre países</div>
-      <p class="text-sm text-gray-600 flex-1">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="obs.betweenCountries.title">Entre países</div>
+      <p class="text-sm text-gray-600 flex-1" data-i18n="obs.betweenCountries.body">
         Comparación lado a lado entre países de la región LAC — qué ccTLD lidera la adopción y cuáles van
         rezagados.
       </p>
     </div>
     <div class="border border-indigo-100 rounded-xl p-5 bg-white flex flex-col">
-      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1">LAC vs. otras regiones</div>
-      <p class="text-sm text-gray-600 flex-1">
+      <div class="text-indigo-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="obs.vsRegions.title">LAC vs. otras regiones</div>
+      <p class="text-sm text-gray-600 flex-1" data-i18n="obs.vsRegions.body">
         Ubicar a América Latina y el Caribe frente a otras regiones del mundo, para dimensionar la brecha o el
         avance relativo.
       </p>
@@ -1127,8 +1236,8 @@
   </div>
 
   <div class="border-2 border-dashed border-indigo-200 rounded-xl p-5 bg-indigo-50/30">
-    <div class="text-xs font-bold uppercase tracking-wide text-indigo-700 mb-1">Pendiente de definir</div>
-    <p class="text-sm text-gray-700">
+    <div class="text-xs font-bold uppercase tracking-wide text-indigo-700 mb-1" data-i18n="obs.pending.title">Pendiente de definir</div>
+    <p class="text-sm text-gray-700" data-i18n="obs.pending.body">
       Todavía no se ha definido de dónde vendrán los datos de esta comparación (fuente propia, agregador
       internacional existente, o una combinación). El dashboard no se activa hasta resolver esa fuente — así se
       evita construir sobre una base de datos que luego cambie de origen o de formato.
@@ -1370,8 +1479,8 @@
   data-panel="blog"
 >
   <div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Blog</h2>
-    <p class="text-sm text-gray-600 mt-1">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="blog.heading">Blog</h2>
+    <p class="text-sm text-gray-600 mt-1" data-i18n="blog.intro">
       Artículos técnicos y de opinión sobre DNSSEC, RPKI y la infraestructura de Internet en la región.
     </p>
   </div>
@@ -1385,8 +1494,8 @@
   data-panel="eventos"
 >
   <div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Eventos</h2>
-    <p class="text-sm text-gray-600 mt-1">
+    <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="eventos.heading">Eventos</h2>
+    <p class="text-sm text-gray-600 mt-1" data-i18n="eventos.intro">
       Cursos, seminarios y capacitaciones organizados por los capítulos ISOC de la región.
     </p>
   </div>
@@ -1403,10 +1512,10 @@
     <div class="mb-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900 tracking-tight">
+        <h2 class="text-2xl font-bold text-gray-900 tracking-tight" data-i18n="med.heading">
           MEDICIONES
         </h2>
-        <p class="text-sm text-gray-500 mt-1">
+        <p class="text-sm text-gray-500 mt-1" data-i18n="med.subtitle">
           Análisis de dominios por país y evaluación de infraestructura de red.
         </p>
 <div class="mt-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
@@ -1416,7 +1525,7 @@
       alt="Internet Society"
       class="h-8 w-auto"
     />
-    <span class="text-xs text-gray-500">
+    <span class="text-xs text-gray-500" data-i18n="med.guideBadge">
       Guía institucional de apoyo
     </span>
   </div>
@@ -1426,13 +1535,14 @@
     target="_blank"
     rel="noopener noreferrer"
     class="download-btn-isoc inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
+    data-i18n="med.downloadGuide"
   >
     Descargar guía MEDICIONES
   </a>
-</div>        
+</div>
       </div>
 
-      <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-600 text-white shadow-sm">
+      <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-600 text-white shadow-sm" data-i18n="med.mainModuleBadge">
         Módulo principal
       </span>
     </div>
@@ -1440,96 +1550,34 @@
     <div class="mt-4 h-[1px] w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200"></div>
   </div>
 
-  <!-- Sub-pestañas: Un dominio / Análisis comparativo -->
-  <div class="flex gap-2 mb-5 border-b border-blue-200 pb-0 flex-wrap">
-    <button id="mediciones-tab-single" onclick="medicionesSwitchTab('single')"
-      class="mediciones-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-blue-200 border-b-0 bg-white text-blue-700 -mb-px">
-      Un dominio
-    </button>
-    <button id="mediciones-tab-batch" onclick="medicionesSwitchTab('batch')"
-      class="mediciones-subtab px-4 py-2 text-sm font-semibold rounded-t-lg border border-transparent text-gray-500 hover:text-blue-600 transition">
-      Análisis comparativo
-    </button>
-  </div>
+  <!-- El botón de idioma de los nombres de checks (ej. "Whois Lookup") se
+       absorbió en el toggle global de sitio (🌐 en la cabecera, fase 5 del
+       plan de traducción — ver docs/arquitectura.md) — ya no vive un botón
+       aparte acá. checkConfig[key].label sigue siendo el valor mutable que
+       leen checkboxes/tooltips/glosario/tabla/reportes; ahora lo actualiza
+       window.onLanguageApplied en vez de un setter propio. -->
 
-  <!-- Glosario general: qué mide cada indicador (compartido por "Un dominio" y "Análisis comparativo") -->
+  <!-- Glosario general: qué mide cada indicador -->
   <details class="mb-6 border rounded-lg bg-white shadow-sm">
     <summary class="cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between">
-      <span>📖 Glosario de términos — qué mide cada indicador</span>
-      <span class="text-xs text-gray-500 font-normal">Ver todos los grupos</span>
+      <span><span class="disclosure-chevron">▶</span><span data-i18n="med.glossary.title">📖 Glosario de términos — qué mide cada indicador</span></span>
+      <span class="text-xs text-gray-500 font-normal" data-i18n="med.glossary.hint">Ver todos los grupos</span>
     </summary>
     <div id="mediciones-glossary-body" class="p-3 space-y-2"></div>
   </details>
 
-  <div id="mediciones-panel-single">
-        <div class="mb-6">
-            <label for="countrySelect" class="block text-sm font-medium text-gray-700 mb-2">Selecciona un país</label>
-            <select id="countrySelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                <option value="" selected disabled>-- País --</option>
-            </select>
-        </div>
-
-        <div class="mb-6">
-            <label for="domains" class="block text-sm font-medium text-gray-700 mb-2">Dominios (separados por coma)</label>
-            <textarea id="domains" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="google.com, nic.uy, lacnic.net"></textarea>
-        </div>
-        <div class="mb-6">
-            <div class="flex justify-between items-center mb-3">
-                <label class="block text-sm font-medium text-gray-700">Verificaciones a realizar</label>
-                <button id="selectAll" type="button" class="text-blue-600 text-sm">Seleccionar todos</button>
-            </div>
-            <div id="checksContainer" class="space-y-3"></div>
-        </div>
-
-        <div class="flex flex-col items-center justify-center">
-            <button id="checkButton" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.414l2.26-2.26a4 4 0 10-1.15-7.446z" clip-rule="evenodd" /></svg>
-                <span>Analizar Dominios</span>
-            </button>
-            <div class="flex space-x-4 mt-4">
-                <button id="historyButton" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Ver Historial</button>
-                <button id="clearHistoryButton" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">Limpiar Historial</button>
-            </div>
-        </div>
-
-        <div id="history" class="mt-6 hidden"></div>
-        <div id="map" class="w-full h-64 mb-8 hidden"></div>
-        <div id="results-container" class="mt-8 space-y-6">
-            <div id="summary" class="hidden bg-white border border-gray-200 rounded-lg shadow-sm">
-                <div class="px-4 py-3 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-800">Resumen acumulado</h2>
-                    <p class="text-sm text-gray-500">Totales en tiempo real por verificación</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
-                            <tr>
-                                <th class="px-4 py-3">Verificación</th>
-                                <th class="px-4 py-3">Sí</th>
-                                <th class="px-4 py-3">No</th>
-                            </tr>
-                        </thead>
-                        <tbody id="summaryBody" class="divide-y divide-gray-200 bg-white"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="loader" class="hidden items-center justify-center py-4">
-                <div class="loader"></div><p class="ml-3 text-gray-600">Analizando...</p>
-            </div>
-            <div id="mediciones-status-legend" class="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2"></div>
-            <div id="results" class="space-y-6"></div>
-        </div>
-  </div>
-  <!-- /mediciones-panel-single -->
-
-  <!-- Panel: Análisis comparativo (lote de 20-25 dominios, reporte final PDF/JSON) -->
-  <div id="mediciones-panel-batch" class="hidden">
+  <!-- Panel único de análisis (hasta 2026-09-11 existía una sub-pestaña
+       "Un dominio" separada con tarjetas de resultado en pantalla, mapa de
+       geolocalización, historial en localStorage y un selector rápido de
+       país — eliminados a pedido explícito: "no tiene sentido, dejar
+       solamente la opción de análisis". Ver docs/arquitectura.md. -->
+  <div id="mediciones-panel-batch">
 
     <!-- Dominios: texto o archivo -->
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-2">
-        Lista de dominios
-        <span class="text-gray-400 font-normal ml-1">— recomendado: 20 a 25 dominios</span>
+        <span data-i18n="med.batch.domainsLabel">Lista de dominios</span>
+        <span class="text-gray-400 font-normal ml-1" data-i18n="med.batch.domainsHint">Uno o varios, pegados o subidos como archivo</span>
       </label>
 
       <div class="mb-3 flex items-center gap-3 flex-wrap">
@@ -1537,10 +1585,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4"/>
           </svg>
-          Subir archivo .txt o .csv
+          <span data-i18n="med.batch.uploadFile">Subir archivo .txt o .csv</span>
           <input id="mb-file-input" type="file" accept=".txt,.csv" class="hidden" onchange="medicionesBatchLoadFile(this)" />
         </label>
-        <span class="text-xs text-gray-400">Un dominio por línea, o separados por coma. Sin encabezados.</span>
+        <span class="text-xs text-gray-400" data-i18n="med.batch.uploadHint">Un dominio por línea, o separados por coma. Sin encabezados.</span>
       </div>
       <div id="mb-file-name" class="text-xs text-green-600 mb-2 hidden"></div>
 
@@ -1549,36 +1597,51 @@
         class="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
       <div class="flex justify-between items-center mt-1">
         <span id="mb-domain-count" class="text-xs text-gray-400">0 dominios</span>
-        <span class="text-xs text-gray-400">Máximo recomendado: 25 dominios por análisis</span>
+        <span class="text-xs text-gray-400" data-i18n="med.batch.maxHint">Se depuran duplicados y se ordenan automáticamente antes de analizar</span>
       </div>
     </div>
 
-    <!-- Verificaciones a realizar (mismo árbol de checks que "Un dominio") -->
+    <!-- Verificaciones a realizar -->
     <div class="mb-6">
       <div class="flex justify-between items-center mb-3">
-        <label class="block text-sm font-medium text-gray-700">Verificaciones a realizar</label>
-        <button id="mb-selectAll" type="button" class="text-blue-600 text-sm">Seleccionar todos</button>
+        <label class="block text-sm font-medium text-gray-700" data-i18n="med.checksLabel">Verificaciones a realizar</label>
+        <label class="flex items-center gap-1.5 text-sm text-blue-600 cursor-pointer select-none">
+            <input id="mb-selectAll" type="checkbox" class="h-4 w-4 rounded" />
+            <span data-i18n="med.selectAllGlobal">Todos/Ninguno</span>
+        </label>
       </div>
       <div id="mb-checksContainer" class="space-y-3"></div>
     </div>
 
     <!-- Concurrencia -->
     <div class="mb-5 flex items-center gap-3">
-      <label class="text-sm text-gray-600">Velocidad:</label>
+      <label class="text-sm text-gray-600" data-i18n="med.batch.speedLabel">Velocidad:</label>
       <select id="mb-concurrency" class="border border-gray-300 rounded p-1 text-sm bg-white">
-        <option value="5">Conservadora — 5 simultáneos</option>
-        <option value="10" selected>Recomendada — 10 simultáneos</option>
-        <option value="15">Rápida — 15 simultáneos</option>
+        <option value="5" data-i18n="med.batch.speed.slow">Conservadora — 5 simultáneos</option>
+        <option value="10" selected data-i18n="med.batch.speed.recommended">Recomendada — 10 simultáneos</option>
+        <option value="15" data-i18n="med.batch.speed.fast">Rápida — 15 simultáneos</option>
       </select>
+    </div>
+
+    <!-- Alcance del reporte descargable: por defecto solo la tabla
+         comparativa. El detalle completo por dominio es opcional
+         (desmarcado por defecto) porque agranda mucho el PDF/JSON cuando
+         se analizan muchos dominios a la vez. -->
+    <div class="mb-5 flex items-start gap-2">
+      <input id="mb-include-domain-detail" type="checkbox" class="mt-1">
+      <label for="mb-include-domain-detail" class="text-sm text-gray-600">
+        <span data-i18n="med.batch.includeDetail">Incluir detalle completo por dominio en el reporte</span>
+        <span class="block text-xs text-gray-400" data-i18n="med.batch.includeDetailHint">Por defecto el reporte trae solo la tabla comparativa (dominio × indicador). Si marcas esto, se agrega además una sección con el detalle de cada dominio.</span>
+      </label>
     </div>
 
     <!-- Botones acción -->
     <div class="flex gap-3 flex-wrap">
       <button id="mb-start-btn" onclick="medicionesBatchStart()"
-        class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm">
+        class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition text-sm" data-i18n="med.batch.analyzeBtn">
         Analizar
       </button>
-      <button id="mb-cancel-btn" onclick="medicionesBatchCancel()" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-200 transition">
+      <button id="mb-cancel-btn" onclick="medicionesBatchCancel()" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-200 transition" data-i18n="med.batch.cancelBtn">
         Cancelar
       </button>
     </div>
@@ -1586,53 +1649,75 @@
     <!-- Progreso -->
     <div id="mb-progress-wrap" class="hidden mt-6">
       <div class="flex justify-between text-sm text-gray-600 mb-1">
-        <span id="mb-progress-label">Procesando…</span>
+        <span id="mb-progress-label" data-i18n="med.batch.processing">Procesando…</span>
         <span id="mb-progress-pct">0%</span>
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2.5">
         <div id="mb-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
       </div>
       <div class="mt-2 text-xs text-gray-400" id="mb-last-domain"></div>
-      <div class="mt-1 text-xs text-gray-400" id="mb-dns-status">Validación DNS: en cola…</div>
+      <div class="mt-1 text-xs text-gray-400" id="mb-dns-status" data-i18n="med.batch.dnsQueue">Validación DNS: en cola…</div>
+    </div>
+
+    <!-- Resumen en vivo: se llena mientras corre el análisis
+         (initializeSummary()/updateSummary(), ya estaban conectadas a este
+         flujo desde antes — solo vivía este HTML en la sub-pestaña "Un
+         dominio" ahora eliminada). Queda oculto hasta que arranca un
+         análisis (initializeSummary() le quita/pone la clase "hidden"). -->
+    <div id="summary" class="hidden mt-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div class="px-4 py-3 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800" data-i18n="med.summary.heading">Resumen en vivo</h2>
+        <p class="text-sm text-gray-500" data-i18n="med.summary.subtitle">Totales por verificación, actualizándose a medida que avanza el análisis</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left">
+          <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
+            <tr>
+              <th class="px-4 py-3" data-i18n="med.summary.colCheck">Verificación</th>
+              <th class="px-4 py-3" data-i18n="med.summary.colYes">Sí</th>
+              <th class="px-4 py-3" data-i18n="med.summary.colNo">No</th>
+            </tr>
+          </thead>
+          <tbody id="summaryBody" class="divide-y divide-gray-200 bg-white"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Resultados y descarga -->
     <div id="mb-results-wrap" class="hidden mt-6 space-y-5">
-      <div class="rounded-xl border border-gray-200 bg-white p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-          <div>
-            <div id="mb-summary-total" class="text-2xl font-bold text-blue-700">—</div>
-            <div class="text-xs text-gray-500 mt-1">Dominios analizados</div>
-          </div>
-          <div>
-            <div id="mb-summary-dnssec-adoption" class="text-2xl font-bold text-blue-700">—</div>
-            <div class="text-xs text-gray-500 mt-1">Adopción DNSSEC del lote</div>
-          </div>
-          <div>
-            <div id="mb-summary-dns-valid" class="text-2xl font-bold text-blue-700">—</div>
-            <div class="text-xs text-gray-500 mt-1">Dominios VALID (validación DNS)</div>
-          </div>
-        </div>
+      <!-- Solo el conteo de dominios incluidos en la corrida — no es un
+           análisis del resultado, es un dato sobre el propio reporte (a
+           pedido explícito: el reporte no debe agregar ni comparar
+           resultados del dataset, solo mostrar las mediciones crudas). -->
+      <div class="rounded-xl border border-gray-200 bg-white p-4 text-center">
+        <div id="mb-summary-total" class="text-2xl font-bold text-blue-700">—</div>
+        <div class="text-xs text-gray-500 mt-1" data-i18n="med.batch.domainsAnalyzed">Dominios analizados</div>
       </div>
 
       <div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200">
-          <h3 class="text-md font-semibold text-gray-800">Reporte comparativo — dominio × verificación</h3>
+          <h3 class="text-md font-semibold text-gray-800" data-i18n="med.batch.tableHeading">Tabla de resultados — dominio × verificación</h3>
           <div id="mb-status-legend" class="text-xs mt-2"></div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm text-left">
-            <thead id="mb-comparative-thead" class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide"></thead>
-            <tbody id="mb-comparative-tbody" class="divide-y divide-gray-200 bg-white"></tbody>
-          </table>
+        <div class="table-scroll-wrap">
+          <input type="range" id="mb-comparative-slider-top" class="table-scroll-slider table-scroll-slider-top" min="0" max="0" value="0" step="1"
+                 data-i18n-aria-label="med.batch.sliderAriaLabel" aria-label="Desplazar tabla horizontalmente para ver más columnas">
+          <div class="overflow-x-auto table-scroll">
+            <table class="min-w-full text-sm text-left">
+              <thead id="mb-comparative-thead" class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide"></thead>
+              <tbody id="mb-comparative-tbody" class="divide-y divide-gray-200 bg-white"></tbody>
+            </table>
+          </div>
+          <input type="range" id="mb-comparative-slider" class="table-scroll-slider" min="0" max="0" value="0" step="1"
+                 data-i18n-aria-label="med.batch.sliderAriaLabel" aria-label="Desplazar tabla horizontalmente para ver más columnas">
         </div>
       </div>
 
       <div class="flex gap-3 flex-wrap">
-        <button id="mb-download-pdf" class="bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 active:scale-95 transition text-sm">
+        <button id="mb-download-pdf" class="bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 active:scale-95 transition text-sm" data-i18n="med.batch.downloadPdf">
           Descargar PDF
         </button>
-        <button id="mb-download-json" class="bg-gray-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 active:scale-95 transition text-sm">
+        <button id="mb-download-json" class="bg-gray-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 active:scale-95 transition text-sm" data-i18n="med.batch.downloadJson">
           Descargar JSON
         </button>
       </div>
@@ -1648,196 +1733,148 @@
 </div><!-- /max-w-4xl principal -->
 
 <script>
-    const checkButton = document.getElementById('checkButton');
-    const domainsInput = document.getElementById('domains');
-    const countrySelect = document.getElementById('countrySelect');
-    const resultsContainer = document.getElementById('results');
-    const loader = document.getElementById('loader');
     const summarySection = document.getElementById('summary');
     const summaryBody = document.getElementById('summaryBody');
-    let checkboxes = [];
-    const selectAllBtn = document.getElementById('selectAll');
-    const historyButton = document.getElementById('historyButton');
-    const clearHistoryButton = document.getElementById('clearHistoryButton');
-    const historyDiv = document.getElementById('history');
     const aboutBtn = document.getElementById('aboutBtn');
     const aboutText = document.getElementById('aboutText');
-    const mapDiv = document.getElementById('map');
-    let map; let mapMarkers = [];
     let summaryData = {};
     let summaryElements = {};
-        const API_BASE = window.location.origin;
+    const API_BASE = window.location.origin;
     const headerCache = {};
     const tlsCache = {};
-
-    const countryTlds = {
-        'Uruguay': ['uy','com.uy','edu.uy','gub.uy','org.uy','net.uy','mil.uy','destinosnaturales.gub.uy','agesic.gub.uy'],
-        'Argentina': ['ar','com.ar','gob.ar','edu.ar','org.ar','net.ar'],
-        'Brasil': ['br','com.br','gov.br','edu.br','org.br','net.br'],
-        'Ecuador': ['ec','com.ec','gob.ec','edu.ec','org.ec','net.ec'],
-        'Bolivia': ['bo','com.bo','gob.bo','edu.bo','org.bo','net.bo'],
-        'Chile': ['cl','com.cl','gob.cl','edu.cl','org.cl','net.cl'],
-        'Paraguay': ['py','com.py','gov.py','edu.py','org.py','net.py'],
-        'Perú': ['pe','com.pe','gob.pe','edu.pe','org.pe','net.pe'],
-        'Colombia': ['co','com.co','gov.co','edu.co','org.co','net.co'],
-        'México': ['mx','com.mx','gob.mx','edu.mx','org.mx','net.mx']
-    };
-
-    for (const country of Object.keys(countryTlds)) {
-        const opt = document.createElement('option');
-        opt.value = country;
-        opt.textContent = country;
-        countrySelect.appendChild(opt);
-    }
-
-    countrySelect.addEventListener('change', () => {
-        const domains = countryTlds[countrySelect.value] || [];
-        domainsInput.value = domains.join(', ');
-    });
 
     aboutBtn.addEventListener('click', () => {
         aboutText.classList.toggle('hidden');
     });
 
-    function initMap() {
-        if (typeof L === 'undefined' || map) return;
-        map = L.map('map').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-    }
-    if (typeof L !== 'undefined') {
-        initMap();
-    } else {
-        window.addEventListener('load', initMap);
-    }
-
-    function clearMap() {
-        mapMarkers.forEach(m => map.removeLayer(m));
-        mapMarkers = [];
-    }
-
-    async function updateMap(domains) {
-        if (!domains.length) return;
-        initMap();
-        if (!map) return;
-        clearMap();
-        mapDiv.classList.remove('hidden');
-        map.invalidateSize();
-        const generics = [];
-        const coords = {};
-        for (const d of domains) {
-            const tld = d.split('.').pop().toLowerCase();
-            if (tld.length === 2) {
-                if (!coords[tld]) {
-                    try {
-                        const info = await fetchWithTimeout(`https://restcountries.com/v3.1/alpha/${tld}`);
-                        const c = info[0];
-                        coords[tld] = { lat: c.latlng[0], lon: c.latlng[1], country: c.name.common, domains: [] };
-                    } catch (e) { generics.push(d); continue; }
-                }
-                coords[tld].domains.push(d);
-            } else generics.push(d);
-        }
-        Object.values(coords).forEach(c => {
-            const marker = L.marker([c.lat, c.lon]).addTo(map).bindPopup(`${c.country}: ${c.domains.join(', ')}`);
-            mapMarkers.push(marker);
-        });
-        if (generics.length) {
-            const marker = L.marker([0, 0]).addTo(map).bindPopup(`Genéricos: ${generics.join(', ')}`);
-            mapMarkers.push(marker);
-        }
-        map.setView([0, 0], 2);
-    }
-
+    // Taxonomía de indicadores — reorganizada 2026-09-09 por propósito (no por
+    // "tipo de consulta técnica" como antes), tras revisión de qué mide cada
+    // uno realmente para el objetivo del proyecto (evidencia técnica sobre
+    // buenas prácticas de seguridad/infraestructura, no marketing/UX):
+    //
+    //   tier: 'core'      — adopción de buenas prácticas, binario, con un
+    //                        "debería tenerlo" claro.
+    //   tier: 'diagnostic' — da contexto/depuración, no tiene un valor
+    //                        "correcto" universal (ej. ver la versión TLS no
+    //                        dice si es aceptable).
+    //   tier: 'content'    — mide marketing/UX del sitio, no seguridad ni
+    //                        infraestructura — fuera del alcance de
+    //                        "Mediciones ISOC LAC". No se elimina (puede servir
+    //                        para otro análisis) pero queda sin marcar por
+    //                        defecto y con una nota visible en la UI.
+    //
+    // `category`/`categoryTitle` (solo en grupos tier:'core') quedaron sin
+    // consumidor: alimentaban el reporte de "Hallazgos por categoría", que
+    // se eliminó por completo (ver docs/arquitectura.md) — el reporte
+    // comparativo ya no calcula nada sobre el dataset analizado.
+    //
+    // Eliminados por ser resúmenes/duplicados de checks que ya están sueltos
+    // en esta misma lista (ver docs/arquitectura.md § Taxonomía de checks):
+    //   - emailconfig ("Email Configuration") — duplica mx+spf+dmarc+dkim.
+    //   - httpsecurity ("HTTP Security Features") — duplica csp/xfo/xcto/
+    //     referrer/permissions.
+    //   - dnssecurity ("DNS Security Extensions") — señal DS/DNSKEY básica
+    //     que duplica (con menos detalle) el motor DNSSEC completo que el
+    //     reporte YA corre siempre para cada dominio vía /dnssec-analysis
+    //     (independiente de qué checks se seleccionen).
     const groupDefinitions = [
         {
-            title: 'IP y Red',
+            title: 'Seguridad y confianza (DNS/TLS)',
+            tier: 'core',
+            category: 'dns_tls',
+            categoryTitle: 'Seguridad y confianza (DNS/TLS)',
             checks: [
-                { key: 'ipinfo', label: 'More IP Info', default: true },
-                { key: 'serverlocation', label: 'Server Location', default: true },
-                { key: 'serverinfo', label: 'Server Info', default: true },
-                { key: 'ipv4', label: 'IPv4', default: true },
-                { key: 'ipv6', label: 'IPv6', default: false },
-                { key: 'asn', label: 'ASN', default: true },
-                { key: 'serverstatus', label: 'Server Status', default: true },
-                { key: 'openports', label: 'Open Ports', default: false },
-                { key: 'traceroute', label: 'Traceroute', default: false },
-                { key: 'redirectchain', label: 'Redirect Chain', default: true },
-                { key: 'block', label: 'Block Detection', default: false }
+                { key: 'https', label: 'HTTPS', labelEs: 'HTTPS', default: true },
+                { key: 'redirect', label: 'HTTPS Redirect', labelEs: 'Redirección a HTTPS', default: true },
+                { key: 'hsts', label: 'HTTP Strict Transport Security', labelEs: 'Transporte Estricto HTTPS (HSTS)', default: true },
+                { key: 'caa', label: 'CAA', labelEs: 'CAA', default: false },
+                { key: 'rpki', label: 'RPKI', labelEs: 'RPKI', default: false },
+                { key: 'tlsa', label: 'TLSA', labelEs: 'TLSA', default: false },
+                { key: 'malware', label: 'Malware & Phishing Detection', labelEs: 'Detección de Malware y Phishing', default: false }
             ]
         },
         {
-            title: 'DNS y Seguridad',
+            title: 'Anti-suplantación de correo',
+            tier: 'core',
+            category: 'correo',
+            categoryTitle: 'Anti-suplantación de correo',
             checks: [
-                { key: 'dnsrecords', label: 'DNS Records', default: true },
-                { key: 'txtrecords', label: 'TXT Records', default: true },
-                { key: 'dnsserver', label: 'DNS Server', default: true },
-                { key: 'dnssecurity', label: 'DNS Security Extensions', default: true },
-                { key: 'rpki', label: 'RPKI', default: false },
-                { key: 'caa', label: 'CAA', default: false },
-                { key: 'tlsa', label: 'TLSA', default: false }
+                { key: 'spf', label: 'SPF', labelEs: 'SPF', default: true },
+                { key: 'dmarc', label: 'DMARC', labelEs: 'DMARC', default: true },
+                { key: 'dkim', label: 'DKIM', labelEs: 'DKIM', default: false }
             ]
         },
         {
-            title: 'Correo y Mensajería',
+            title: 'Cabeceras de seguridad web',
+            tier: 'core',
+            category: 'cabeceras',
+            categoryTitle: 'Cabeceras de seguridad web',
             checks: [
-                { key: 'emailconfig', label: 'Email Configuration', default: true },
-                { key: 'mx', label: 'MX', default: false },
-                { key: 'smtputf8', label: 'SMTPUTF8', default: false },
-                { key: 'dmarc', label: 'DMARC', default: true },
-                { key: 'spf', label: 'SPF', default: true },
-                { key: 'dkim', label: 'DKIM', default: false }
+                { key: 'csp', label: 'Content Security Policy', labelEs: 'Política de Seguridad de Contenido (CSP)', default: false },
+                { key: 'xfo', label: 'X-Frame-Options', labelEs: 'X-Frame-Options', default: false },
+                { key: 'xcto', label: 'X-Content-Type-Options', labelEs: 'X-Content-Type-Options', default: false },
+                { key: 'referrer', label: 'Referrer-Policy', labelEs: 'Referrer-Policy', default: false },
+                { key: 'permissions', label: 'Permissions-Policy', labelEs: 'Permissions-Policy', default: false }
             ]
         },
         {
-            title: 'Identidad y Cumplimiento',
+            title: 'Transparencia y conectividad moderna',
+            tier: 'core',
+            category: 'transparencia',
+            categoryTitle: 'Transparencia y conectividad moderna',
             checks: [
-                { key: 'whois', label: 'Whois Lookup', default: true },
-                { key: 'domaininfo', label: 'Domain Info', default: true },
-                { key: 'securitytxt', label: 'Security.txt', default: false }
+                { key: 'securitytxt', label: 'Security.txt', labelEs: 'Security.txt', default: false },
+                { key: 'ipv6', label: 'IPv6', labelEs: 'IPv6', default: false }
             ]
         },
         {
-            title: 'Contenido y Experiencia',
+            title: 'Diagnóstico técnico',
+            tier: 'diagnostic',
             checks: [
-                { key: 'sitefeatures', label: 'Site Features', default: false },
-                { key: 'cookies', label: 'Cookies', default: false },
-                { key: 'crawlrules', label: 'Crawl Rules', default: false },
-                { key: 'linkedpages', label: 'Linked Pages', default: false },
-                { key: 'listedpages', label: 'Listed Pages', default: false },
-                { key: 'socialtags', label: 'Social Tags', default: false },
-                { key: 'quality', label: 'Quality Metrics', default: false },
-                { key: 'archive', label: 'Archive History', default: false },
-                { key: 'ranking', label: 'Global Ranking', default: false },
-                { key: 'malware', label: 'Malware & Phishing Detection', default: false },
-                { key: 'screenshot', label: 'Screenshot', default: false }
+                { key: 'ipinfo', label: 'More IP Info', labelEs: 'Información de IP', default: true },
+                { key: 'serverlocation', label: 'Server Location', labelEs: 'Ubicación del servidor', default: true },
+                { key: 'serverinfo', label: 'Server Info', labelEs: 'Información del servidor', default: true },
+                { key: 'ipv4', label: 'IPv4', labelEs: 'IPv4', default: true },
+                { key: 'asn', label: 'ASN', labelEs: 'ASN', default: true },
+                { key: 'serverstatus', label: 'Server Status', labelEs: 'Estado del servidor', default: true },
+                { key: 'openports', label: 'Open Ports', labelEs: 'Puertos abiertos', default: false },
+                { key: 'redirectchain', label: 'Redirect Chain', labelEs: 'Cadena de redirecciones', default: true },
+                { key: 'block', label: 'Block Detection', labelEs: 'Detección de bloqueo', default: false },
+                { key: 'dnsrecords', label: 'DNS Records', labelEs: 'Registros DNS', default: true },
+                { key: 'txtrecords', label: 'TXT Records', labelEs: 'Registros TXT', default: true },
+                { key: 'dnsserver', label: 'DNS Server', labelEs: 'Servidor DNS', default: true },
+                { key: 'mx', label: 'MX', labelEs: 'MX', default: false },
+                { key: 'smtputf8', label: 'SMTPUTF8', labelEs: 'SMTPUTF8', default: false },
+                { key: 'whois', label: 'Whois Lookup', labelEs: 'Consulta Whois', default: true },
+                { key: 'domaininfo', label: 'Domain Info', labelEs: 'Información del dominio', default: true },
+                { key: 'headers', label: 'Headers', labelEs: 'Cabeceras HTTP', default: false },
+                { key: 'server', label: 'Server Header', labelEs: 'Cabecera Server', default: false },
+                { key: 'compression', label: 'HTTP Compression', labelEs: 'Compresión HTTP', default: false },
+                { key: 'ocsp', label: 'OCSP Stapling', labelEs: 'OCSP Stapling', default: false },
+                { key: 'tls', label: 'TLS Version', labelEs: 'Versión TLS', default: true },
+                { key: 'key', label: 'Key Exchange', labelEs: 'Intercambio de claves', default: false },
+                { key: 'sslchain', label: 'SSL Chain Info', labelEs: 'Cadena de certificados SSL', default: false },
+                { key: 'tlsciphers', label: 'TLS Cipher Suites', labelEs: 'Suites de cifrado TLS', default: false },
+                { key: 'tlssimulation', label: 'TLS Handshake Simulation', labelEs: 'Simulación de negociación TLS', default: false },
+                { key: 'firewall', label: 'Firewall Detection', labelEs: 'Detección de firewall', default: false },
+                { key: 'xxss', label: 'X-XSS-Protection', labelEs: 'X-XSS-Protection', default: false }
             ]
         },
         {
-            title: 'Seguridad Web y TLS',
+            title: 'Contenido y experiencia',
+            tier: 'content',
+            note: 'Miden marketing/experiencia del sitio (SEO, redes sociales, ranking, capturas), no seguridad ni infraestructura — fuera del alcance de "buenas prácticas técnicas" de Mediciones ISOC LAC. Se mantienen disponibles por si sirven a otro tipo de análisis, pero no se seleccionan por defecto.',
             checks: [
-                { key: 'https', label: 'HTTPS', default: true },
-                { key: 'redirect', label: 'HTTPS Redirect', default: true },
-                { key: 'hsts', label: 'HTTP Strict Transport Security', default: true },
-                { key: 'csp', label: 'Content Security Policy', default: false },
-                { key: 'xfo', label: 'X-Frame-Options', default: false },
-                { key: 'xcto', label: 'X-Content-Type-Options', default: false },
-                { key: 'referrer', label: 'Referrer-Policy', default: false },
-                { key: 'permissions', label: 'Permissions-Policy', default: false },
-                { key: 'xxss', label: 'X-XSS-Protection', default: false },
-                { key: 'headers', label: 'Headers', default: false },
-                { key: 'server', label: 'Server Header', default: false },
-                { key: 'compression', label: 'HTTP Compression', default: false },
-                { key: 'ocsp', label: 'OCSP Stapling', default: false },
-                { key: 'tls', label: 'TLS Version', default: true },
-                { key: 'key', label: 'Key Exchange', default: false },
-                { key: 'sslchain', label: 'SSL Chain Info', default: false },
-                { key: 'tlsciphers', label: 'TLS Cipher Suites', default: false },
-                { key: 'tlsconfig', label: 'TLS Security Config', default: false },
-                { key: 'tlssimulation', label: 'TLS Handshake Simulation', default: false },
-                { key: 'httpsecurity', label: 'HTTP Security Features', default: false },
-                { key: 'firewall', label: 'Firewall Detection', default: false }
+                { key: 'sitefeatures', label: 'Site Features', labelEs: 'Funciones del sitio', default: false },
+                { key: 'cookies', label: 'Cookies', labelEs: 'Cookies', default: false },
+                { key: 'crawlrules', label: 'Crawl Rules', labelEs: 'Reglas de rastreo (robots.txt)', default: false },
+                { key: 'linkedpages', label: 'Linked Pages', labelEs: 'Páginas enlazadas', default: false },
+                { key: 'listedpages', label: 'Listed Pages', labelEs: 'Páginas listadas (sitemap)', default: false },
+                { key: 'socialtags', label: 'Social Tags', labelEs: 'Etiquetas sociales', default: false },
+                { key: 'quality', label: 'Quality Metrics', labelEs: 'Métricas de calidad', default: false },
+                { key: 'archive', label: 'Archive History', labelEs: 'Historial de archivo (Wayback)', default: false },
+                { key: 'ranking', label: 'Global Ranking', labelEs: 'Ranking global', default: false },
+                { key: 'screenshot', label: 'Screenshot', labelEs: 'Captura de pantalla', default: false }
             ]
         }
     ];
@@ -1851,17 +1888,14 @@
         asn: 'Identifica el Sistema Autónomo que anuncia la IP principal del dominio.',
         serverstatus: 'Consulta el estado HTTP final del sitio después de redirecciones válidas.',
         openports: 'Prueba conectividad básica a puertos comunes. No sustituye un escaneo de seguridad formal.',
-        traceroute: 'Obtiene una ruta aproximada de red usando un servicio externo de diagnóstico.',
         redirectchain: 'Muestra la cadena HTTP/HTTPS desde el dominio inicial hasta el destino final.',
         block: 'Compara respuestas de resolvers públicos para detectar posibles bloqueos o diferencias de resolución.',
         dnsrecords: 'Consulta registros DNS principales: A, AAAA, MX, NS, TXT y CNAME.',
         txtrecords: 'Lista registros TXT publicados en el dominio, usados para políticas y verificaciones.',
         dnsserver: 'Lista los servidores NS autoritativos declarados para el dominio.',
-        dnssecurity: 'Detecta señales básicas de DNSSEC mediante DS/DNSKEY y DoH.',
         rpki: 'Valida si la IP observada tiene cobertura RPKI válida para el prefijo y ASN de origen.',
         caa: 'Busca registros CAA, que indican qué autoridades certificadoras pueden emitir certificados para el dominio.',
         tlsa: 'Busca registros TLSA/DANE para vincular certificados TLS con DNSSEC.',
-        emailconfig: 'Resume MX, SPF, DMARC y DKIM observado con selectores comunes.',
         mx: 'Comprueba si el dominio tiene registros MX para recibir correo.',
         smtputf8: 'Detecta si los servidores MX anuncian soporte SMTPUTF8 para direcciones internacionalizadas.',
         dmarc: 'Comprueba si existe política DMARC en _dmarc del dominio.',
@@ -1898,9 +1932,7 @@
         key: 'Muestra información de intercambio de claves de la sesión TLS.',
         sslchain: 'Lista la cadena de certificados presentada por el servidor.',
         tlsciphers: 'Prueba suites de cifrado disponibles en TLS 1.2/1.3.',
-        tlsconfig: 'Resume configuración TLS observable y posibles debilidades.',
         tlssimulation: 'Simula handshakes TLS con distintos perfiles para observar compatibilidad.',
-        httpsecurity: 'Agrupa cabeceras de seguridad HTTP principales.',
         firewall: 'Detecta señales de WAF/CDN como Cloudflare, Akamai, Sucuri o ModSecurity.'
     };
 
@@ -1908,31 +1940,71 @@
     // check (ok/fail/error/info) y que usa también el PDF del reporte batch
     // (medicionesBatchReport.exporter.js, STATUS_ICON). "_empty" es el caso
     // sin datos (check no ejecutado para ese dominio), no un estado real.
+    // Los "label" de STATUS_SYMBOL se traducen vía t() en el momento de
+    // usarse (renderStatusLegend, y el tooltip de la tabla del lote más
+    // abajo) — no se guardan como texto fijo acá, mismo criterio que el
+    // resto del contenido armado por JS.
+    const STATUS_SYMBOL_I18N_KEY = { ok: 'status.ok', fail: 'status.fail', error: 'status.error', info: 'status.info', _empty: 'status.empty' };
     const STATUS_SYMBOL = {
-        ok:    { icon: '✓', cls: 'text-green-600', label: 'OK — cumple / se detectó correctamente' },
-        fail:  { icon: '✗', cls: 'text-red-600',    label: 'No cumple / no se encontró' },
-        error: { icon: '⚠', cls: 'text-gray-500',   label: 'Error al verificar — no se pudo comprobar (timeout, servicio externo caído, etc.)' },
-        info:  { icon: 'ℹ', cls: 'text-blue-600',   label: 'Informativo — dato disponible, sin evaluación de "bien/mal"' },
-        _empty:{ icon: '—', cls: 'text-gray-300',   label: 'Sin datos — este check no se ejecutó para este dominio' }
+        ok:    { icon: '✓', cls: 'text-green-600' },
+        fail:  { icon: '✗', cls: 'text-red-600' },
+        error: { icon: '⚠', cls: 'text-gray-500' },
+        info:  { icon: 'ℹ', cls: 'text-blue-600' },
+        _empty:{ icon: '—', cls: 'text-gray-300' }
     };
 
+    function statusSymbolLabel(key) {
+        return t(STATUS_SYMBOL_I18N_KEY[key] || 'status.empty');
+    }
+
     function renderStatusLegend() {
-        return Object.entries(STATUS_SYMBOL).filter(([k]) => k !== '_empty').map(([, s]) =>
-            `<span class="inline-flex items-center gap-1 mr-4"><span class="font-bold ${s.cls}">${s.icon}</span><span class="text-gray-600">${escapeHtml(s.label)}</span></span>`
+        return Object.entries(STATUS_SYMBOL).filter(([k]) => k !== '_empty').map(([k, s]) =>
+            `<span class="inline-flex items-center gap-1 mr-4"><span class="font-bold ${s.cls}">${s.icon}</span><span class="text-gray-600">${escapeHtml(statusSymbolLabel(k))}</span></span>`
         ).join('') +
-        `<span class="inline-flex items-center gap-1"><span class="font-bold text-gray-300">—</span><span class="text-gray-600">${escapeHtml(STATUS_SYMBOL._empty.label)}</span></span>`;
+        `<span class="inline-flex items-center gap-1"><span class="font-bold text-gray-300">—</span><span class="text-gray-600">${escapeHtml(statusSymbolLabel('_empty'))}</span></span>`;
+    }
+
+    // Idioma de los NOMBRES de los checks (no de la interfaz — el resto del
+    // sitio ya está en español; solo los ~54 nombres técnicos de checks
+    // vienen en inglés por convención de la industria de seguridad).
+    // checkConfig[key].label es el valor MUTABLE que leen todos los renders
+    // (checkboxes, glosario, tooltips, tabla en pantalla, y el payload que
+    // arma el reporte PDF/JSON vía selectedGlossary()). Antes tenía su
+    // propio idioma/localStorage/botón independientes del resto del sitio
+    // (mediciones-check-label-lang) — ahora se absorbe en el toggle global
+    // de sitio completo (public/i18n.js, `currentLang`): applyCheckLabels()
+    // se registra en window.onLanguageApplied, así que un solo botón en la
+    // cabecera controla tanto la interfaz como estos nombres.
+    function applyCheckLabels() {
+        Object.values(checkConfig).forEach(cfg => {
+            cfg.label = currentLang === 'es' ? cfg.labelEs : cfg.labelEn;
+        });
+        renderMbCheckOptions();
+        document.getElementById('mediciones-glossary-body').innerHTML = renderGlossaryBlock();
+        document.getElementById('mb-status-legend').innerHTML =
+            `<span class="font-semibold text-gray-700 mr-2">${escapeHtml(t('med.symbolsMeaning'))}</span>` + renderStatusLegend();
     }
 
     const checkConfig = {};
     groupDefinitions.forEach(group => {
         group.checks.forEach(check => {
             checkConfig[check.key] = {
-                label: check.label,
+                label: currentLang === 'es' ? (check.labelEs || check.label) : check.label,
+                labelEn: check.label,
+                labelEs: check.labelEs || check.label,
                 description: checkGlossary[check.key] || 'Indicador técnico usado por el módulo de mediciones.',
-                group: group.title
+                group: group.title,
+                tier: group.tier,
+                category: group.category || null,
+                categoryTitle: group.categoryTitle || null
             };
         });
     });
+
+    // Primer eslabón de la cadena de window.onLanguageApplied — fases
+    // posteriores (Blog/Eventos, DNSSEC, etc.) encadenan la suya sin
+    // pisar esta, guardando la anterior antes de reasignar.
+    window.onLanguageApplied = applyCheckLabels;
 
     function checkHelpButton(key) {
         const cfg = checkConfig[key] || {};
@@ -1949,9 +2021,13 @@
                         <div class="text-xs text-gray-600 mt-1">${escapeHtml(cfg.description)}</div>
                     </div>`;
             }).join('');
+            const noteHtml = group.note
+                ? `<div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-3">${escapeHtml(group.note)}</div>`
+                : '';
             return `
-                <details class="border rounded-lg bg-blue-50/40 p-3">
-                    <summary class="cursor-pointer font-semibold text-sm text-blue-800">${escapeHtml(group.title)}</summary>
+                <details class="border rounded-lg bg-blue-50/40 p-3" open>
+                    <summary class="cursor-pointer font-semibold text-sm text-blue-800"><span class="disclosure-chevron">▶</span>${escapeHtml(group.title)}</summary>
+                    ${noteHtml}
                     <div class="glossary-grid mt-3">${terms}</div>
                 </details>`;
         }).join('');
@@ -1966,77 +2042,82 @@
         }));
     }
 
-    function renderCheckOptions() {
-        const container = document.getElementById('checksContainer');
-        container.innerHTML = '';
-        groupDefinitions.forEach(group => {
-            const details = document.createElement('details');
-            details.className = 'border rounded-lg bg-white shadow-sm';
-            details.open = true;
-            const summary = document.createElement('summary');
-            summary.className = 'cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between';
-            summary.innerHTML = `<span>${group.title}</span><span class="text-xs text-gray-500">${group.checks.length} checks</span>`;
-            details.appendChild(summary);
-            const wrapper = document.createElement('div');
-            wrapper.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 px-3 pb-3';
-            group.checks.forEach(check => {
-                const label = document.createElement('label');
-                label.className = 'check-label flex items-center p-2 border rounded-lg cursor-pointer bg-gray-50';
-                const input = document.createElement('input');
-                input.type = 'checkbox';
-                input.dataset.check = check.key;
-                if (check.default) input.checked = true;
-                input.className = 'h-4 w-4 rounded';
-                const span = document.createElement('span');
-                span.className = 'ml-2 text-sm';
-                span.innerHTML = `${escapeHtml(check.label)}${checkHelpButton(check.key)}`;
-                label.appendChild(input);
-                label.appendChild(span);
-                wrapper.appendChild(label);
-            });
-            details.appendChild(wrapper);
-            container.appendChild(details);
-        });
-        checkboxes = container.querySelectorAll('input[type="checkbox"][data-check]');
+    // Nota de aviso para grupos tier:'content' (marketing/UX, fuera del
+    // alcance de seguridad/infraestructura) — se muestra donde se seleccionan
+    // los checks, no solo en el glosario.
+    function groupNoteHtml(group) {
+        if (!group.note) return '';
+        const div = document.createElement('div');
+        div.className = 'text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mx-3 mb-2';
+        div.textContent = group.note;
+        return div;
     }
 
-    renderCheckOptions();
+    // Casilla "seleccionar todo/nada" por grupo (2026-09-12, a pedido
+    // explícito) — vive en el <summary> de cada grupo. stopPropagation()
+    // en el click evita que marcarla también abra/cierre el <details>
+    // (todo el <summary> es clickeable para eso). Usada por
+    // renderMbCheckOptions() — mismo patrón que groupNoteHtml/checkHelpButton.
+    // NO afecta los valores `default` de
+    // groupDefinitions ni el estado inicial al recargar la página — solo
+    // actúa sobre checkboxes ya en el DOM.
+    function buildGroupMasterCheckbox() {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex items-center gap-1 text-xs font-normal text-gray-600 cursor-pointer flex-shrink-0';
+        wrapper.addEventListener('click', (e) => e.stopPropagation());
+        const master = document.createElement('input');
+        master.type = 'checkbox';
+        master.className = 'h-4 w-4 rounded flex-shrink-0';
+        master.title = t('med.group.selectAllTitle');
+        master.setAttribute('aria-label', t('med.group.selectAllTitle'));
+        const text = document.createElement('span');
+        text.textContent = t('med.selectAllGlobal');
+        wrapper.appendChild(master);
+        wrapper.appendChild(text);
+        return { wrapper, input: master };
+    }
+
+    // A pedido explícito (2026-09-12): solo dos estados posibles, sin
+    // "indeterminado" — marcada únicamente si TODOS los checks del grupo
+    // están marcados; sin marcar en cualquier otro caso (ninguno o
+    // parcial). Un clic siempre lleva a uno de los dos extremos: si no
+    // están todos marcados (así estén 0 o algunos), clickear selecciona
+    // TODOS; si ya están todos, clickear selecciona NINGUNO.
+    function syncMasterCheckbox(master, groupCheckboxes) {
+        const total = groupCheckboxes.length;
+        const checkedCount = groupCheckboxes.filter(cb => cb.checked).length;
+        master.checked = total > 0 && checkedCount === total;
+        master.indeterminate = false;
+    }
+
+    function wireGroupMasterCheckbox(master, groupCheckboxes) {
+        syncMasterCheckbox(master, groupCheckboxes);
+        master.addEventListener('change', () => {
+            groupCheckboxes.forEach(cb => { cb.checked = master.checked; });
+        });
+        groupCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => syncMasterCheckbox(master, groupCheckboxes));
+        });
+    }
+
+    // El checkbox global "Todos/Ninguno" (#mb-selectAll) es un elemento fijo
+    // del DOM que persiste entre renders (a diferencia de los checkboxes de
+    // cada grupo, que se recrean en cada renderMbCheckOptions()). Por eso
+    // usa onchange (se sobrescribe) en vez de addEventListener (que se
+    // acumularía en cada re-render por cambio de idioma).
+    function wireGlobalMasterCheckbox(master, allCheckboxes) {
+        syncMasterCheckbox(master, allCheckboxes);
+        master.onchange = () => {
+            allCheckboxes.forEach(cb => { cb.checked = master.checked; });
+        };
+        allCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => syncMasterCheckbox(master, allCheckboxes));
+        });
+    }
+
     document.getElementById('mediciones-glossary-body').innerHTML = renderGlossaryBlock();
-    document.getElementById('mediciones-status-legend').innerHTML =
-        '<span class="font-semibold text-gray-700 mr-2">Significado de los símbolos:</span>' + renderStatusLegend();
     document.getElementById('mb-status-legend').innerHTML =
-        '<span class="font-semibold text-gray-700 mr-2">Significado de los símbolos:</span>' + renderStatusLegend();
-
-    function loadHistory() {
-        const history = JSON.parse(localStorage.getItem('domainHistory') || '[]');
-        if (!history.length) {
-            historyDiv.innerHTML = '<div class="text-center text-gray-500">Sin historial</div>';
-            return;
-        }
-        let html = '';
-        history.forEach(entry => {
-            html += `<div class="mb-4"><h4 class="font-semibold mb-2">${entry.date}</h4>`;
-            html += '<div class="overflow-auto"><table class="min-w-full text-sm border"><thead><tr><th class="border px-2 py-1">Dominio</th>';
-            entry.checks.forEach(c => { html += `<th class="border px-2 py-1">${checkConfig[c]?.label || c}</th>`; });
-            html += '</tr></thead><tbody>';
-            entry.domains.forEach(d => {
-                html += `<tr><td class="border px-2 py-1">${d.domain}</td>`;
-                entry.checks.forEach(c => {
-                    const val = d.results[c]?.status || '-';
-                    html += `<td class="border px-2 py-1 text-center">${val}</td>`;
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table></div></div>';
-        });
-        historyDiv.innerHTML = html;
-    }
-
-    function saveHistory(entry) {
-        const history = JSON.parse(localStorage.getItem('domainHistory') || '[]');
-        history.push(entry);
-        localStorage.setItem('domainHistory', JSON.stringify(history));
-    }
+        `<span class="font-semibold text-gray-700 mr-2">${escapeHtml(t('med.symbolsMeaning'))}</span>` + renderStatusLegend();
 
     function toASCII(domain) {
         try { return new URL('http://' + domain).hostname; }
@@ -2078,6 +2159,20 @@
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
+    }
+
+    // Antes vivía en un <script> posterior (sección Inicio/Blog/Eventos) —
+    // pero checkHelpButton() (arriba, en este mismo bloque) ya la necesita
+    // para armar el atributo data-help de los tooltips de indicadores. Los
+    // <script> de una página corren en orden; una función definida en un
+    // bloque POSTERIOR no existe todavía cuando corre uno ANTERIOR, aunque
+    // ambos compartan el mismo scope global — eso lanzaba
+    // "ReferenceError: escapeAttr is not defined" apenas se llamaba
+    // checkHelpButton(), lo que abortaba el resto del script (incluida la
+    // población del glosario y del árbol de checks de "Un dominio", que
+    // quedaban con el contenedor vacío sin ningún error visible en pantalla).
+    function escapeAttr(text) {
+        return escapeHtml(text).replace(/"/g, '&quot;');
     }
 
     function formatDetails(details) {
@@ -2196,71 +2291,6 @@
         elements.negativeTooltip.innerHTML = renderTooltipList(entry.negatives, 'Sin resultados negativos');
     }
 
-    function getStatusHtml(status, details = '') {
-        let icon, color;
-        switch (status) {
-            case 'ok':
-                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                color = 'text-green-600';
-                break;
-            case 'fail':
-                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                color = 'text-red-600';
-                break;
-            case 'error':
-                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                color = 'text-gray-500';
-                break;
-            case 'info':
-                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                color = 'text-blue-600';
-                break;
-            default:
-                icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                color = 'text-yellow-600';
-                break;
-        }
-        return `<div class="flex items-start ${color}"><span class="mr-2 flex-shrink-0">${icon}</span><div class="space-y-1">${formatDetails(details)}</div></div>`;
-    }
-
-    function createResultCard(domain, selectedChecks) {
-        const card = document.createElement('div');
-        card.className = 'p-4 rounded-lg bg-gray-50 border border-gray-200 shadow-sm';
-        const title = document.createElement('h3');
-        title.className = 'font-bold text-xl text-gray-800 mb-4 pb-2 border-b';
-        title.textContent = domain;
-        card.appendChild(title);
-
-        const placeholders = {};
-
-        for (const group of groupDefinitions) {
-            const groupKeys = group.checks.map(c => c.key);
-            const filtered = selectedChecks.filter(c => groupKeys.includes(c));
-            if (!filtered.length) continue;
-            const h4 = document.createElement('h4');
-            h4.className = 'text-md font-semibold text-gray-700 mt-4 mb-2';
-            h4.textContent = group.title;
-            card.appendChild(h4);
-            filtered.forEach(c => {
-                const row = document.createElement('div');
-                row.className = 'result-item flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0';
-                const label = document.createElement('span');
-                label.className = 'label text-sm font-medium text-gray-600';
-                label.innerHTML = `${escapeHtml(checkConfig[c].label)}${checkHelpButton(c)}`;
-                const placeholder = document.createElement('span');
-                placeholder.className = 'text-gray-500 flex items-center';
-                placeholder.innerHTML = '<div class="loader mr-2"></div><span>Cargando...</span>';
-                row.appendChild(label);
-                row.appendChild(placeholder);
-                card.appendChild(row);
-                placeholders[c] = placeholder;
-            });
-        }
-
-        resultsContainer.appendChild(card);
-        return placeholders;
-    }
-
     async function getCheckResult(checkType, domain) {
         const { label } = checkConfig[checkType];
         const ascii = toASCII(domain);
@@ -2339,12 +2369,6 @@
                     }
                     return { label, status: 'ok', details: `Puertos estándar: ${open.join(', ')}` };
                 }
-                case 'traceroute': {
-                    const data = await fetchWithTimeout(`${API_BASE}/traceroute/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    const hops = data.hops?.slice(0, 10) || [];
-                    return { label, status: hops.length ? 'ok' : 'info', details: hops.length ? hops : 'Sin datos' };
-                }
                 case 'redirectchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/redirectchain/${ascii}`);
                     if (data.error) return { label, status: 'error', details: data.error };
@@ -2405,26 +2429,6 @@
                     const data = await fetchWithTimeout(`${API_BASE}/dnsserver/${ascii}`);
                     if (data.error) return { label, status: 'error', details: data.error };
                     return { label, status: data.servers?.length ? 'ok' : 'fail', details: data.servers?.length ? data.servers : 'Sin NS' };
-                }
-                case 'dnssecurity': {
-                    const data = await fetchWithTimeout(`${API_BASE}/dnssecurity/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    const lines = [];
-                    if (data.algorithms?.length) lines.push(`Algoritmos: ${data.algorithms.join(', ')}`);
-                    if (data.doh) lines.push('DoH activo');
-                    lines.push(data.valid ? 'DNSSEC válido' : 'DNSSEC ausente');
-                    return { label, status: data.valid ? 'ok' : 'fail', details: lines };
-                }
-                case 'emailconfig': {
-                    const data = await fetchWithTimeout(`${API_BASE}/emailconfig/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    const lines = [
-                        `SPF: ${data.spf ? 'sí' : 'no'}`,
-                        `DMARC: ${data.dmarc ? 'sí' : 'no'}`,
-                        `DKIM: ${data.dkim ? 'sí' : 'no'}`
-                    ];
-                    if (data.mx?.length) lines.push(`MX: ${data.mx.map(m => `${m.exchange} (p${m.priority})`).join(', ')}`);
-                    return { label, status: data.spf || data.dmarc || data.dkim ? 'ok' : 'fail', details: lines };
                 }
                 case 'sitefeatures': {
                     const data = await fetchWithTimeout(`${API_BASE}/sitefeatures/${ascii}`);
@@ -2525,36 +2529,12 @@
                     const suites = data.suites?.map(s => `${s.protocol}: ${s.cipher}`) || [];
                     return { label, status: suites.length ? 'ok' : 'info', details: suites.length ? suites : 'Sin información' };
                 }
-                case 'tlsconfig': {
-                    const data = await fetchWithTimeout(`${API_BASE}/tlsconfig/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    if (data.data?.error) return { label, status: 'error', details: data.data.error };
-                    const score = data.data?.score;
-                    const details = [];
-                    if (score !== undefined) details.push(`Puntaje: ${score}`);
-                    if (data.data?.tests) {
-                        Object.entries(data.data.tests).slice(0, 10).forEach(([name, result]) => {
-                            if (result && typeof result === 'object' && result.output) {
-                                details.push(`${name}: ${result.output}`);
-                            }
-                        });
-                    }
-                    return { label, status: score !== undefined ? 'ok' : 'info', details: details.length ? details : 'Sin datos' };
-                }
                 case 'tlssimulation': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlssimulation/${ascii}`);
                     if (data.error) return { label, status: 'error', details: data.error };
                     const scenarios = data.scenarios?.map(s => `${s.client}: ${s.success ? `${s.protocol || 'TLS'} (${s.cipher || 'cifra desconocida'})` : 'falló'}`) || [];
                     const success = data.scenarios?.every(s => s.success);
                     return { label, status: success ? 'ok' : 'fail', details: scenarios.length ? scenarios : 'Sin datos' };
-                }
-                case 'httpsecurity': {
-                    const data = await fetchWithTimeout(`${API_BASE}/httpsecurity/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    const security = data.security || {};
-                    const lines = Object.entries(security).map(([k, v]) => `${k.toUpperCase()}: ${v ? 'sí' : 'no'}`);
-                    const ok = Object.values(security).some(Boolean);
-                    return { label, status: ok ? 'ok' : 'fail', details: lines.length ? lines : 'Sin cabeceras de seguridad' };
                 }
                 case 'firewall': {
                     const data = await fetchWithTimeout(`${API_BASE}/firewall/${ascii}`);
@@ -2782,69 +2762,6 @@
         }
     }
 
-    async function analyzeDomain(domain, selectedChecks) {
-        const placeholders = createResultCard(domain, selectedChecks);
-        const finalResults = {};
-        const promises = selectedChecks.map(async checkType => {
-            try {
-                const res = await getCheckResult(checkType, domain);
-                finalResults[checkType] = res;
-                placeholders[checkType].innerHTML = getStatusHtml(res.status, res.details);
-                updateSummary(checkType, domain, res.status);
-            } catch (err) {
-                finalResults[checkType] = { label: checkConfig[checkType].label, status: 'error', details: err.message };
-                placeholders[checkType].innerHTML = getStatusHtml('error', err.message);
-                updateSummary(checkType, domain, 'error');
-            }
-        });
-        await Promise.allSettled(promises);
-        return { domain, results: finalResults };
-    }
-
-    async function handleAnalysis() {
-        resultsContainer.innerHTML = '';
-        loader.style.display = 'flex';
-        checkButton.disabled = true;
-        clearMap();
-
-        const domains = domainsInput.value.trim().split(',').map(d => d.trim()).filter(Boolean);
-        const selectedChecks = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.check);
-        initializeSummary(selectedChecks);
-
-        if (!domains.length || !selectedChecks.length) {
-            loader.style.display = 'none';
-            checkButton.disabled = false;
-            resultsContainer.innerHTML = `<div class="text-center text-gray-500 p-4">${!domains.length ? 'Introduce al menos un dominio.' : 'Selecciona al menos una verificación.'}</div>`;
-            initializeSummary([]);
-            return;
-        }
-
-        const historyEntry = { date: new Date().toLocaleString(), checks: selectedChecks, domains: [] };
-        const promises = domains.map(d => analyzeDomain(d, selectedChecks));
-        const results = await Promise.all(promises);
-        historyEntry.domains = results;
-        await updateMap(domains);
-        saveHistory(historyEntry);
-
-        loader.style.display = 'none';
-        checkButton.disabled = false;
-    }
-
-    historyButton.addEventListener('click', () => {
-        const hidden = historyDiv.classList.toggle('hidden');
-        if (!hidden) loadHistory();
-    });
-
-    clearHistoryButton.addEventListener('click', () => {
-        localStorage.removeItem('domainHistory');
-        loadHistory();
-    });
-
-    selectAllBtn.addEventListener('click', () => {
-        checkboxes.forEach(cb => cb.checked = true);
-    });
-
-    checkButton.addEventListener('click', handleAnalysis);
 </script>
 <script>
   (function () {
@@ -3632,9 +3549,9 @@ function normalizeBatchDomain(value) {
 }
 
 // ═══ Inicio / Blog / Eventos — contenido administrado desde /admin ══════
-function escapeAttr(text) {
-  return escapeHtml(text).replace(/"/g, '&quot;');
-}
+// escapeAttr() vive en el primer <script> de la página (junto a
+// escapeHtml) — checkHelpButton() ya la necesitaba ahí, y como función
+// global sigue disponible aquí sin redeclararla.
 
 function formatHomeDate(value) {
   const d = new Date(value);
@@ -3653,13 +3570,19 @@ async function fetchPublishedContent(type) {
   }
 }
 
+// Nota de alcance (2026-09-11, toggle de idioma): item.title/description/
+// category/summary/type (contenido editorial de Blog/Eventos/Materiales,
+// escrito por administradores vía /admin) NUNCA se traducen — a pedido
+// explícito, se muestran tal cual los escribió quien los publicó. Solo la
+// interfaz alrededor (textos de "sin contenido", enlaces "Ver material →"/
+// "Más información →") usa t().
 async function renderHomeInfo() {
   const grid = document.getElementById('home-info-grid');
   if (!grid) return;
   const items = await fetchPublishedContent('materials');
   if (!items.length) {
     grid.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5 md:col-span-2">
-      Aún no hay material de capacitación publicado.
+      ${escapeHtml(t('info.empty'))}
     </div>`;
     return;
   }
@@ -3668,7 +3591,7 @@ async function renderHomeInfo() {
       ${item.category ? `<div class="text-xs font-bold uppercase tracking-wide text-blue-600 mb-1">${escapeHtml(item.category)}</div>` : ''}
       <div class="font-semibold text-gray-900 mb-1">${escapeHtml(item.title)}</div>
       <p class="text-sm text-gray-600 flex-1">${escapeHtml(item.description)}</p>
-      <a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" class="mt-3 text-sm font-semibold text-blue-600 hover:underline">Ver material →</a>
+      <a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" class="mt-3 text-sm font-semibold text-blue-600 hover:underline">${escapeHtml(t('info.viewMaterial'))}</a>
     </div>
   `).join('');
 }
@@ -3679,7 +3602,7 @@ async function renderBlogTab() {
   const posts = await fetchPublishedContent('blog');
   if (!posts.length) {
     grid.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5 md:col-span-2 lg:col-span-3">
-      Aún no hay artículos publicados. Próximamente contenido técnico y de opinión sobre DNSSEC, RPKI y medición de infraestructura regional.
+      ${escapeHtml(t('blog.empty'))}
     </div>`;
     return;
   }
@@ -3703,7 +3626,7 @@ async function renderEventosTab() {
   const events = await fetchPublishedContent('events');
   if (!events.length) {
     list.innerHTML = `<div class="text-sm text-gray-400 italic border border-dashed border-gray-300 rounded-xl p-5">
-      No hay eventos programados por el momento. Aquí se publicarán cursos, seminarios y capacitaciones sobre DNSSEC y mediciones ISOC LAC.
+      ${escapeHtml(t('eventos.empty'))}
     </div>`;
     return;
   }
@@ -3715,7 +3638,7 @@ async function renderEventosTab() {
       </div>
       ${ev.type ? `<div class="text-xs font-bold uppercase tracking-wide text-blue-600 mt-1">${escapeHtml(ev.type)}</div>` : ''}
       ${ev.description ? `<p class="text-sm text-gray-600 mt-2">${escapeHtml(ev.description)}</p>` : ''}
-      ${ev.url ? `<a href="${escapeAttr(ev.url)}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-blue-600 hover:underline mt-2 inline-block">Más información →</a>` : ''}
+      ${ev.url ? `<a href="${escapeAttr(ev.url)}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-blue-600 hover:underline mt-2 inline-block">${escapeHtml(t('eventos.moreInfo'))}</a>` : ''}
     </div>
   `).join('');
 }
@@ -3723,6 +3646,22 @@ async function renderEventosTab() {
 renderHomeInfo();
 renderBlogTab();
 renderEventosTab();
+
+// Re-renderiza los bloques armados por JS que usan t() (no data-i18n) cada
+// vez que se cambia de idioma — así "Ver material →"/estados vacíos, etc.
+// quedan al día aunque ya se hubieran pintado antes de togglear. Se
+// ENCADENA al eslabón anterior (definido en el script de Mediciones, más
+// arriba en el documento) en vez de sobreescribirlo — cada fase del toggle
+// de sitio completo agrega la suya así, sin pisar las anteriores.
+(function () {
+  const previous = window.onLanguageApplied;
+  window.onLanguageApplied = function (lang) {
+    if (typeof previous === 'function') previous(lang);
+    renderHomeInfo();
+    renderBlogTab();
+    renderEventosTab();
+  };
+})();
 
 // ═══ Preparación de datasets de dominios — Fuente → Carga → Normalización ═══
 // NO incluye validación DNS, clasificación VALID/NXDOMAIN/REVIEW, ZIP ni PDF.
@@ -4572,6 +4511,17 @@ function computeAggregate(results, errors, country) {
   };
 }
 
+// NOTA (2026-09-09): existió aquí un cómputo de hallazgos por categoría
+// para el reporte de "Análisis comparativo" (% de resultados "OK" por
+// categoría de indicadores núcleo). Se eliminó a pedido explícito: el
+// reporte no debe calcular NADA sobre el dataset analizado — ni siquiera
+// en forma neutral/sin juicio de valor. Solo puede haber: (a) contenido
+// genérico e idéntico en cualquier corrida (qué mide cada indicador,
+// símbolos de resultado, limitaciones del sistema — ver "Cómo leer este
+// reporte" en medicionesBatchReport.exporter.js) y (b) las mediciones
+// crudas por dominio (la tabla comparativa y el detalle por dominio). Ver
+// docs/arquitectura.md para el detalle de qué se quitó y por qué.
+
 function renderBatchResults(agg, results) {
   document.getElementById('batch-results-wrap').classList.remove('hidden');
 
@@ -4772,83 +4722,77 @@ function downloadBlob(blob, filename) {
 }
 </script>
 <script>
-// ─── MEDICIONES — "Análisis comparativo" (sub-tab de Mediciones) ────────────
-// Reutiliza tal cual (no se reescribe nada de esto): groupDefinitions,
-// checkConfig, getCheckResult, initializeSummary, updateSummary,
-// computeAggregate, parseBatchDomains, normalizeBatchDomain — definidos
-// arriba, en los bloques de "Un dominio" y del batch DNSSEC. Lo único nuevo
-// aquí es la cola de concurrencia para el lote y el ensamblado/envío del
-// payload final al backend (POST /mediciones-batch/report).
+// ─── MEDICIONES — flujo único de análisis (hasta 2026-09-11 convivía con
+// una sub-pestaña "Un dominio" separada, eliminada a pedido explícito:
+// "no tiene sentido, dejar solamente la opción de análisis" — ver
+// docs/arquitectura.md). Reutiliza tal cual: groupDefinitions, checkConfig,
+// getCheckResult, initializeSummary, updateSummary, parseBatchDomains,
+// normalizeBatchDomain — definidos arriba. Lo propio de este bloque es la
+// cola de concurrencia y el ensamblado/envío del payload final al backend
+// (POST /mediciones-batch/report).
 
 let mbCheckboxes = [];
 let mbCancelled = false;
 let mbSourceMode = 'paste';
 let mbSourceFilename = null;
 
-function medicionesSwitchTab(tab) {
-  const single  = document.getElementById('mediciones-panel-single');
-  const batch   = document.getElementById('mediciones-panel-batch');
-  const tSingle = document.getElementById('mediciones-tab-single');
-  const tBatch  = document.getElementById('mediciones-tab-batch');
-
-  if (tab === 'single') {
-    single.classList.remove('hidden');
-    batch.classList.add('hidden');
-    tSingle.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
-    tSingle.classList.remove('text-gray-500');
-    tBatch.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
-    tBatch.classList.add('text-gray-500');
-  } else {
-    batch.classList.remove('hidden');
-    single.classList.add('hidden');
-    tBatch.classList.add('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
-    tBatch.classList.remove('text-gray-500');
-    tSingle.classList.remove('bg-white','text-blue-700','border-blue-200','border','border-b-0','-mb-px');
-    tSingle.classList.add('text-gray-500');
-  }
-}
-
-// Mismo árbol de checks que "Un dominio" (groupDefinitions compartido),
-// renderizado en un contenedor propio para no tocar #checksContainer ni la
-// variable global `checkboxes` de la que depende handleAnalysis().
 function renderMbCheckOptions() {
   const container = document.getElementById('mb-checksContainer');
+  // Preservar la selección del usuario al re-renderizar por el toggle de
+  // idioma de nombres.
+  const isRerender = container.dataset.rendered === 'true';
+  const checkedKeys = new Set(Array.from(container.querySelectorAll('input[type="checkbox"][data-check]:checked')).map(cb => cb.dataset.check));
   container.innerHTML = '';
   groupDefinitions.forEach(group => {
     const details = document.createElement('details');
     details.className = 'border rounded-lg bg-white shadow-sm';
-    details.open = true;
+    details.open = group.tier !== 'content';
     const summary = document.createElement('summary');
     summary.className = 'cursor-pointer select-none px-3 py-2 font-semibold text-gray-700 flex items-center justify-between';
-    summary.innerHTML = `<span>${group.title}</span><span class="text-xs text-gray-500">${group.checks.length} checks</span>`;
+    const summaryLeft = document.createElement('span');
+    summaryLeft.className = 'flex items-center gap-2';
+    summaryLeft.innerHTML = `<span class="disclosure-chevron">▶</span>${escapeHtml(group.title)}`;
+    const summaryRight = document.createElement('span');
+    summaryRight.className = 'flex items-center gap-2';
+    const groupMaster = buildGroupMasterCheckbox();
+    const countSpan = document.createElement('span');
+    countSpan.className = 'text-xs text-gray-500';
+    countSpan.textContent = `${group.checks.length} checks`;
+    summaryRight.appendChild(groupMaster.wrapper);
+    summaryRight.appendChild(countSpan);
+    summary.appendChild(summaryLeft);
+    summary.appendChild(summaryRight);
     details.appendChild(summary);
+    const note = groupNoteHtml(group);
+    if (note) details.appendChild(note);
     const wrapper = document.createElement('div');
     wrapper.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 px-3 pb-3';
+    const groupCheckboxes = [];
     group.checks.forEach(check => {
       const label = document.createElement('label');
       label.className = 'check-label flex items-center p-2 border rounded-lg cursor-pointer bg-gray-50';
       const input = document.createElement('input');
       input.type = 'checkbox';
       input.dataset.check = check.key;
-      if (check.default) input.checked = true;
+      input.checked = isRerender ? checkedKeys.has(check.key) : Boolean(check.default);
       input.className = 'h-4 w-4 rounded';
+      groupCheckboxes.push(input);
       const span = document.createElement('span');
       span.className = 'ml-2 text-sm';
-      span.innerHTML = `${escapeHtml(check.label)}${checkHelpButton(check.key)}`;
+      span.innerHTML = `${escapeHtml(checkConfig[check.key].label)}${checkHelpButton(check.key)}`;
       label.appendChild(input);
       label.appendChild(span);
       wrapper.appendChild(label);
     });
+    wireGroupMasterCheckbox(groupMaster.input, groupCheckboxes);
     details.appendChild(wrapper);
     container.appendChild(details);
   });
   mbCheckboxes = container.querySelectorAll('input[type="checkbox"][data-check]');
+  container.dataset.rendered = 'true';
+  wireGlobalMasterCheckbox(document.getElementById('mb-selectAll'), Array.from(mbCheckboxes));
 }
 renderMbCheckOptions();
-
-document.getElementById('mb-selectAll').addEventListener('click', () => {
-  mbCheckboxes.forEach(cb => cb.checked = true);
-});
 
 function medicionesBatchLoadFile(input) {
   const file = input.files[0];
@@ -4877,7 +4821,14 @@ document.getElementById('mb-domains-input').addEventListener('input', function (
 
 function mbGetDomainsList() {
   const raw = document.getElementById('mb-domains-input').value;
-  return parseBatchDomains(raw).map(normalizeBatchDomain);
+  const domains = parseBatchDomains(raw).map(normalizeBatchDomain);
+  // Depurar duplicados y ordenar (a pedido explícito, 2026-09-11): esta
+  // función es el único punto de ensamblado de la lista para el flujo de
+  // Mediciones — parseBatchDomains()/normalizeBatchDomain() en sí no
+  // dedupean ni ordenan porque también los usa, sin este wrapper, la
+  // herramienta de lote de DNSSEC (#batch-domains-input), que no debe
+  // cambiar de comportamiento.
+  return [...new Set(domains)].sort();
 }
 
 function mbSetProgress(done, total, lastDomain) {
@@ -4893,10 +4844,10 @@ function mbSetDnsStatus(text) {
   if (el) el.textContent = 'Validación DNS: ' + text;
 }
 
-// Por dominio: corre los checks seleccionados (getCheckResult reutilizado,
-// igual que analyzeDomain) + /dnssec-analysis?format=json (misma fuente
-// rica que usa dnssecBatchStart). No crea tarjetas de resultado en el DOM
-// (a diferencia de analyzeDomain) — este flujo solo necesita los datos.
+// Por dominio: corre los checks seleccionados (getCheckResult reutilizado)
+// + /dnssec-analysis?format=json (misma fuente rica que usa
+// dnssecBatchStart). No crea tarjetas de resultado en el DOM — solo
+// necesita los datos crudos para la tabla comparativa y el reporte.
 async function runMedicionesBatchDomain(domain, selectedChecks) {
   const checksResult = {};
   await Promise.all(selectedChecks.map(async (checkType) => {
@@ -4964,8 +4915,8 @@ async function medicionesBatchStart() {
   const domains = mbGetDomainsList();
   const selectedChecks = Array.from(mbCheckboxes).filter((cb) => cb.checked).map((cb) => cb.dataset.check);
 
-  if (!domains.length) { alert('Ingresa al menos un dominio.'); return; }
-  if (!selectedChecks.length) { alert('Selecciona al menos una verificación.'); return; }
+  if (!domains.length) { alert(t('med.alert.noDomains')); return; }
+  if (!selectedChecks.length) { alert(t('med.alert.noChecks')); return; }
 
   initializeSummary(selectedChecks);
   mbCancelled = false;
@@ -5021,27 +4972,18 @@ async function medicionesBatchStart() {
     }
   }
 
-  // Etiqueta genérica "Lote analizado" en vez de nombre de país — decisión
-  // de producto ya tomada: computeAggregate está calibrada para adopción
-  // DNSSEC de un país, aquí se reutiliza tal cual pero con otra etiqueta.
-  const dnssecForAggregate = [];
-  const dnssecErrors = [];
-  for (const r of domainResults) {
-    if (r.dnssec && !r.dnssec.error) dnssecForAggregate.push(r.dnssec);
-    else dnssecErrors.push({ domain: r.domain, error: r.dnssec?.error || 'sin datos' });
-  }
-  const dnssecAggregate = computeAggregate(dnssecForAggregate, dnssecErrors, 'Lote analizado');
-
+  // Sin agregados ni comparaciones sobre el dataset (a pedido explícito):
+  // cada dominio lleva su propia medición cruda (checks + estado DNS +
+  // DNSSEC de ESE dominio), pero el payload ya no arma ningún resumen del
+  // lote (antes: conteo Sí/No por check, VALID/NXDOMAIN/REVIEW del lote,
+  // adopción DNSSEC agregada, % por categoría) — nada de eso se calcula ni
+  // se manda.
   const domainsPayload = domainResults.map((r) => ({
     domain: r.domain,
     dns_validation: dnsByDomain.get(r.domain) || null,
     dnssec: r.dnssec,
     checks: r.checks,
   }));
-
-  const dnsValidationSummary = (dnsValidationResult.ok && dnsValidationResult.summary?.final_status)
-    ? dnsValidationResult.summary.final_status
-    : { VALID: 0, NXDOMAIN: 0, REVIEW: 0 };
 
   const payload = {
     meta: {
@@ -5050,16 +4992,12 @@ async function medicionesBatchStart() {
       selected_checks_glossary: selectedGlossary(selectedChecks),
       domain_count: domains.length,
       source: { mode: mbSourceMode, filename: mbSourceFilename },
+      // Alcance del reporte descargable (checkbox en la UI, desmarcado por
+      // defecto): por defecto el PDF/JSON trae solo la tabla del lote, sin
+      // el detalle completo por dominio (ver medicionesBatchReport.exporter.js).
+      include_domain_detail: !!document.getElementById('mb-include-domain-detail').checked,
     },
     domains: domainsPayload,
-    comparative: {
-      // Mismo shape que produce initializeSummary/updateSummary — se
-      // clona para desacoplarlo del estado interno mutable de esas
-      // funciones (summaryData también es usado por el sub-tab "Un dominio").
-      checks_summary: JSON.parse(JSON.stringify(summaryData)),
-      dns_validation_summary: dnsValidationSummary,
-      dnssec_aggregate: dnssecAggregate,
-    },
   };
 
   mbRenderPreview(payload);
@@ -5094,17 +5032,12 @@ function medicionesBatchCancel() {
 // Vista previa en pantalla: tabla dominio × check (✓/✗), estilo similar al
 // "Resumen acumulado" de "Un dominio" pero con forma de matriz — el reporte
 // completo (con DNS/DNSSEC por dominio y detalle) se descarga en PDF/JSON.
+// Sin ningún agregado ni comparación sobre el lote (a pedido explícito) —
+// solo el conteo de dominios y las mediciones crudas dominio × check.
 function mbRenderPreview(payload) {
   document.getElementById('mb-results-wrap').classList.remove('hidden');
 
   document.getElementById('mb-summary-total').textContent = payload.domains.length;
-
-  const adoption = payload.comparative.dnssec_aggregate?.adoptionRate;
-  document.getElementById('mb-summary-dnssec-adoption').textContent =
-    (adoption !== null && adoption !== undefined) ? adoption + '%' : 'N/D';
-
-  document.getElementById('mb-summary-dns-valid').textContent =
-    payload.comparative.dns_validation_summary?.VALID || 0;
 
   const selectedChecks = payload.meta.selected_checks;
   const thead = document.getElementById('mb-comparative-thead');
@@ -5134,13 +5067,56 @@ function mbRenderPreview(payload) {
     row.appendChild(domainTd);
     selectedChecks.forEach((key) => {
       const td = document.createElement('td');
-      const symbol = STATUS_SYMBOL[d.checks?.[key]?.status] || STATUS_SYMBOL._empty;
+      const statusKey = d.checks?.[key]?.status && STATUS_SYMBOL[d.checks[key].status] ? d.checks[key].status : '_empty';
+      const symbol = STATUS_SYMBOL[statusKey];
       td.className = 'px-4 py-3 text-center ' + symbol.cls;
-      td.title = symbol.label;
+      td.title = statusSymbolLabel(statusKey);
       td.textContent = symbol.icon;
       row.appendChild(td);
     });
     tbody.appendChild(row);
+  });
+
+  mbWireComparativeSlider();
+}
+
+// Sincroniza los dos <input type="range"> visibles (arriba y abajo de la
+// tabla — "mb-comparative-slider-top"/"mb-comparative-slider") con el
+// scroll horizontal real de la tabla comparativa: mover cualquiera de los
+// dos desplaza la tabla y actualiza al otro; desplazar la tabla (rueda del
+// mouse, trackpad, scrollbar nativo) actualiza ambos. Dos controles, no
+// uno, porque con muchas filas el de abajo puede quedar fuera de la
+// pantalla mientras se mira el encabezado. Solo se muestran si la tabla
+// realmente no cabe completa (columnas de más, según cuántos checks se
+// seleccionaron) — con pocas columnas no hay nada que desplazar.
+function mbWireComparativeSlider() {
+  const scrollEl = document.querySelector('#mb-comparative-thead').closest('.table-scroll');
+  const sliders = [
+    document.getElementById('mb-comparative-slider-top'),
+    document.getElementById('mb-comparative-slider'),
+  ].filter(Boolean);
+  if (!scrollEl || !sliders.length) return;
+
+  // El ancho real solo se conoce después de que el navegador maquetó la
+  // tabla — un frame de más asegura medidas correctas.
+  requestAnimationFrame(() => {
+    const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+    if (maxScroll <= 2) {
+      sliders.forEach((s) => s.classList.remove('is-active'));
+      return;
+    }
+    sliders.forEach((s) => {
+      s.classList.add('is-active');
+      s.max = String(maxScroll);
+      s.value = '0';
+      s.oninput = () => {
+        scrollEl.scrollLeft = Number(s.value);
+        sliders.forEach((other) => { if (other !== s) other.value = s.value; });
+      };
+    });
+    scrollEl.onscroll = () => {
+      sliders.forEach((s) => { s.value = String(scrollEl.scrollLeft); });
+    };
   });
 }
 </script>

@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Rutas del reporte de "Análisis comparativo" — sub-tab de Mediciones.
+ * Rutas del "Reporte por lote" — sub-tab de Mediciones (antes llamada
+ * "Análisis comparativo").
  *
  * La medición (checks + DNSSEC + validación DNS) corre client-side en
  * index.html (medicionesBatchStart) reutilizando lógica/endpoints ya
@@ -67,7 +68,7 @@ async function handleCreateReport(req, res) {
   if (tooLarge) {
     return sendJson(res, 400, {
       error: 'payload_too_large',
-      message: 'El payload del análisis comparativo excede el tamaño máximo admitido (20 MB).',
+      message: 'El payload del reporte por lote excede el tamaño máximo admitido (20 MB).',
     });
   }
 
