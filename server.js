@@ -255,6 +255,15 @@ function errorMessage(e) {
     // dominio inexistente (ambos dan ENOTFOUND); esta consulta adicional
     // sí lo distingue.
     if (e.code === 'WEBFETCH_NO_ADDRESS_RECORD') return 'El dominio no tiene registros A ni AAAA (posible subdominio/zona sin servicio web propio)';
+    // (2026-09-12) — fetchRdap() distingue explícitamente por qué falló la
+    // consulta RDAP en vez de tragarse todo como "sin entrada RDAP": antes
+    // un timeout o una caída de rdap.org se reportaba igual que un dominio
+    // genuinamente sin RDAP, perdiendo la distinción entre "no tiene" y "no
+    // se pudo consultar".
+    if (e.code === 'RDAP_NOT_FOUND') return 'El dominio no tiene entrada RDAP';
+    if (e.code === 'RDAP_TIMEOUT') return 'Timeout consultando el servicio RDAP';
+    if (e.code === 'RDAP_UNAVAILABLE') return 'Servicio RDAP no disponible';
+    if (e.code === 'RDAP_INVALID_RESPONSE') return 'El servicio RDAP devolvió una respuesta inválida';
   }
   return 'Servicio no disponible';
 }
@@ -725,19 +734,37 @@ async function fetchWebsite(domain) {
   recordCacheEvent('fetchWebsite', domain, 'new_fetch');
   const promise = (async () => {
     const targets = [`https://${domain}`, `http://${domain}`];
+    let lastError = null;
     for (const target of targets) {
       try {
         const resolved = await resolveFinalWebTarget(target);
         const page = resolved.response;
-        if (page.statusCode && page.statusCode >= 200 && page.statusCode < 300) {
-          const value = { url: resolved.finalUrl, chain: resolved.chain, ...page };
-          cacheSet(htmlCache, domain, value);
-          cacheSet(headerCache, domain, { headers: page.headers, statusCode: page.statusCode });
-          return value;
-        }
-      } catch (e) {}
+        // FIX (2026-09-12): una respuesta HTTP real — 2xx, 3xx, 4xx o 5xx —
+        // es una medición COMPLETADA, no un fallo de transporte. Antes se
+        // exigía statusCode 2xx exacto para aceptar el resultado; cualquier
+        // 401/403 (challenge de WAF, bloqueo de bot, auth-gate) se
+        // descartaba en silencio y caía al genérico de abajo, aunque la
+        // petición hubiera funcionado perfectamente — confirmado en vivo
+        // contra tiendainglesa.com.uy (403 Cloudflare) y copaair.com (401
+        // DataDome), ambos con respuesta real y útil (cookies, cabeceras de
+        // WAF) que se perdía. fetchWebsite() ya no decide qué status code
+        // es "éxito" — devuelve la respuesta tal cual y cada handler
+        // (cookies/firewall/sitefeatures/linkedpages/socialtags) interpreta
+        // status/headers/body/redirect según su propio criterio, igual que
+        // ya hace handleHeaders con este mismo target. Solo un fallo real
+        // de transporte (timeout, DNS, conexión rechazada, TLS) amerita
+        // reintentar con el otro esquema (https->http) — antes también se
+        // reintentaba ante cualquier 4xx/5xx, duplicando requests reales
+        // sin necesidad.
+        const value = { url: resolved.finalUrl, chain: resolved.chain, ...page };
+        cacheSet(htmlCache, domain, value);
+        cacheSet(headerCache, domain, { headers: page.headers, statusCode: page.statusCode });
+        return value;
+      } catch (e) {
+        lastError = e; // fallo real de transporte — se conserva para propagar su .code si el otro esquema también falla
+      }
     }
-    throw new Error('Servicio no disponible');
+    throw lastError || new Error('Servicio no disponible');
   })();
   htmlPending.set(domain, promise);
   try {
@@ -1482,14 +1509,44 @@ async function handleServerInfo(domain, res) {
 // el User-Agent por defecto de fetchJSON (DEFAULT_FETCH_USER_AGENT)
 // porque esta llamada no pasa por fetchJSON, sino por el adaptador SSRF
 // (resolveFinalWebTarget) — mismo valor, dos mecanismos de fetch.
+// FIX (2026-09-12): antes cualquier fallo acá (timeout de rdap.org,
+// servicio caído, respuesta no-JSON) terminaba indistinguible de "el
+// dominio no tiene entrada RDAP" — confirmado en vivo: rdap.org devuelve
+// 404 (siguiendo redirect al servidor RDAP autoritativo del TLD) tanto
+// para un dominio que genuinamente no existe como para un TLD sin
+// bootstrap RDAP registrado (ej. .pa) — en ambos casos 404 es la señal
+// correcta de "sin datos RDAP", así que sigue siendo RDAP_NOT_FOUND. Lo
+// que se corrige es todo lo demás: un timeout de red o una caída del
+// servicio ya no se disfrazan de "sin RDAP".
 async function fetchRdap(domain) {
-  const resolved = await resolveFinalWebTarget(`https://rdap.org/domain/${domain}`, {
-    headers: {
-      Accept: 'application/rdap+json',
-      'User-Agent': DEFAULT_FETCH_USER_AGENT
+  let resolved;
+  try {
+    resolved = await resolveFinalWebTarget(`https://rdap.org/domain/${domain}`, {
+      headers: {
+        Accept: 'application/rdap+json',
+        'User-Agent': DEFAULT_FETCH_USER_AGENT
+      }
+    });
+  } catch (e) {
+    if (e && (e.code === 'TIMEOUT' || e.code === 'WEBFETCH_TOTAL_TIMEOUT')) {
+      throw Object.assign(new Error('Timeout consultando el servicio RDAP'), { code: 'RDAP_TIMEOUT' });
     }
-  });
-  return JSON.parse(resolved.response.body);
+    throw Object.assign(new Error('Servicio RDAP no disponible'), { code: 'RDAP_UNAVAILABLE' });
+  }
+
+  const status = resolved.response.statusCode;
+  if (status === 404) {
+    throw Object.assign(new Error('El dominio no tiene entrada RDAP'), { code: 'RDAP_NOT_FOUND' });
+  }
+  if (!status || status < 200 || status >= 300) {
+    throw Object.assign(new Error('Servicio RDAP no disponible'), { code: 'RDAP_UNAVAILABLE' });
+  }
+
+  try {
+    return JSON.parse(resolved.response.body);
+  } catch (e) {
+    throw Object.assign(new Error('El servicio RDAP devolvió una respuesta inválida'), { code: 'RDAP_INVALID_RESPONSE' });
+  }
 }
 
 function rdapEntityName(entities, role) {
@@ -1787,7 +1844,7 @@ async function handleArchive(domain, res) {
       : [];
     sendJSON(res, 200, { domain, entries });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: 'Servicio no disponible' });
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
 

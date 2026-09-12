@@ -2236,3 +2236,123 @@ análisis pero no priorizado): `handleArchive` (Wayback Machine) sigue sin
 casos nuevos para `TIMEOUT`/`RANKING_UNAVAILABLE` — ambos deben seguir
 clasificando como `MEASUREMENT_ERROR`, que es correcto (no son hallazgos
 del dominio, son fallos del instrumento o de un tercero).
+
+## `fetchWebsite()` exigía 2xx exacto y descartaba el error real por intento — 2026-09-12
+
+Del análisis de los 42 `MEASUREMENT_ERROR` "sin causa clara" (mismo lote
+de 20×54) surgió una causa raíz única para 35 de los 42: `firewall`,
+`cookies`, `socialtags`, `sitefeatures` y `linkedpages` comparten una sola
+llamada real a `fetchWebsite()` (gracias al coalescing) — los 5 heredaban
+el mismo resultado, siempre "Servicio no disponible" sin `error_code`,
+para 7 dominios distintos, cada uno por una razón real diferente.
+
+**Causa**: `fetchWebsite()` (server.js) es una implementación de fetch
+independiente de `handleHeaders`/`resolveFinalWebTarget`, con dos
+defectos propios:
+
+1. Exigía `statusCode` 2xx exacto para aceptar el resultado — un 401/403
+   (challenge de WAF, bloqueo de bot, auth-gate) se descartaba aunque la
+   petición hubiera funcionado perfectamente. Confirmado en vivo:
+   `tiendainglesa.com.uy` (403 Cloudflare, challenge) y `copaair.com` (401
+   DataDome) tenían respuesta real y útil que se perdía.
+2. `catch (e) {}` silencioso por cada intento (https/http) — descartaba el
+   error real (`TIMEOUT`, `WEBFETCH_NO_ADDRESS_RECORD`,
+   `UNABLE_TO_VERIFY_LEAF_SIGNATURE`) y, si ambos intentos fallaban,
+   lanzaba `new Error('Servicio no disponible')` sin `.code`.
+
+**Corrección**: `fetchWebsite()` ya no decide qué status code es
+"éxito" — acepta cualquier respuesta HTTP real (2xx/3xx/4xx/5xx) como
+medición completada y devuelve `statusCode`/`headers`/`body` tal cual;
+cada handler interpreta el significado (igual que ya hacía
+`handleHeaders`). Solo un fallo real de transporte (timeout, DNS,
+conexión rechazada, TLS) amerita reintentar con el otro esquema
+(https→http); si ambos fallan de verdad, se propaga el `.code` del
+**último** error real en vez de un genérico sin código. Aceptar un 4xx/5xx
+como "medición completada" **no** implica marcarlo como PASS — eso sigue
+siendo criterio de cada handler/del cliente, sin cambios.
+
+**Handlers afectados** (sin cambios propios, ya consumían `headers`/`body`
+sin asumir 2xx): `handleCookies`, `handleSiteFeatures`, `handleTechStack`,
+`handleLinkedPages`, `handleSocialTags`, `handleFirewall`,
+`handleHttpSecurity`.
+
+## `handleArchive()` sin `error_code` — 2026-09-12
+
+Único handler de este bloque que aún no propagaba `e.code` en su `catch`.
+Mismo patrón de una línea que el resto del código (`error_code: e &&
+e.code`), sin tocar retry/backoff ni la lógica de consulta a
+`web.archive.org/cdx`.
+
+## RDAP: `fetchRdap()`/`handleDomainInfo()` confundían "sin RDAP" con "no se pudo consultar RDAP" — 2026-09-12
+
+**Causa**: `fetchRdap()` hacía `JSON.parse(resolved.response.body)` sin
+revisar el `statusCode` de la respuesta. Verificado en vivo:
+`rdap.org/domain/{dominio}` responde con un cuerpo JSON válido **incluso
+en sus propios 404** (`{"errorCode":404,"title":"No RDAP service is
+available..."}`) — el `JSON.parse` nunca fallaba, así que el código viejo
+leía `data.events`/`data.entities`/`data.status` como `undefined` y
+devolvía silenciosamente un resultado "vacío pero exitoso"
+(`registry:null, status:[], creation:null, expiration:null`), sin
+distinguir eso de un timeout real o de `rdap.org` caído.
+
+**Corrección**: `fetchRdap()` ahora revisa el resultado en 3 pasos y
+lanza un código explícito en cada uno:
+
+| Código | Cuándo |
+|---|---|
+| `RDAP_TIMEOUT` | la consulta a `rdap.org` lanza `TIMEOUT`/`WEBFETCH_TOTAL_TIMEOUT` |
+| `RDAP_UNAVAILABLE` | la consulta lanza cualquier otro error de transporte, o responde con un status fuera de 2xx (y no es 404) |
+| `RDAP_NOT_FOUND` | responde 404 — confirmado en vivo que `rdap.org` usa 404 tanto para un dominio inexistente como para un TLD sin bootstrap RDAP registrado (ej. `.uy`, `.pa`, `.edu` — probado con `nic.uy`, `nic.pa`, `mit.edu`: los 3 dan 404 de forma **consistente y determinista**, no es un fallo transitorio) |
+| `RDAP_INVALID_RESPONSE` | responde 2xx pero el cuerpo no es JSON parseable |
+
+`handleWhois` (que comparte `fetchRdap()`) no se tocó — su `catch(e){}`
+ya ignoraba el error por completo, así que el cambio no le afecta.
+
+**Tests** (mockeados, mismo patrón que `test/safeWebFetch.adapter.test.js`
+— `resolveFinalWebTarget` con `lookup`/`requestImpl` inyectados, sin red
+real): HTTP 200/301→200/403/404/405 aceptados como medición completada
+por el mecanismo que usa `fetchWebsite()`; `ECONNREFUSED`/`TIMEOUT` sí
+propagan con su `.code` real; RDAP 404→`RDAP_NOT_FOUND`, RDAP
+500→`RDAP_UNAVAILABLE`, timeout de red→`RDAP_TIMEOUT` (no
+`RDAP_NOT_FOUND`), RDAP 200 con cuerpo no-JSON→`RDAP_INVALID_RESPONSE`.
+11/11 casos correctos.
+
+**Verificación end-to-end** (servidor local + corrida real de 20×54):
+
+| Estado | Antes de esta corrección (tras timeouts/ranking/webfetch) | Ahora |
+|---|---|---|
+| MEASUREMENT_ERROR | 120 | **101** |
+
+De los 39 casos con causa ya identificada (35 de `fetchWebsite()` + 4 de
+`archive`): **25/35 resueltos por el fix de `fetchWebsite()`** (pasaron a
+PASS/INFO/FAIL/NOT_APPLICABLE reales), **4/4 resueltos por el fix de
+`archive`**. Los 10 restantes de `fetchWebsite()` (`nic.pa` × 5,
+`usa.gov` × 5) siguen en `MEASUREMENT_ERROR` — correctamente, ahora con
+`error_code: TIMEOUT` visible: son timeouts reales de esos dos dominios,
+no un problema del código.
+
+`domaininfo` pasó de 0-3 errores (variable, enmascarado) a exponer
+consistentemente `RDAP_NOT_FOUND` para dominios `.uy`/`.pa`/`.edu` (7
+casos, confirmado determinista contra 10 dominios reprobados en
+aislado) y `RDAP_UNAVAILABLE` para 2-3 casos de flakiness real y
+transitoria de `rdap.org` bajo ráfaga de peticiones (confirmado: los
+mismos dominios que fallaron en el lote completo, al reprobarse aislados
+segundos después, respondieron con datos reales). **Efecto secundario
+esperado, no un bug**: como `classifyDataError()` (cliente) no tiene un
+caso especial para `RDAP_NOT_FOUND`, estos 7 casos caen en
+`MEASUREMENT_ERROR` en vez de algo más preciso como `NOT_APPLICABLE` —
+antes esos mismos 7 casos ni siquiera aparecían como error (se leían como
+`INFO "Sin datos"`, un falso positivo silencioso). Corregir esa
+clasificación queda fuera del alcance de esta corrección, no se tocó
+`classifyDataError()` según lo indicado.
+
+**Sin regresiones de código**: se revisó cada caso que cambió de
+"no-error" a `MEASUREMENT_ERROR` entre el estado previo a ambas rondas de
+fixes y ahora. Los únicos cambios de ese tipo son (a) los 7 `domaininfo`
+`RDAP_NOT_FOUND` explicados arriba (comportamiento nuevo intencional), (b)
+2-3 `domaininfo` `RDAP_UNAVAILABLE` por flakiness real de `rdap.org` (no
+causado por este cambio), y (c) `archive/amazon.com` con timeout real
+contra `web.archive.org` en esta corrida puntual (el código de
+`handleArchive` solo ganó `error_code`, no se tocó su timeout ni su
+lógica — variación normal de un servicio externo entre dos corridas en
+momentos distintos, no atribuible al fix).
