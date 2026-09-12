@@ -86,9 +86,9 @@ function run() {
         dns_validation: { final_status: 'VALID', review_subtype: null, discrepancy: false },
         dnssec: { error: 'Timeout' },
         checks: {
-          mx: { label: 'MX', status: 'ok', details: 'mail.example' },
-          dmarc: { label: 'DMARC', status: 'fail', details: 'No se encontró registro DMARC' },
-          spf: { label: 'SPF', status: 'error', details: 'Timeout consultando SPF' },
+          mx: { label: 'MX', status: 'PASS', details: 'mail.example' },
+          dmarc: { label: 'DMARC', status: 'FAIL', details: 'No se encontró registro DMARC' },
+          spf: { label: 'SPF', status: 'MEASUREMENT_ERROR', details: 'Timeout consultando SPF' },
         },
       },
       {
@@ -107,7 +107,7 @@ function run() {
   assert.ok(noDnssecMd.includes('null-dnssec.example'));
   assert.ok(!noDnssecMd.includes('undefined'), 'no debe filtrar "undefined" al texto por campos faltantes');
   assert.ok(noDnssecMd.includes('::: landscape'), 'la tabla del lote (por categoría) siempre se imprime en landscape');
-  assert.ok(noDnssecMd.includes('Informativo — dato disponible'), 'debe incluir la leyenda de símbolos (✓/✗/⚠/ℹ/—)');
+  assert.ok(noDnssecMd.includes('INFORMATIVO — dato disponible'), 'debe incluir la leyenda de símbolos (✓/✗/⊘/?/⚠/ℹ/—)');
   const legendIdx = noDnssecMd.indexOf('Símbolos de resultado');
   const batchTableIdx = noDnssecMd.indexOf('## Tabla de resultados — dominio × indicador');
   assert.ok(legendIdx !== -1 && legendIdx < batchTableIdx, 'la leyenda de símbolos debe ir al inicio del documento, no pegada a la tabla');
@@ -205,7 +205,7 @@ function run() {
   const groupedSelectedChecks = [...ipRedChecks, ...tlsChecks].map((c) => c.key);
   const groupedChecksResult = {};
   for (const c of [...ipRedChecks, ...tlsChecks]) {
-    groupedChecksResult[c.key] = { label: c.label, status: 'ok', details: '' };
+    groupedChecksResult[c.key] = { label: c.label, status: 'PASS', details: '' };
   }
   const groupedPayload = {
     meta: {
@@ -279,7 +279,7 @@ function run() {
       domain: 'alcance.example',
       dns_validation: { final_status: 'VALID', review_subtype: null, discrepancy: false },
       dnssec: null,
-      checks: { mx: { label: 'MX', status: 'ok', details: '' } },
+      checks: { mx: { label: 'MX', status: 'PASS', details: '' } },
     }],
   };
   const scopeDefaultMd = buildComparativeMarkdown(scopeBasePayload);

@@ -17,7 +17,7 @@
          claves crudas ("med.heading") en vez del texto traducido durante
          horas después de cada despliegue que cambiara el diccionario.
          Subir este número cada vez que se edite public/i18n.js. -->
-    <script src="/i18n.js?v=10"></script>
+    <script src="/i18n.js?v=11"></script>
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         * { box-sizing: border-box; }
@@ -1944,13 +1944,34 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     // usarse (renderStatusLegend, y el tooltip de la tabla del lote más
     // abajo) — no se guardan como texto fijo acá, mismo criterio que el
     // resto del contenido armado por JS.
-    const STATUS_SYMBOL_I18N_KEY = { ok: 'status.ok', fail: 'status.fail', error: 'status.error', info: 'status.info', _empty: 'status.empty' };
+    // FASE 2 (2026-09-12): los 4 estados (ok/fail/error/info) mezclaban
+    // "el dominio no cumple" con "no se pudo concluir por comportamiento
+    // del sitio" (ej. HTTPS respondiendo 405) y con "la herramienta no
+    // pudo medir" (timeout, DNS caído) bajo el mismo 'error' — un fallo
+    // interno de MEDICIONES podía leerse como si fuera un fallo del
+    // dominio. Migrado a 6 estados explícitos: PASS (cumple), FAIL (medido,
+    // no cumple), NOT_APPLICABLE (la prueba no aplica a este caso),
+    // INCONCLUSIVE (comportamiento del sitio impide concluir con
+    // certeza), MEASUREMENT_ERROR (la herramienta no pudo ejecutar la
+    // prueba), INFO (dato neutro, sin juicio de valor). Ver
+    // docs/arquitectura.md para el detalle check por check.
+    const STATUS_SYMBOL_I18N_KEY = {
+        PASS: 'status.pass',
+        FAIL: 'status.fail',
+        NOT_APPLICABLE: 'status.not_applicable',
+        INCONCLUSIVE: 'status.inconclusive',
+        MEASUREMENT_ERROR: 'status.measurement_error',
+        INFO: 'status.info',
+        _empty: 'status.empty'
+    };
     const STATUS_SYMBOL = {
-        ok:    { icon: '✓', cls: 'text-green-600' },
-        fail:  { icon: '✗', cls: 'text-red-600' },
-        error: { icon: '⚠', cls: 'text-gray-500' },
-        info:  { icon: 'ℹ', cls: 'text-blue-600' },
-        _empty:{ icon: '—', cls: 'text-gray-300' }
+        PASS:              { icon: '✓', cls: 'text-green-600' },
+        FAIL:              { icon: '✗', cls: 'text-red-600' },
+        NOT_APPLICABLE:    { icon: '⊘', cls: 'text-slate-400' },
+        INCONCLUSIVE:      { icon: '?', cls: 'text-amber-600' },
+        MEASUREMENT_ERROR: { icon: '⚠', cls: 'text-gray-500' },
+        INFO:              { icon: 'ℹ', cls: 'text-blue-600' },
+        _empty:            { icon: '—', cls: 'text-gray-300' }
     };
 
     function statusSymbolLabel(key) {
@@ -2202,11 +2223,14 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             if (isPositive) {
                 return `<li>${escapeHtml(item.domain)}</li>`;
             }
-            const statusText = item.status === 'fail'
-                ? 'falló'
-                : item.status === 'error'
-                    ? 'error'
-                    : item.status || '';
+            const STATUS_TOOLTIP_TEXT = {
+                FAIL: 'falló',
+                NOT_APPLICABLE: 'no aplica',
+                INCONCLUSIVE: 'no concluyente',
+                MEASUREMENT_ERROR: 'error de medición',
+                INFO: 'informativo'
+            };
+            const statusText = STATUS_TOOLTIP_TEXT[item.status] || item.status || '';
             const suffix = statusText ? ` (${escapeHtml(statusText)})` : '';
             return `<li>${escapeHtml(item.domain)}${suffix}</li>`;
         }).join('')}</ul>`;
@@ -2276,7 +2300,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     function updateSummary(checkKey, domain, status) {
         if (!summaryData[checkKey]) return;
         const entry = summaryData[checkKey];
-        if (status === 'ok') {
+        if (status === 'PASS') {
             entry.positive += 1;
             entry.positives.push({ domain, status });
         } else {
@@ -2291,6 +2315,23 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         elements.negativeTooltip.innerHTML = renderTooltipList(entry.negatives, 'Sin resultados negativos');
     }
 
+    // FASE 2 (2026-09-12): antes 4xx y 5xx se colapsaban por igual en
+    // "fail" — un 401/403/405/429 prueba que TLS/HTTP funcionan y que la
+    // aplicación respondió, solo que rechazó el método/autorización o
+    // aplicó límite de tasa; no es lo mismo que un sitio roto o sin
+    // HTTPS. Se separa "código de éxito/redirección/error real" de
+    // "código ambiguo — no se puede concluir sin más contexto (posible
+    // WAF, autenticación, rate limit)". Usado por https/serverstatus/
+    // redirectchain — no reemplaza medir cada uno, solo centraliza el
+    // mismo criterio para no repetirlo tres veces.
+    function httpStatusToCheckStatus(code) {
+        if (!code) return 'MEASUREMENT_ERROR';
+        if (code >= 200 && code < 300) return 'PASS';
+        if (code >= 300 && code < 400) return 'INFO';
+        if ([401, 403, 405, 429].includes(code)) return 'INCONCLUSIVE';
+        return 'FAIL';
+    }
+
     async function getCheckResult(checkType, domain) {
         const { label } = checkConfig[checkType];
         const ascii = toASCII(domain);
@@ -2298,7 +2339,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             switch (checkType) {
                 case 'ipinfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/ipinfo/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = [];
                     if (data.ipv4?.length) lines.push(`IPv4: ${data.ipv4.join(', ')}`);
                     if (data.ipv6?.length) lines.push(`IPv6: ${data.ipv6.join(', ')}`);
@@ -2307,11 +2348,11 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                             lines.push(`${g.ip}: ${[g.city, g.region, g.country].filter(Boolean).join(', ')}${g.asn ? ' (AS' + g.asn + ')' : ''}`);
                         });
                     }
-                    return { label, status: lines.length ? 'ok' : 'fail', details: lines.length ? lines : 'Sin datos' };
+                    return { label, status: lines.length ? 'PASS' : 'FAIL', details: lines.length ? lines : 'Sin datos' };
                 }
                 case 'serverlocation': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverlocation/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const parts = [data.city, data.region, data.country].filter(Boolean).join(', ');
                     const details = [];
                     if (parts || data.ip) details.push(parts ? `${parts} (${data.ip})` : data.ip);
@@ -2321,13 +2362,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     }
                     return {
                         label,
-                        status: data.ip ? 'ok' : 'fail',
+                        status: data.ip ? 'PASS' : 'FAIL',
                         details: details.length ? details : 'Sin datos'
                     };
                 }
                 case 'serverinfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = [];
                     if (data.ip) lines.push(`IP analizada: ${data.ip}`);
                     if (data.asn) lines.push(`ASN: AS${data.asn}`);
@@ -2335,29 +2376,25 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     if (data.network) lines.push(`Prefijo: ${data.network}`);
                     if (data.isp) lines.push(`ISP: ${data.isp}`);
                     if (data.city || data.country) lines.push(`Ubicación: ${[data.city, data.country].filter(Boolean).join(', ')}`);
-                    return { label, status: lines.length ? 'ok' : 'fail', details: lines.length ? lines : 'Sin datos' };
+                    return { label, status: lines.length ? 'PASS' : 'FAIL', details: lines.length ? lines : 'Sin datos' };
                 }
                 case 'serverstatus': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverstatus/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const code = data.statusCode;
-                    if (!code) return { label, status: 'error', details: 'Sin respuesta' };
-                    if (code >= 500) return { label, status: 'fail', details: `HTTP ${code}` };
-                    if (code >= 400) return { label, status: 'fail', details: `HTTP ${code}` };
-                    if (code >= 300) {
-                        const target = data.location ? ` → ${data.location}` : '';
-                        return { label, status: 'info', details: `HTTP ${code} (redirección)${target}` };
-                    }
-                    return { label, status: 'ok', details: `HTTP ${code}` };
+                    if (!code) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin respuesta' };
+                    const target = data.location ? ` → ${data.location}` : '';
+                    const suffix = code >= 300 && code < 400 ? ` (redirección)${target}` : '';
+                    return { label, status: httpStatusToCheckStatus(code), details: `HTTP ${code}${suffix}` };
                 }
                 case 'openports': {
                     const data = await fetchWithTimeout(`${API_BASE}/openports/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const open = data.ports?.filter(p => p.open).map(p => p.port) || [];
                     const expected = new Set([53, 80, 443, 25, 110, 143, 465, 587, 993, 995]);
                     const unusual = open.filter(port => !expected.has(port));
                     if (!open.length) {
-                        return { label, status: 'ok', details: 'Sin puertos comunes abiertos' };
+                        return { label, status: 'PASS', details: 'Sin puertos comunes abiertos' };
                     }
                     if (unusual.length) {
                         const details = [`Puertos no estándar: ${unusual.join(', ')}`];
@@ -2365,16 +2402,16 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                             const standard = open.filter(port => expected.has(port));
                             details.push(`Puertos esperados: ${standard.join(', ')}`);
                         }
-                        return { label, status: 'fail', details };
+                        return { label, status: 'FAIL', details };
                     }
-                    return { label, status: 'ok', details: `Puertos estándar: ${open.join(', ')}` };
+                    return { label, status: 'PASS', details: `Puertos estándar: ${open.join(', ')}` };
                 }
                 case 'redirectchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/redirectchain/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const chain = (data.chain || []).filter(Boolean);
                     if (!chain.length) {
-                        return { label, status: 'info', details: 'Sin redirecciones' };
+                        return { label, status: 'INFO', details: 'Sin redirecciones' };
                     }
                     const deduped = [];
                     const seen = new Set();
@@ -2393,21 +2430,21 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                         return `${index + 1}. ${code} → ${destination} (${note})`;
                     });
                     const summary = `Cadena de ${deduped.length} pasos. Último destino: ${finalStep.location || finalStep.url}`;
-                    let status = 'info';
-                    if (finalStep.statusCode >= 400) status = 'fail';
-                    else if (deduped.length === 1 && finalStep.statusCode < 300) status = 'ok';
+                    let status = 'INFO';
+                    if (finalStep.statusCode >= 400) status = httpStatusToCheckStatus(finalStep.statusCode);
+                    else if (deduped.length === 1 && finalStep.statusCode < 300) status = 'PASS';
                     return { label, status, details: [summary, ...lines] };
                 }
                 case 'block': {
                     const data = await fetchWithTimeout(`${API_BASE}/block/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = data.results?.map(r => `${r.resolver}: ${r.blocked ? 'bloqueado' : 'acceso'}`) || [];
                     const blocked = data.results?.some(r => r.blocked);
-                    return { label, status: blocked ? 'fail' : 'ok', details: lines.length ? lines : 'Sin datos' };
+                    return { label, status: blocked ? 'FAIL' : 'PASS', details: lines.length ? lines : 'Sin datos' };
                 }
                 case 'dnsrecords': {
                     const data = await fetchWithTimeout(`${API_BASE}/dnsrecords/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const records = [];
                     Object.entries(data.records || {}).forEach(([type, values]) => {
                         if (Array.isArray(values) && values.length) {
@@ -2417,131 +2454,136 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                             records.push(`${type}: ${formatted}`);
                         }
                     });
-                    return { label, status: records.length ? 'ok' : 'fail', details: records.length ? records : 'Sin registros' };
+                    return { label, status: records.length ? 'PASS' : 'FAIL', details: records.length ? records : 'Sin registros' };
                 }
                 case 'txtrecords': {
                     const data = await fetchWithTimeout(`${API_BASE}/txtrecords/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const records = data.records?.map(r => r.join('')) || [];
-                    return { label, status: records.length ? 'ok' : 'fail', details: records.length ? records : 'Sin TXT' };
+                    return { label, status: records.length ? 'PASS' : 'FAIL', details: records.length ? records : 'Sin TXT' };
                 }
                 case 'dnsserver': {
                     const data = await fetchWithTimeout(`${API_BASE}/dnsserver/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.servers?.length ? 'ok' : 'fail', details: data.servers?.length ? data.servers : 'Sin NS' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.servers?.length ? 'PASS' : 'FAIL', details: data.servers?.length ? data.servers : 'Sin NS' };
                 }
                 case 'sitefeatures': {
                     const data = await fetchWithTimeout(`${API_BASE}/sitefeatures/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const features = data.features || {};
                     const lines = Object.entries(features).map(([k, v]) => {
                         const clean = k.replace(/^has/, '').replace(/([A-Z])/g, ' $1').trim();
                         const formatted = clean.charAt(0).toUpperCase() + clean.slice(1);
                         return `${formatted}: ${v ? 'sí' : 'no'}`;
                     });
-                    return { label, status: lines.some(l => /sí$/.test(l)) ? 'ok' : 'info', details: lines };
+                    return { label, status: lines.some(l => /sí$/.test(l)) ? 'PASS' : 'INFO', details: lines };
                 }
                 case 'cookies': {
                     const data = await fetchWithTimeout(`${API_BASE}/cookies/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const cookies = data.cookies || [];
-                    return { label, status: cookies.length ? 'info' : 'ok', details: cookies.length ? cookies : 'Sin cookies' };
+                    return { label, status: cookies.length ? 'INFO' : 'PASS', details: cookies.length ? cookies : 'Sin cookies' };
                 }
                 case 'crawlrules': {
                     const data = await fetchWithTimeout(`${API_BASE}/crawlrules/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    if (!data.found) return { label, status: 'fail', details: 'No encontrado' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (!data.found) return { label, status: 'FAIL', details: 'No encontrado' };
                     const snippet = escapeHtml((data.content || '').slice(0, 500));
                     const html = `<pre class="whitespace-pre-wrap text-xs text-gray-700">${snippet}${data.content && data.content.length > 500 ? '…' : ''}</pre>`;
-                    return { label, status: 'ok', details: { html } };
+                    return { label, status: 'PASS', details: { html } };
                 }
                 case 'linkedpages': {
                     const data = await fetchWithTimeout(`${API_BASE}/linkedpages/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = data.links?.slice(0, 20).map(l => `${l.internal ? 'Interno' : 'Externo'}: ${l.href}`) || [];
-                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin enlaces detectados' };
+                    return { label, status: lines.length ? 'PASS' : 'INFO', details: lines.length ? lines : 'Sin enlaces detectados' };
                 }
                 case 'listedpages': {
                     const data = await fetchWithTimeout(`${API_BASE}/listedpages/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const pages = data.pages?.slice(0, 20) || [];
-                    return { label, status: pages.length ? 'ok' : 'info', details: pages.length ? pages : 'Sin sitemap' };
+                    return { label, status: pages.length ? 'PASS' : 'INFO', details: pages.length ? pages : 'Sin sitemap' };
                 }
                 case 'socialtags': {
                     const data = await fetchWithTimeout(`${API_BASE}/socialtags/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const tags = Object.entries(data.tags || {}).map(([k, v]) => `${k}: ${v}`);
-                    return { label, status: tags.length ? 'ok' : 'info', details: tags.length ? tags : 'Sin etiquetas sociales' };
+                    return { label, status: tags.length ? 'PASS' : 'INFO', details: tags.length ? tags : 'Sin etiquetas sociales' };
                 }
                 case 'quality': {
                     const data = await fetchWithTimeout(`${API_BASE}/quality/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = [];
                     if (typeof data.performance === 'number') lines.push(`Performance: ${(data.performance * 100).toFixed(0)}`);
                     if (typeof data.accessibility === 'number') lines.push(`Accesibilidad: ${(data.accessibility * 100).toFixed(0)}`);
                     if (typeof data.bestPractices === 'number') lines.push(`Mejores prácticas: ${(data.bestPractices * 100).toFixed(0)}`);
                     if (typeof data.seo === 'number') lines.push(`SEO: ${(data.seo * 100).toFixed(0)}`);
-                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin datos de Lighthouse' };
+                    return { label, status: lines.length ? 'PASS' : 'INFO', details: lines.length ? lines : 'Sin datos de Lighthouse' };
                 }
                 case 'archive': {
                     const data = await fetchWithTimeout(`${API_BASE}/archive/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const entries = data.entries?.map(e => `${e.timestamp}: ${e.original} (${e.status})`) || [];
-                    return { label, status: entries.length ? 'ok' : 'info', details: entries.length ? entries : 'Sin historial' };
+                    return { label, status: entries.length ? 'PASS' : 'INFO', details: entries.length ? entries : 'Sin historial' };
                 }
                 case 'ranking': {
                     const data = await fetchWithTimeout(`${API_BASE}/ranking/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     return {
                         label,
-                        status: data.rank ? 'ok' : 'info',
+                        status: data.rank ? 'PASS' : 'INFO',
                         details: data.rank ? `Ranking global ${data.rank}${data.date ? ` (${data.date})` : ''}` : 'Sin ranking'
                     };
                 }
                 case 'malware': {
                     const data = await fetchWithTimeout(`${API_BASE}/malware/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const entries = data.entries?.map(e => `${e.url || e.id} (${e.status || 'listado'})`) || [];
                     const threat = data.threat && data.threat !== 'ok';
-                    return { label, status: threat ? 'fail' : 'ok', details: entries.length ? entries : 'Sin reportes' };
+                    return { label, status: threat ? 'FAIL' : 'PASS', details: entries.length ? entries : 'Sin reportes' };
                 }
                 case 'screenshot': {
                     const data = await fetchWithTimeout(`${API_BASE}/screenshot/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const link = `<a class="text-blue-600 underline" href="${escapeHtml(data.imageUrl)}" target="_blank" rel="noopener">Ver captura</a>`;
-                    return { label, status: 'info', details: { html: link } };
+                    return { label, status: 'INFO', details: { html: link } };
                 }
                 case 'headers': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const entries = Object.entries(data.headers || {}).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
-                    return { label, status: entries.length ? 'ok' : 'info', details: entries.length ? entries : 'Sin encabezados' };
+                    return { label, status: entries.length ? 'PASS' : 'INFO', details: entries.length ? entries : 'Sin encabezados' };
                 }
                 case 'sslchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/sslchain/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const chain = data.chain?.map(c => `${c.subject?.CN || 'Certificado'} → ${c.issuer?.CN || 'Emisor'} (${c.valid_from} - ${c.valid_to})`) || [];
-                    return { label, status: chain.length ? 'ok' : 'fail', details: chain.length ? chain : 'Sin cadena SSL' };
+                    return { label, status: chain.length ? 'PASS' : 'FAIL', details: chain.length ? chain : 'Sin cadena SSL' };
                 }
                 case 'tlsciphers': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlsciphers/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const suites = data.suites?.map(s => `${s.protocol}: ${s.cipher}`) || [];
-                    return { label, status: suites.length ? 'ok' : 'info', details: suites.length ? suites : 'Sin información' };
+                    return { label, status: suites.length ? 'PASS' : 'INFO', details: suites.length ? suites : 'Sin información' };
                 }
                 case 'tlssimulation': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlssimulation/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const scenarios = data.scenarios?.map(s => `${s.client}: ${s.success ? `${s.protocol || 'TLS'} (${s.cipher || 'cifra desconocida'})` : 'falló'}`) || [];
                     const success = data.scenarios?.every(s => s.success);
-                    return { label, status: success ? 'ok' : 'fail', details: scenarios.length ? scenarios : 'Sin datos' };
+                    return { label, status: success ? 'PASS' : 'FAIL', details: scenarios.length ? scenarios : 'Sin datos' };
                 }
                 case 'firewall': {
+                    // FASE 2 (2026-09-12): "tener un WAF detectado" o no es un
+                    // hecho informativo, no un juicio de bien/mal — antes se
+                    // marcaba como 'ok' (positivo) cuando se detectaba uno,
+                    // dando a entender que "no tener WAF" era la situación
+                    // negativa. Se deja siempre INFO en ambos casos.
                     const data = await fetchWithTimeout(`${API_BASE}/firewall/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     return {
                         label,
-                        status: data.detected ? 'ok' : 'info',
+                        status: 'INFO',
                         details: data.detected ? `Detectado: ${data.waf.join(', ')}` : 'No se identificó WAF'
                     };
                 }
@@ -2558,13 +2600,22 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                       indeterminate: "No concluyente"
                     };
                     const okStatuses = ["ok"];
+                    // FASE 2 (2026-09-12): esta rama mapeaba not_implemented/
+                    // blocked_at_tld/blocked_at_parent a un status "warn" que
+                    // JAMÁS existió en STATUS_SYMBOL (index.html) — el ícono
+                    // caía silenciosamente en "_empty" ("—", Sin datos),
+                    // ocultando información real (ej. nic.pa: bloqueo
+                    // estructural porque .pa no está firmado, un hallazgo
+                    // real, no una ausencia de dato). "blocked_at_*" no es
+                    // responsabilidad del dominio (zona padre/TLD sin firmar)
+                    // — mapeado a INCONCLUSIVE, no FAIL.
                     const warnStatuses = ["not_implemented", "blocked_at_tld", "blocked_at_parent"];
                     const errStatuses = ["misconfigured"];
                     const statusLabel = statusLabels[status] || status;
-                    const uiStatus = okStatuses.includes(status) ? "ok"
-                      : errStatuses.includes(status) ? "fail"
-                      : warnStatuses.includes(status) ? "warn"
-                      : "info";
+                    const uiStatus = okStatuses.includes(status) ? "PASS"
+                      : errStatuses.includes(status) ? "FAIL"
+                      : warnStatuses.includes(status) ? "INCONCLUSIVE"
+                      : "INFO";
                     return { label, status: uiStatus, details: statusLabel };
                 }
                 case 'ipv4': {
@@ -2573,24 +2624,24 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // docs/arquitectura.md) — ahora usa el backend, igual que el
                     // resto de los checks.
                     const data = await fetchWithTimeout(`${API_BASE}/ipv4/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const ips = data.ips || [];
                     const geos = data.geos || [];
                     const details = ips.length ? ips.join(', ') : 'No tiene IPv4';
-                    return { label, status: ips.length ? 'ok' : 'fail', details, geos };
+                    return { label, status: ips.length ? 'PASS' : 'FAIL', details, geos };
                 }
                 case 'ipv6': {
                     const data = await fetchWithTimeout(`${API_BASE}/ipv6/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const ips = data.ips || [];
-                    return { label, status: ips.length ? 'ok' : 'fail', details: ips.length ? ips.join(', ') : 'No tiene IPv6' };
+                    return { label, status: ips.length ? 'PASS' : 'FAIL', details: ips.length ? ips.join(', ') : 'No tiene IPv6' };
                 }
                 case 'asn': {
                     const data = await fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     return {
                         label,
-                        status: data.asn ? 'ok' : 'fail',
+                        status: data.asn ? 'PASS' : 'FAIL',
                         details: data.asn ? `AS${data.asn}${data.org ? ` (${data.org})` : ''}` : 'Sin datos'
                     };
                 }
@@ -2598,28 +2649,37 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // FASE 1 (2026-09-12): antes llamaba a dns.google directo desde
                     // el navegador — ver nota en 'ipv4' arriba.
                     const data = await fetchWithTimeout(`${API_BASE}/dmarc/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Política encontrada' : 'No permite DMARC' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Política encontrada' : 'No permite DMARC' };
                 }
                 case 'spf': {
                     const data = await fetchWithTimeout(`${API_BASE}/spf/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Registro encontrado' : 'No permite SPF' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Registro encontrado' : 'No permite SPF' };
                 }
                 case 'dkim': {
+                    // FASE 2 (2026-09-12): solo se prueba UN selector no estándar
+                    // ("default") — found:false no prueba que el dominio no use
+                    // DKIM, solo que ESE selector no existe. No es una
+                    // verificación exhaustiva (DKIM requiere conocer el selector
+                    // real, específico de cada proveedor de correo).
                     const data = await fetchWithTimeout(`${API_BASE}/dkim/${ascii}?selector=default`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Registro encontrado' : 'No permite DKIM' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return {
+                        label,
+                        status: data.found ? 'PASS' : 'INCONCLUSIVE',
+                        details: data.found ? 'Registro encontrado' : "No se encontró DKIM con el selector 'default' — DKIM usa selectores específicos por proveedor, no se puede concluir su ausencia total"
+                    };
                 }
                 case 'mx': {
                     const data = await fetchWithTimeout(`${API_BASE}/mx/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const details = data.records?.map(r => `${r.exchange} (p${r.priority})`).join(', ') || 'No permite MX';
-                    return { label, status: data.records?.length ? 'ok' : 'fail', details };
+                    return { label, status: data.records?.length ? 'PASS' : 'FAIL', details };
                 }
                 case 'smtputf8': {
                     const data = await fetchWithTimeout(`${API_BASE}/smtputf8/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const details = data.results?.map(r => {
                         switch (r.status) {
                             case 'supports': return `${r.server}: sí`;
@@ -2630,26 +2690,26 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                         }
                     }).join('; ') || 'No permite SMTPUTF8';
                     const ok = data.results?.length && data.results.every(r => r.status === 'supports');
-                    return { label, status: ok ? 'ok' : 'fail', details };
+                    return { label, status: ok ? 'PASS' : 'FAIL', details };
                 }
                 case 'rpki': {
                     const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    if (!data.results?.length) return { label, status: 'error', details: 'Sin datos' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (!data.results?.length) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin datos' };
                     const details = data.results.map(r => {
                         const state = r.state === 'valid' ? 'válido' : r.state === 'invalid' ? 'inválido' : 'desconocido';
                         const asn = r.asn ? ` AS${r.asn}` : '';
                         const prefix = r.prefix ? ` (${r.prefix})` : '';
                         return `${r.ip}: ${state}${asn}${prefix}`;
                     });
-                    let status = 'info';
-                    if (data.results.some(r => r.state === 'invalid')) status = 'fail';
-                    else if (data.results.some(r => r.state === 'valid')) status = data.valid ? 'ok' : 'info';
+                    let status = 'INFO';
+                    if (data.results.some(r => r.state === 'invalid')) status = 'FAIL';
+                    else if (data.results.some(r => r.state === 'valid')) status = data.valid ? 'PASS' : 'INFO';
                     return { label, status, details };
                 }
                 case 'domaininfo': {
                     const data = await fetchWithTimeout(`${API_BASE}/domaininfo/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const lines = [];
                     if (data.registry) lines.push(`Registro: ${data.registry}`);
                     if (Array.isArray(data.status) && data.status.length) {
@@ -2657,110 +2717,130 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     }
                     if (data.creation) lines.push(`Creación: ${formatDate(data.creation)}`);
                     if (data.expiration) lines.push(`Expira: ${formatDate(data.expiration)}`);
-                    return { label, status: lines.length ? 'ok' : 'info', details: lines.length ? lines : 'Sin datos' };
+                    return { label, status: lines.length ? 'PASS' : 'INFO', details: lines.length ? lines : 'Sin datos' };
                 }
                 case 'whois': {
+                    // FASE 2 (2026-09-12): datos redactados/no publicados por
+                    // política del registrador no es un dato "informativo neutro"
+                    // — es, en rigor, una prueba que no se puede evaluar por
+                    // diseño (política de privacidad del registro), encaja mejor
+                    // en NOT_APPLICABLE que en INFO.
                     const data = await fetchWithTimeout(`${API_BASE}/whois/${ascii}`);
-                    if (data.status === 'error_tecnico') return { label, status: 'error', details: data.message };
-                    if (data.status === 'redactado_o_no_disponible') return { label, status: 'info', details: data.message };
+                    if (data.status === 'error_tecnico') return { label, status: 'MEASUREMENT_ERROR', details: data.message };
+                    if (data.status === 'redactado_o_no_disponible') return { label, status: 'NOT_APPLICABLE', details: data.message };
                     const details = data.country ? `${data.name || 'Desconocido'} (${data.country})` : (data.name || 'Desconocido');
-                    return { label, status: data.name ? 'ok' : 'fail', details };
+                    return { label, status: data.name ? 'PASS' : 'FAIL', details };
                 }
                 case 'https': {
+                    // FASE 2 (2026-09-12): antes `https` (server.js) solo era
+                    // true con statusCode === 200 exacto — un 401/403/405/429
+                    // prueba que TLS y la aplicación SÍ responden, solo que
+                    // rechazan el método/autorización o aplican rate limit; un
+                    // 3xx significa que redirige (headers/handleHeaders ya sigue
+                    // redirects, así que llegar a un 3xx final es infrecuente
+                    // pero posible). Se usa el statusCode real (agregado en Fase
+                    // 2) en vez del booleano `https` para no confundir "no hubo
+                    // conexión" con "hubo conexión con este código".
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.https ? 'ok' : 'fail', details: data.https ? 'Accesible' : 'No responde HTTPS' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    if (!data.statusCode) return { label, status: data.https ? 'PASS' : 'FAIL', details: data.https ? 'Accesible' : 'No responde HTTPS' };
+                    return { label, status: httpStatusToCheckStatus(data.statusCode), details: `HTTP ${data.statusCode}` };
                 }
                 case 'redirect': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.redirect ? 'ok' : 'fail', details: data.redirect ? 'Redirige a HTTPS' : 'No redirige' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.redirect ? 'PASS' : 'FAIL', details: data.redirect ? 'Redirige a HTTPS' : 'No redirige' };
                 }
                 case 'hsts': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.hsts ? 'ok' : 'fail', details: data.hsts ? 'Cabecera presente' : 'Sin HSTS' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.hsts ? 'PASS' : 'FAIL', details: data.hsts ? 'Cabecera presente' : 'Sin HSTS' };
                 }
                 case 'csp': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.csp ? 'ok' : 'fail', details: data.csp ? 'Cabecera presente' : 'Sin CSP' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.csp ? 'PASS' : 'FAIL', details: data.csp ? 'Cabecera presente' : 'Sin CSP' };
                 }
                 case 'xfo': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.xfo ? 'ok' : 'fail', details: data.xfo ? 'Cabecera presente' : 'Sin X-Frame-Options' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.xfo ? 'PASS' : 'FAIL', details: data.xfo ? 'Cabecera presente' : 'Sin X-Frame-Options' };
                 }
                 case 'xcto': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.xcto ? 'ok' : 'fail', details: data.xcto ? 'Cabecera presente' : 'Sin X-Content-Type-Options' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.xcto ? 'PASS' : 'FAIL', details: data.xcto ? 'Cabecera presente' : 'Sin X-Content-Type-Options' };
                 }
                 case 'referrer': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.referrer ? 'ok' : 'fail', details: data.referrer ? 'Cabecera presente' : 'Sin Referrer-Policy' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.referrer ? 'PASS' : 'FAIL', details: data.referrer ? 'Cabecera presente' : 'Sin Referrer-Policy' };
                 }
                 case 'permissions': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.permissions ? 'ok' : 'fail', details: data.permissions ? 'Cabecera presente' : 'Sin Permissions-Policy' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.permissions ? 'PASS' : 'FAIL', details: data.permissions ? 'Cabecera presente' : 'Sin Permissions-Policy' };
                 }
                 case 'xxss': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.xxss ? 'ok' : 'fail', details: data.xxss ? 'Cabecera presente' : 'Sin X-XSS-Protection' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.xxss ? 'PASS' : 'FAIL', details: data.xxss ? 'Cabecera presente' : 'Sin X-XSS-Protection' };
                 }
                 case 'server': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.server ? 'fail' : 'ok', details: data.server || 'No expuesto' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.server ? 'FAIL' : 'PASS', details: data.server || 'No expuesto' };
                 }
                 case 'compression': {
                     const data = await getSecurityHeaders(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.compression ? 'ok' : 'fail', details: data.compression ? 'Compresión habilitada' : 'Sin compresión' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.compression ? 'PASS' : 'FAIL', details: data.compression ? 'Compresión habilitada' : 'Sin compresión' };
                 }
                 case 'ocsp': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.ocsp ? 'ok' : 'fail', details: data.ocsp ? 'OCSP válido' : 'Sin OCSP' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.ocsp ? 'PASS' : 'FAIL', details: data.ocsp ? 'OCSP válido' : 'Sin OCSP' };
                 }
                 case 'tls': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const ok = data.protocol === 'TLSv1.3' || data.protocol === 'TLSv1.2';
-                    return { label, status: ok ? 'ok' : 'fail', details: data.protocol || 'Desconocido' };
+                    return { label, status: ok ? 'PASS' : 'FAIL', details: data.protocol || 'Desconocido' };
                 }
                 case 'key': {
                     const data = await getTlsInfo(domain);
-                    if (data.error) return { label, status: 'error', details: data.error };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
                     const info = data.key || {};
                     let ok = false;
                     if (info.type === 'ECDH') ok = info.size >= 224;
                     else if (info.type === 'DH') ok = info.size >= 2048;
                     else ok = true;
                     const details = info.type ? `${info.type}${info.size ? ' ' + info.size : ''}` : 'Sin datos';
-                    return { label, status: ok ? 'ok' : 'fail', details };
+                    return { label, status: ok ? 'PASS' : 'FAIL', details };
                 }
                 case 'caa': {
+                    // FASE 2 (2026-09-12): dns.resolve(...,'CAA') devuelve objetos,
+                    // no strings — `data.records.join(', ')` producía literalmente
+                    // "[object Object]" (bug confirmado). Se usa `data.formatted`
+                    // (agregado en server.js, handleCaa) con el texto ya legible.
                     const data = await fetchWithTimeout(`${API_BASE}/caa/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.records?.length ? 'ok' : 'fail', details: data.records?.length ? data.records.join(', ') : 'No tiene CAA' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    const formatted = data.formatted || data.records?.map(r => JSON.stringify(r)) || [];
+                    return { label, status: formatted.length ? 'PASS' : 'FAIL', details: formatted.length ? formatted.join(', ') : 'No tiene CAA' };
                 }
                 case 'tlsa': {
                     const data = await fetchWithTimeout(`${API_BASE}/tlsa/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.records?.length ? 'ok' : 'fail', details: data.records?.length ? data.records.join(', ') : 'No tiene TLSA' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.records?.length ? 'PASS' : 'FAIL', details: data.records?.length ? data.records.join(', ') : 'No tiene TLSA' };
                 }
                 case 'securitytxt': {
                     const data = await fetchWithTimeout(`${API_BASE}/securitytxt/${ascii}`);
-                    if (data.error) return { label, status: 'error', details: data.error };
-                    return { label, status: data.found ? 'ok' : 'fail', details: data.found ? 'Encontrado' : 'No disponible' };
+                    if (data.error) return { label, status: 'MEASUREMENT_ERROR', details: data.error };
+                    return { label, status: data.found ? 'PASS' : 'FAIL', details: data.found ? 'Encontrado' : 'No disponible' };
                 }
             }
         } catch (error) {
-            return { label, status: 'error', details: error.message };
+            return { label, status: 'MEASUREMENT_ERROR', details: error.message };
         }
     }
 
@@ -4858,9 +4938,9 @@ async function runMedicionesBatchDomain(domain, selectedChecks) {
       checksResult[checkType] = res;
       updateSummary(checkType, domain, res.status);
     } catch (err) {
-      const fallback = { label: checkConfig[checkType].label, status: 'error', details: err.message };
+      const fallback = { label: checkConfig[checkType].label, status: 'MEASUREMENT_ERROR', details: err.message };
       checksResult[checkType] = fallback;
-      updateSummary(checkType, domain, 'error');
+      updateSummary(checkType, domain, 'MEASUREMENT_ERROR');
     }
   }));
 

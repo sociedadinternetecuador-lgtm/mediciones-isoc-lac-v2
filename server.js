@@ -73,6 +73,17 @@ const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
 
+// FASE 2 (2026-09-12): la cuota de PageSpeed es compartida por TODO el
+// proceso (una sola API key), no por dominio — si se agota en el primer
+// dominio de un lote de 20, los otros 19 iban a repetir la misma llamada
+// fallida uno por uno, perdiendo tiempo sin ningún beneficio. Corte de
+// circuito simple en memoria: una vez confirmada la cuota agotada, se
+// deja de llamar a la API real durante PAGESPEED_QUOTA_COOLDOWN_MS y se
+// devuelve directo el mismo error explícito.
+let pageSpeedQuotaExhaustedUntil = 0;
+let pageSpeedQuotaMessage = '';
+const PAGESPEED_QUOTA_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutos
+
 async function resolveAddresses(domain) {
   const v4 = await dns.resolve4(domain).catch(() => []);
   const v6 = await dns.resolve6(domain).catch(() => []);
@@ -447,6 +458,14 @@ async function handleDnssec(domain, res) {
   sendJSON(res, 200, { domain, methods: { google }, algorithms, valid });
 }
 
+// FASE 2 (2026-09-12): antes cualquier error de dns.resolveTxt (selector
+// realmente inexistente, pero también timeout/SERVFAIL/red) se colapsaba
+// por igual a found:false, y el cliente lo mostraba como "No permite
+// DKIM" — una conclusión que solo probamos con UN selector no estándar
+// ("default"), no una verificación exhaustiva. Se distingue ahora
+// ENODATA/ENOTFOUND (ese selector específico no existe — found:false,
+// sigue sin ser error) de cualquier otro fallo de la consulta DNS
+// (error real de medición, no del dominio).
 async function handleDkim(domain, selector, res) {
   domain = normalizeDomain(domain);
   try {
@@ -455,7 +474,11 @@ async function handleDkim(domain, selector, res) {
     const found = /v=DKIM1/i.test(flat);
     sendJSON(res, 200, { domain, selector, found });
   } catch (e) {
-    sendJSON(res, 200, { domain, selector, found: false });
+    if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
+      sendJSON(res, 200, { domain, selector, found: false });
+    } else {
+      sendJSON(res, 200, { domain, selector, error: errorMessage(e) });
+    }
   }
 }
 
@@ -772,7 +795,15 @@ async function handleHeaders(domain, res) {
     );
     const result = {
       domain,
+      // FASE 2 (2026-09-12): `https` solo era true con statusCode === 200
+      // exacto — un 401/403/405/429 (TLS funciona, la app responde, solo
+      // rechaza el método/autorización) se reportaba igual que un dominio
+      // sin HTTPS en absoluto. Se agrega `statusCode` crudo para que el
+      // cliente pueda distinguir "no hubo conexión" de "hubo conexión con
+      // este código" — `https` se conserva tal cual para no romper otros
+      // consumidores del campo.
       https: httpsRes.statusCode === 200,
+      statusCode: httpsRes.statusCode,
       redirect:
         httpRes &&
         httpRes.statusCode >= 300 &&
@@ -798,14 +829,36 @@ async function handleHeaders(domain, res) {
   }
 }
 
+// FASE 2 (2026-09-12): dns.resolve(domain,'CAA') devuelve un array de
+// OBJETOS ({critical, issue}/{critical, issuewild}/{critical, iodef}), no
+// strings — el cliente hacía `.join(', ')` sobre esos objetos, y
+// String({...}) da literalmente "[object Object]" (bug confirmado,
+// reproducible con cualquier dominio con registros CAA). Se agrega aquí
+// `formatted` (strings legibles) sin quitar `records` (el objeto crudo
+// original, por compatibilidad con quien ya lo consuma).
+// dns.resolve(domain,'CAA') también incluye `type: 'CAA'` en cada objeto
+// (además de `critical` y la propiedad-tag real) — verificado en vivo con
+// argentina.gob.ar: sin excluirlo, Object.keys().find() lo tomaba como si
+// fuera el tag, mostrando "type: CAA" repetido para todos los registros
+// (peor que el bug original: ya no crashea a "[object Object]", pero
+// sigue sin mostrar el valor real). Se busca explícitamente entre los
+// tags CAA reales (issue/issuewild/iodef, los únicos que define el RFC
+// 6844) en vez de "cualquier clave que no sea critical".
+const CAA_TAGS = ['issue', 'issuewild', 'iodef'];
+function formatCaaRecord(r) {
+  const tag = CAA_TAGS.find((t) => r[t] !== undefined);
+  const value = tag ? r[tag] : JSON.stringify(r);
+  return `${tag || 'caa'}: ${value}${r.critical ? ' (critical)' : ''}`;
+}
+
 async function handleCaa(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const records = await dns.resolve(domain, 'CAA');
-    sendJSON(res, 200, { domain, records });
+    sendJSON(res, 200, { domain, records, formatted: records.map(formatCaaRecord) });
   } catch (e) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND')
-      sendJSON(res, 200, { domain, records: [] });
+      sendJSON(res, 200, { domain, records: [], formatted: [] });
     else sendJSON(res, 200, { domain, error: errorMessage(e) });
   }
 }
@@ -997,8 +1050,20 @@ async function handleCrawlRules(domain, res) {
   }
 }
 
+function isPageSpeedQuotaError(errorObj) {
+  if (!errorObj) return false;
+  if (errorObj.status === 'RESOURCE_EXHAUSTED') return true;
+  const message = errorObj.message || '';
+  return /quota/i.test(message);
+}
+
 async function handleQuality(domain, res) {
   domain = normalizeDomain(domain);
+
+  if (Date.now() < pageSpeedQuotaExhaustedUntil) {
+    return sendJSON(res, 200, { domain, error: pageSpeedQuotaMessage });
+  }
+
   try {
     const data = await fetchJSON(
       `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://${domain}`
@@ -1015,7 +1080,12 @@ async function handleQuality(domain, res) {
     // errorMessage()) para que quede claro que es un límite de cuota, no
     // un fallo de red.
     if (data.error) {
-      return sendJSON(res, 200, { domain, error: data.error.message || 'PageSpeed devolvió un error' });
+      const message = data.error.message || 'PageSpeed devolvió un error';
+      if (isPageSpeedQuotaError(data.error)) {
+        pageSpeedQuotaExhaustedUntil = Date.now() + PAGESPEED_QUOTA_COOLDOWN_MS;
+        pageSpeedQuotaMessage = message;
+      }
+      return sendJSON(res, 200, { domain, error: message });
     }
     const lighthouse = data.lighthouseResult?.categories || {};
     sendJSON(res, 200, {
@@ -1497,6 +1567,11 @@ async function handleFirewall(domain, res) {
     if (server.includes('sucuri') || wafHeaders.includes('sucuri')) detections.push('Sucuri');
     if (server.includes('akamai') || wafHeaders.includes('akamai')) detections.push('Akamai');
     if (wafHeaders.includes('mod_security') || wafHeaders.includes('modsecurity')) detections.push('ModSecurity');
+    // FASE 2 (2026-09-12): faltaban Imperva y Vercara en el fingerprinting
+    // (detectados solo por cabeceras propias del proveedor — mismo
+    // criterio que los 4 de arriba, no hay verificación adicional).
+    if (wafHeaders.includes('imperva') || wafHeaders.includes('incapsula')) detections.push('Imperva');
+    if (wafHeaders.includes('vercara') || wafHeaders.includes('ultradns') || wafHeaders.includes('quantil')) detections.push('Vercara');
     sendJSON(res, 200, {
       domain,
       waf: detections,

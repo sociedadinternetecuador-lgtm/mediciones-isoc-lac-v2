@@ -44,18 +44,32 @@
  * generar, solo Markdown.
  */
 
-const STATUS_ICON = { ok: '✓', fail: '✗', error: '⚠', info: 'ℹ' };
+// FASE 2 (2026-09-12): migrado de 4 a 6 estados explícitos — ver el mismo
+// cambio y su justificación en index.html (STATUS_SYMBOL). Un fallo interno
+// de MEDICIONES (MEASUREMENT_ERROR) no debe leerse como si fuera un hallazgo
+// real sobre el dominio (FAIL), ni una prueba que no aplica o no es
+// concluyente debe aparecer con el mismo símbolo que un "no cumple" real.
+const STATUS_ICON = {
+  PASS: '✓',
+  FAIL: '✗',
+  NOT_APPLICABLE: '⊘',
+  INCONCLUSIVE: '?',
+  MEASUREMENT_ERROR: '⚠',
+  INFO: 'ℹ',
+};
 
-// Mismos 4 estados que devuelve cada check en el navegador (ver STATUS_SYMBOL
+// Mismos 6 estados que devuelve cada check en el navegador (ver STATUS_SYMBOL
 // en index.html) — la leyenda se repite en el PDF porque acá no hay tooltip
 // posible como en la UI. Se renderiza como tabla (no como línea suelta antes
 // de la tabla comparativa) y se ubica al inicio del documento — una línea
 // itálica pegada a una tabla de 2+ páginas después se perdía de vista.
 const STATUS_LEGEND_ROWS = [
-  ['✓', 'OK — cumple / se detectó correctamente'],
-  ['✗', 'No cumple / no se encontró'],
-  ['⚠', 'Error al verificar — no se pudo comprobar (timeout, servicio externo caído, etc.). No es lo mismo que "no cumple".'],
-  ['ℹ', 'Informativo — dato disponible, sin evaluación de "bien/mal" (ej. IPv6: tenerlo o no tenerlo no es en sí un fallo)'],
+  ['✓', 'PASS — se midió y cumple'],
+  ['✗', 'FAIL — se midió y no cumple'],
+  ['⊘', 'NO APLICA — esta prueba no aplica a este caso (ej. dato redactado por política de privacidad)'],
+  ['?', 'NO CONCLUYENTE — el comportamiento del sitio impide concluir con certeza (ej. WAF, rate limit, respuesta ambigua como HTTP 401/403/405/429)'],
+  ['⚠', 'ERROR DE MEDICIÓN — la herramienta no pudo ejecutar la prueba (timeout, servicio externo caído, etc.). No es un fallo del dominio.'],
+  ['ℹ', 'INFORMATIVO — dato disponible, sin evaluación de "bien/mal" (ej. IPv6: tenerlo o no tenerlo no es en sí un fallo)'],
   ['—', 'Sin datos — este check no se ejecutó para este dominio'],
 ];
 
@@ -180,7 +194,7 @@ function frontmatter({ title, subtitle, author }) {
 
 function checkDetailOneLiner(check) {
   if (!check) return '';
-  if (check.status === 'ok') return '';
+  if (check.status === 'PASS') return '';
   // Solo se resume el detalle cuando el check NO fue ok — mantiene el
   // reporte ejecutivo corto (ver nota de módulo sobre el límite de mdtopdf).
   const raw = Array.isArray(check.details) ? check.details.join('; ') : check.details;
