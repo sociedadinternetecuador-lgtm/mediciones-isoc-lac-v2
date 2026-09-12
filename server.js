@@ -90,6 +90,22 @@ async function resolveAddresses(domain) {
   return { v4, v6 };
 }
 
+// (2026-09-12) — mismo propósito que hasNoAddressRecordAtAll() en
+// safeWebFetch.adapter.js (distinguir "el dominio no existe" de "existe,
+// con zona delegada real, pero sin A ni AAAA" — ej. gob.ec), replicada
+// acá mínima porque estos handlers (rpki/serverlocation/serverinfo/tls/
+// sslchain) no pasan por resolveFinalWebTarget/fetchSafePage y hoy
+// reportan "Sin dirección IP"/ENOTFOUND genérico sin poder distinguir
+// los dos casos.
+async function domainHasNoAddressButIsRealZone(domain) {
+  const [v4, v6, ns] = await Promise.all([
+    dns.resolve4(domain).catch(() => null),
+    dns.resolve6(domain).catch(() => null),
+    dns.resolveNs(domain).catch(() => null)
+  ]);
+  return !v4 && !v6 && Array.isArray(ns) && ns.length > 0;
+}
+
 async function resolveFirstIp(domain) {
   const { v4, v6 } = await resolveAddresses(domain);
   if (v4.length) return { ip: v4[0], family: 4 };
@@ -213,6 +229,17 @@ function errorMessage(e) {
   if (e && typeof e === 'object') {
     if (e.code === 'ENOTFOUND') return 'Dominio no encontrado';
     if (e.code === 'ETIMEOUT') return 'Timeout';
+    // (2026-09-12) — 'TIMEOUT'/'WEBFETCH_TOTAL_TIMEOUT' son los códigos
+    // reales que de verdad se lanzan cuando un timeout expira (fetchJSON/
+    // fetchText/fetchPage/safeWebFetch.adapter.js/queryQuad9) — 'ETIMEOUT'
+    // de arriba no corresponde a ningún código que este proyecto lance en
+    // ningún lado (quedó de antes, no se toca). Antes, un `new
+    // Error('Timeout')` sin `.code` cayera acá cayendo al genérico
+    // "Servicio no disponible" — confirmado con evidencia real (duraciones
+    // pegadas a los techos de 15s/30s con `error_code: null` en el log de
+    // mediciones) que así perdíamos la distinción entre "no se pudo medir
+    // a tiempo" y "no se pudo conectar en absoluto".
+    if (e.code === 'TIMEOUT' || e.code === 'WEBFETCH_TOTAL_TIMEOUT') return 'Timeout';
     if (e.code === 'ECONNREFUSED') return 'Conexión rechazada';
     if (e.code === 'EAI_AGAIN') return 'Problema de DNS';
     if (e.code === 'ERR_TLS_CERT_ALTNAME_INVALID') return 'El certificado TLS no cubre este dominio exacto';
@@ -585,7 +612,7 @@ function fetchJSON(target, options = {}) {
     );
     req.on('error', reject);
     req.setTimeout(options.timeout || 15000, () => {
-      req.destroy(new Error('Timeout'));
+      req.destroy(Object.assign(new Error('Timeout'), { code: 'TIMEOUT' }));
     });
     if (options.body) req.write(options.body);
     req.end();
@@ -607,7 +634,7 @@ function fetchText(target, options = {}) {
     );
     req.on('error', reject);
     req.setTimeout(options.timeout || 15000, () => {
-      req.destroy(new Error('Timeout'));
+      req.destroy(Object.assign(new Error('Timeout'), { code: 'TIMEOUT' }));
     });
     if (options.body) req.write(options.body);
     req.end();
@@ -647,7 +674,7 @@ function fetchPage(target, options = {}) {
       );
       req.on('error', reject);
       req.setTimeout(options.timeout || 15000, () => {
-        req.destroy(new Error('Timeout'));
+        req.destroy(Object.assign(new Error('Timeout'), { code: 'TIMEOUT' }));
       });
       if (options.body) req.write(options.body);
       req.end();
@@ -764,7 +791,15 @@ async function handleRpki(domain, res) {
   try {
     const { v4, v6 } = await resolveAddresses(domain);
     const ips = [...v4, ...v6];
-    if (!ips.length) return sendJSON(res, 200, { domain, error: 'Sin direcciones IP' });
+    if (!ips.length) {
+      const noAddressRecord = await domainHasNoAddressButIsRealZone(domain);
+      const code = noAddressRecord ? 'WEBFETCH_NO_ADDRESS_RECORD' : undefined;
+      return sendJSON(res, 200, {
+        domain,
+        error: code ? errorMessage({ code }) : 'Sin direcciones IP',
+        error_code: code
+      });
+    }
     const results = [];
     for (const ip of ips) {
       const { state, asn, prefix } = await rpkiValidity(ip);
@@ -1031,11 +1066,18 @@ async function handleTls(domain, res) {
       if (settled) return;
       settled = true;
       socket.destroy();
-      sendJSON(res, 200, { domain, error: 'Timeout' });
+      sendJSON(res, 200, { domain, error: 'Timeout', error_code: 'TIMEOUT' });
     });
     socket.on('error', e => {
       if (settled) return;
       settled = true;
+      if (e && e.code === 'ENOTFOUND') {
+        domainHasNoAddressButIsRealZone(domain).then((confirmed) => {
+          const finalCode = confirmed ? 'WEBFETCH_NO_ADDRESS_RECORD' : e.code;
+          sendJSON(res, 200, { domain, error: errorMessage({ code: finalCode }), error_code: finalCode });
+        });
+        return;
+      }
       sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     });
   } catch (e) {
@@ -1096,13 +1138,20 @@ async function handleSslChain(domain, res) {
     socket.on('error', e => {
       if (settled) return;
       settled = true;
+      if (e && e.code === 'ENOTFOUND') {
+        domainHasNoAddressButIsRealZone(domain).then((confirmed) => {
+          const finalCode = confirmed ? 'WEBFETCH_NO_ADDRESS_RECORD' : e.code;
+          sendJSON(res, 200, { domain, error: errorMessage({ code: finalCode }), error_code: finalCode });
+        });
+        return;
+      }
       sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
     });
     socket.setTimeout(15000, () => {
       if (settled) return;
       settled = true;
       socket.destroy();
-      sendJSON(res, 200, { domain, error: 'Timeout' });
+      sendJSON(res, 200, { domain, error: 'Timeout', error_code: 'TIMEOUT' });
     });
   } catch (e) {
     if (!settled) sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
@@ -1215,7 +1264,15 @@ async function handleServerLocation(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const { ip } = await resolveFirstIp(domain);
-    if (!ip) return sendJSON(res, 200, { domain, error: 'Sin dirección IP' });
+    if (!ip) {
+      const noAddressRecord = await domainHasNoAddressButIsRealZone(domain);
+      const code = noAddressRecord ? 'WEBFETCH_NO_ADDRESS_RECORD' : undefined;
+      return sendJSON(res, 200, {
+        domain,
+        error: code ? errorMessage({ code }) : 'Sin dirección IP',
+        error_code: code
+      });
+    }
     const info = await lookupIpMeta(ip);
     sendJSON(res, 200, {
       domain,
@@ -1382,7 +1439,15 @@ async function handleServerInfo(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const { ip } = await resolveFirstIp(domain);
-    if (!ip) return sendJSON(res, 200, { domain, error: 'Sin dirección IP' });
+    if (!ip) {
+      const noAddressRecord = await domainHasNoAddressButIsRealZone(domain);
+      const code = noAddressRecord ? 'WEBFETCH_NO_ADDRESS_RECORD' : undefined;
+      return sendJSON(res, 200, {
+        domain,
+        error: code ? errorMessage({ code }) : 'Sin dirección IP',
+        error_code: code
+      });
+    }
     const info = await lookupIpMeta(ip);
     sendJSON(res, 200, {
       domain,
@@ -1730,9 +1795,27 @@ async function handleRanking(domain, res) {
   domain = normalizeDomain(domain);
   try {
     const data = await fetchJSON(`https://tranco-list.eu/api/ranks/domain/${domain}`);
-    sendJSON(res, 200, { domain, rank: data.rank || null, date: data.list_date || null });
+    // BUG encontrado (2026-09-12), verificado en vivo contra la API real:
+    // Tranco NO devuelve {rank, list_date} en el nivel superior — devuelve
+    // {domain, ranks: [{date, rank}, ...]} (histórico, más reciente
+    // primero, o `ranks: []` si el dominio no está rankeado). El código
+    // leía `data.rank`/`data.list_date` — siempre undefined — así que el
+    // check nunca reportó un ranking real, ni para dominios que sí están
+    // en el top de Tranco (confirmado con nic.uy: rank real ~17000, pero
+    // el código devolvía null igual).
+    const latest = Array.isArray(data.ranks) && data.ranks.length ? data.ranks[0] : null;
+    sendJSON(res, 200, { domain, rank: latest ? latest.rank : null, date: latest ? latest.date : null });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: 'Sin información' });
+    // Verificado en vivo: Tranco aplica rate limit real (HTTP 429, cuerpo
+    // HTML no-JSON) bajo ráfagas de varias consultas seguidas — un lote de
+    // 20 dominios puede disparar esto. fetchJSON() no revisa el status
+    // HTTP, así que cualquier causa (rate limit, timeout, red) cae acá por
+    // igual — no se puede distinguir sin instrumentar fetchJSON para
+    // exponer el status code (fuera de alcance de esta corrección
+    // puntual). Se marca con error_code propio para que quede
+    // identificable en el log de mediciones en vez de perderse como
+    // "Sin información" sin más contexto.
+    sendJSON(res, 200, { domain, error: 'Sin información', error_code: 'RANKING_UNAVAILABLE' });
   }
 }
 
@@ -1811,7 +1894,7 @@ function queryQuad9(domain) {
       req.setTimeout(15000, () => {
         req.close();
         client.close();
-        reject(new Error('Timeout'));
+        reject(Object.assign(new Error('Timeout'), { code: 'TIMEOUT' }));
       });
 
       req.write(query);

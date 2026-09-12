@@ -2167,3 +2167,72 @@ tests de red real dentro del contenedor si se tocó algo del módulo DNS.
 - **Archivos de descarga se generan una sola vez, no por request.** Garantiza
   que lo que el usuario ve en pantalla y lo que descarga sean *exactamente*
   los mismos bytes (verificado con hashes en tests).
+
+## Análisis de los 144 `MEASUREMENT_ERROR` residuales y 3 correcciones — 2026-09-12
+
+Tras el fix de coalescing (§ arriba) y la corrida completa de verificación,
+quedaban 144 `MEASUREMENT_ERROR` sobre 1080 mediciones (20 dominios × 54
+checks). Se analizó cada uno contra el log persistente de mediciones,
+clasificando causa real (error del instrumento / condición válida del
+dominio / dependencia externa fallida / resultado inconcluso / caso no
+aplicable / timeout real), **sin corregir nada hasta tener el análisis
+completo**. De esa clasificación se priorizaron 3 correcciones de bajo
+riesgo por estar acotadas a causas ya confirmadas:
+
+**1. `errorMessage()` no reconocía timeouts reales.** Los `Error('Timeout')`
+lanzados por los timers de `fetchJSON`/`fetchText`/`fetchPage` (server.js),
+`requestPage()` (`safeWebFetch.adapter.js`) y `queryQuad9` no llevaban
+`.code`, así que caían al genérico "Servicio no disponible" — un timeout
+real quedaba indistinguible de cualquier otro fallo. Se les agregó
+`code: 'TIMEOUT'` en el punto donde se lanzan (5 sitios), y `errorMessage()`
+gana una rama explícita para `'TIMEOUT'`/`'WEBFETCH_TOTAL_TIMEOUT'` →
+`'Timeout'`. Además, `handleTls`/`handleSslChain` (conexión TLS cruda, no
+pasan por `errorMessage()` en su timeout) tenían el timeout hardcodeado sin
+`error_code` — se les agregó `error_code: 'TIMEOUT'` directamente.
+
+**2. `handleRanking()` tenía un bug de nombre de campo, nunca detectado.**
+Leía `data.rank`/`data.list_date`, pero la API real de Tranco devuelve
+`{domain, ranks: [{date, rank}, ...]}` — confirmado con `curl` directo a
+`https://tranco-list.eu/api/ranks/domain/nic.uy` (rank real ≈17000). El
+check de ranking **nunca** devolvió un rank real para ningún dominio,
+aunque estuviera efectivamente rankeado — el caso `isoc.org.ec` (§
+"tercera ronda", arriba) era simultáneamente cierto (no está rankeado) y
+enmascaraba este bug de raíz (tampoco lo hubiera mostrado si lo estuviera).
+Se corrigió a leer `data.ranks[0]`. De paso se confirmó, también con
+`curl`, que Tranco aplica rate limiting real (HTTP 429 observado en vivo
+contra `mercadolibre.com.ar` durante las pruebas) — probable causa de
+buena parte de los "Sin información" en corridas de lote. El `catch` ahora
+setea `error_code: 'RANKING_UNAVAILABLE'` para distinguir "Tranco no
+respondió" de "dominio no rankeado" (este último sigue sin error, `rank:
+null` con 200 OK, sin tocar). **Fuera de alcance de esta corrección**:
+retry/backoff ante 429 — no se implementó, no se pidió.
+
+**3. Extensión de `WEBFETCH_NO_ADDRESS_RECORD` a handlers que no pasan por
+`resolveFinalWebTarget`.** La Fase 3 (§ arriba) dejó explícitamente fuera
+`handleTls`, `handleSslChain` y los handlers basados en `resolveFirstIp`/
+`resolveAddresses` directo (`handleRpki`, `handleServerLocation`,
+`handleServerInfo`) — todos con su propia resolución DNS, no comparten
+`resolvePublicAddresses()`. Nueva función `domainHasNoAddressButIsRealZone(domain)`
+(server.js, junto a `resolveAddresses`): equivalente server-side de la
+lógica ya usada en `safeWebFetch.adapter.js`, vía
+`Promise.all([dns.resolve4, dns.resolve6, dns.resolveNs])` — confirma zona
+real delegada (NS resuelve) sin registros A/AAAA. Aplicada en los 5
+handlers listados arriba: `handleRpki`/`handleServerLocation`/
+`handleServerInfo` en su rama `if (!ip)`/`if (!ips.length)`, y
+`handleTls`/`handleSslChain` en su `socket.on('error', ...)` cuando
+`e.code === 'ENOTFOUND'`.
+
+**Verificación**: `node --check` en ambos archivos tocados, `npm test` OK
+completo. Contra servidor local: `ranking/nic.uy` → rank real (17261,
+antes `null`); `ranking/mercadolibre.com.ar` → `error_code:
+'RANKING_UNAVAILABLE'` (antes indistinguible de cualquier otro fallo);
+`rpki`/`serverlocation`/`serverinfo`/`tlsinfo`/`sslchain` contra `gob.ec` →
+los 5 devuelven `error_code: 'WEBFETCH_NO_ADDRESS_RECORD'` (antes "Sin
+dirección IP"/"Sin direcciones IP" genérico, sin `error_code`).
+
+**Explícitamente no tocado en esta corrección** (identificado en el
+análisis pero no priorizado): `handleArchive` (Wayback Machine) sigue sin
+`error_code` en su timeout; `classifyDataError()` (index.html) no gana
+casos nuevos para `TIMEOUT`/`RANKING_UNAVAILABLE` — ambos deben seguir
+clasificando como `MEASUREMENT_ERROR`, que es correcto (no son hallazgos
+del dominio, son fallos del instrumento o de un tercero).

@@ -185,7 +185,7 @@ function requestPage(url, address, options = {}) {
     });
     req.on('error', reject);
     req.setTimeout(options.timeoutMs || DEFAULT_TIMEOUT_MS, () => {
-      req.destroy(new Error('Timeout'));
+      req.destroy(Object.assign(new Error('Timeout'), { code: 'TIMEOUT' }));
     });
     if (options.body) req.write(options.body);
     req.end();
