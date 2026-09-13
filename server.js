@@ -348,6 +348,13 @@ function errorMessage(e) {
     if (e.code === 'IPMETA_RATE_LIMITED') return 'El proveedor de metadata IP alcanzó su límite de consultas';
     if (e.code === 'IPMETA_UNAVAILABLE') return 'Servicio de metadata IP no disponible';
     if (e.code === 'IPMETA_NOT_FOUND') return 'Sin metadata disponible para esta IP';
+    // (2026-09-13) — handleMalware()/URLhaus: la fuente no pudo consultarse
+    // de forma válida — nunca debe interpretarse como "sin reportes".
+    if (e.code === 'MALWARE_AUTH_REQUIRED') return 'El servicio de detección de malware requiere autenticación no configurada';
+    if (e.code === 'MALWARE_RATE_LIMITED') return 'El servicio de detección de malware alcanzó su límite de consultas';
+    if (e.code === 'MALWARE_TIMEOUT') return 'Timeout consultando el servicio de detección de malware';
+    if (e.code === 'MALWARE_SOURCE_UNAVAILABLE') return 'Servicio de detección de malware no disponible';
+    if (e.code === 'MALWARE_INVALID_RESPONSE') return 'El servicio de detección de malware devolvió una respuesta inválida';
   }
   return 'Servicio no disponible';
 }
@@ -2202,20 +2209,73 @@ async function handleBlock(domain, res) {
   }
 }
 
+// (2026-09-13) — auditoría: urlhaus-api.abuse.ch exige autenticación
+// (header `Auth-Key`) desde que abuse.ch unificó sus APIs — verificado en
+// vivo, sin credencial la API devuelve 401 `{"error":"Unauthorized"}`, un
+// cuerpo JSON válido. El código anterior usaba fetchJSON() (que no revisa
+// el statusCode HTTP, solo parsea el body) y leía `data.urls`/
+// `data.query_status` de esa respuesta de error — ambos `undefined` en un
+// 401 — resultando SIEMPRE en `entries: []` y `threat: undefined`, que el
+// cliente interpretaba como "Sin reportes" = PASS. Es decir: un fallo de
+// autenticación se mostraba idéntico a "consultado, dominio limpio" — un
+// falso negativo de seguridad, no un error visible. No hay
+// URLHAUS_AUTH_KEY configurada en ningún .env (ni de ejemplo ni en
+// producción) — nunca existió.
+//
+// Regla obligatoria de este fix: PASS solo si la fuente respondió de
+// forma válida y confirma "sin reportes"; FAIL solo si confirma reportes
+// reales; cualquier otra cosa (falta de credencial, 401/403, 429, 5xx,
+// timeout, red, respuesta no interpretable) -> INCONCLUSIVE, nunca PASS.
+function classifyUrlhausFailure(statusCode) {
+  if (statusCode === 401 || statusCode === 403) return 'MALWARE_AUTH_REQUIRED';
+  if (statusCode === 429) return 'MALWARE_RATE_LIMITED';
+  return 'MALWARE_SOURCE_UNAVAILABLE'; // 5xx u otro status inesperado
+}
+
 async function handleMalware(domain, res) {
   domain = normalizeDomain(domain);
+  const body = `host=${encodeURIComponent(domain)}`;
+  const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+  // Soporte opcional para cuando exista una API key real (ver .env.example)
+  // — sin ella, la consulta sigue intentándose (como antes) pero ahora el
+  // 401 resultante se interpreta correctamente en vez de leerse como éxito.
+  if (process.env.URLHAUS_AUTH_KEY) headers['Auth-Key'] = process.env.URLHAUS_AUTH_KEY;
+
+  let page;
   try {
-    const body = `host=${encodeURIComponent(domain)}`;
-    const data = await fetchJSON('https://urlhaus-api.abuse.ch/v1/host/', {
+    page = await fetchPage('https://urlhaus-api.abuse.ch/v1/host/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
+      headers,
+      body,
+      timeout: 15000
     });
-    const entries = Array.isArray(data?.urls) ? data.urls.slice(0, 10) : [];
-    sendJSON(res, 200, { domain, entries, threat: data?.query_status });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: 'Servicio no disponible' });
+    const code = e && e.code === 'TIMEOUT' ? 'MALWARE_TIMEOUT' : 'MALWARE_SOURCE_UNAVAILABLE';
+    return sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
   }
+
+  if (page.statusCode !== 200) {
+    const code = classifyUrlhausFailure(page.statusCode);
+    return sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
+  }
+
+  let data;
+  try {
+    data = JSON.parse(page.body);
+  } catch (e) {
+    return sendJSON(res, 200, { domain, error: errorMessage({ code: 'MALWARE_INVALID_RESPONSE' }), error_code: 'MALWARE_INVALID_RESPONSE' });
+  }
+
+  // Respuesta real de URLhaus autenticado: siempre trae `query_status`
+  // ("ok" = hay entradas asociadas, "no_results" = consultado, sin
+  // reportes). Cualquier otro valor (o su ausencia, como en el 401 que
+  // motivó este fix) no es una respuesta real interpretable.
+  if (data.query_status !== 'ok' && data.query_status !== 'no_results') {
+    return sendJSON(res, 200, { domain, error: errorMessage({ code: 'MALWARE_INVALID_RESPONSE' }), error_code: 'MALWARE_INVALID_RESPONSE' });
+  }
+
+  const entries = Array.isArray(data.urls) ? data.urls.slice(0, 10) : [];
+  sendJSON(res, 200, { domain, entries, hasReports: entries.length > 0 });
 }
 
 async function handleTlsCiphers(domain, res) {

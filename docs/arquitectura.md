@@ -2661,3 +2661,84 @@ disparara. Sin una reproducción real de una falla de `dns.google` no hay
 base empírica para justificar la complejidad y el riesgo adicional de un
 segundo proveedor — queda como mejora identificada pero no priorizada,
 consistente con el análisis anterior.
+
+## `malware`/URLhaus: falso negativo de seguridad — PASS sin haber consultado la fuente — 2026-09-13
+
+**Hallazgo crítico** (auditoría de los `MEASUREMENT_ERROR` residuales):
+`urlhaus-api.abuse.ch/v1/host/` exige autenticación (header `Auth-Key`,
+esquema unificado de abuse.ch) — verificado en vivo:
+```
+curl -X POST -d "host=nic.ar" https://urlhaus-api.abuse.ch/v1/host/
+→ HTTP 401 {"error": "Unauthorized"}
+```
+No existe ninguna variable `URLHAUS_AUTH_KEY` (ni en `.env.example` ni en
+`server1:~/projects/MEDICIONES/.env`, confirmado) — **nunca estuvo
+autenticado**. El código anterior usaba `fetchJSON()` (no revisa el
+`statusCode` HTTP, solo parsea el body) y ese 401 es JSON válido
+(`{"error":"Unauthorized"}`) — `data.urls` y `data.query_status` quedaban
+`undefined`, y el cliente interpretaba eso como "Sin reportes" = **PASS**.
+Confirmado en los 20 dominios de prueba: **19/20 mostraban PASS sin haber
+consultado nada de verdad** (el 20º, `nic.ar`, mostraba error porque esa
+vez la conexión se cortó en vez de llegar el 401 limpio — mismo problema
+de fondo, solo que visible por casualidad de red).
+
+**Segundo bug encontrado en la misma auditoría** (mismo mecanismo, no un
+módulo aparte): aun con una respuesta real y autenticada, el cliente
+interpretaba `query_status` al revés — `threat = data.threat &&
+data.threat !== 'ok'`, cuando en la API real de URLhaus `query_status:
+"ok"` significa "SÍ hay URLs asociadas" (amenaza) y `"no_results"`
+significa limpio. Nunca se había ejercitado contra una respuesta real
+porque el fetch jamás estuvo autenticado — quedaba latente. Corregido
+como parte de este mismo fix, no un cambio aparte.
+
+**Regla implementada, sin excepciones**: PASS solo si la fuente respondió
+de forma válida y confirma "sin reportes"; FAIL solo si confirma reportes
+reales; cualquier otra cosa — falta de credencial, 401/403, 429, 5xx,
+timeout, red, JSON inválido, `query_status` no reconocible — **INCONCLUSIVE,
+nunca PASS**.
+
+**`server.js` — `handleMalware()` reescrito** (nueva `classifyUrlhausFailure(statusCode)`):
+usa `fetchPage()` (ya existente, expone `statusCode`) en vez de `fetchJSON()`
+(que lo descarta) — permite distinguir status HTTP antes de interpretar el
+body. Soporte opcional para `URLHAUS_AUTH_KEY` (env var, documentada en
+`.env.example`): si existe, se envía como header `Auth-Key`; si no, la
+consulta se sigue intentando (como antes) pero el 401 resultante ahora se
+clasifica correctamente en vez de leerse como éxito.
+
+| Código | Cuándo |
+|---|---|
+| `MALWARE_AUTH_REQUIRED` | HTTP 401 o 403 |
+| `MALWARE_RATE_LIMITED` | HTTP 429 |
+| `MALWARE_TIMEOUT` | timeout de la consulta |
+| `MALWARE_SOURCE_UNAVAILABLE` | 5xx, error de red, u otro status inesperado |
+| `MALWARE_INVALID_RESPONSE` | JSON no parseable, o `query_status` fuera de `{"ok","no_results"}` |
+
+**`index.html`**: los 5 códigos agregados a `EXTERNAL_UNAVAILABLE_CODES`
+→ `INCONCLUSIVE` (mismo set que RDAP/Tranco/Archive/PageSpeed/IPMeta). El
+`case 'malware'` ya no interpreta `query_status` — el servidor manda
+`hasReports` (booleano, ya calculado a partir de `entries.length > 0`),
+eliminando la ambigüedad del segundo bug.
+
+**Tests**: A (sin reportes → PASS), B (reportado → FAIL), C/D (401/403 →
+INCONCLUSIVE), E (429 → INCONCLUSIVE), F (timeout → INCONCLUSIVE), G (500
+→ INCONCLUSIVE), H (JSON inválido → INCONCLUSIVE), I (sin API key,
+comportamiento real actual → INCONCLUSIVE, confirmado que no se envía el
+header `Auth-Key` si no hay variable configurada), + 2 extra (con key sí
+se envía el header; `query_status` no reconocible → INCONCLUSIVE, no PASS
+silencioso). **11/11 OK** (réplica literal de la lógica de `server.js` con
+`fetchPage` inyectable — mismo patrón ya usado para RDAP/IPMeta, `server.js`
+no es requerible como módulo). `npm test` completo OK.
+
+**Corrida real** (20 dominios, servidor local, sin `URLHAUS_AUTH_KEY`
+configurada — condición real de producción hoy): **20/20 → INCONCLUSIVE
+(`MALWARE_AUTH_REQUIRED`)**, **0 PASS generados por ausencia de
+respuesta**. Es el resultado correcto y esperado dado que no hay
+credencial real disponible — antes de este fix, 19/20 mostraban un PASS
+falso.
+
+**Pendiente, fuera del alcance de este fix** (según lo indicado — "no
+inventes otro proveedor"): registrar una cuenta gratuita en
+`https://auth.abuse.ch/` y configurar `URLHAUS_AUTH_KEY` en
+`server1:~/projects/MEDICIONES/.env` es lo único que falta para que el
+check vuelva a producir PASS/FAIL reales — es una acción manual fuera del
+alcance de este cambio de código, ya documentada en `.env.example`.

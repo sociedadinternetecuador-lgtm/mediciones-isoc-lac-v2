@@ -2405,7 +2405,12 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         // (2026-09-13) — lookupIpMeta() (proveedor de geolocalización/ASN
         // por IP): mismo criterio, un tercero que no respondió no es un
         // hallazgo sobre el dominio.
-        'IPMETA_RATE_LIMITED', 'IPMETA_UNAVAILABLE'
+        'IPMETA_RATE_LIMITED', 'IPMETA_UNAVAILABLE',
+        // (2026-09-13) — handleMalware()/URLhaus: la fuente no pudo
+        // consultarse de forma válida — NUNCA debe mostrarse como PASS
+        // ("sin reportes"), que sería un falso negativo de seguridad.
+        'MALWARE_AUTH_REQUIRED', 'MALWARE_RATE_LIMITED', 'MALWARE_TIMEOUT',
+        'MALWARE_SOURCE_UNAVAILABLE', 'MALWARE_INVALID_RESPONSE'
     ]);
     const NOT_APPLICABLE_CODES = new Set(['WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS']);
     // IPMETA_NOT_FOUND: el proveedor SÍ respondió, de forma definitiva, que
@@ -2629,8 +2634,15 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     const data = await fetchWithTimeout(`${API_BASE}/malware/${ascii}`);
                     if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     const entries = data.entries?.map(e => `${e.url || e.id} (${e.status || 'listado'})`) || [];
-                    const threat = data.threat && data.threat !== 'ok';
-                    return { label, status: threat ? 'FAIL' : 'PASS', details: entries.length ? entries : 'Sin reportes' };
+                    // (2026-09-13) — bug encontrado en la misma auditoría: la
+                    // lógica anterior (`data.threat !== 'ok'`) interpretaba al
+                    // revés el `query_status` real de URLhaus (`"ok"` = SÍ hay
+                    // entradas asociadas) — nunca se había ejercitado contra
+                    // una respuesta real porque el fetch jamás estuvo
+                    // autenticado. El servidor ahora manda `hasReports` ya
+                    // calculado explícitamente a partir de `entries`, sin
+                    // depender de interpretar el string de estado.
+                    return { label, status: data.hasReports ? 'FAIL' : 'PASS', details: entries.length ? entries : 'Sin reportes' };
                 }
                 case 'screenshot': {
                     const data = await fetchWithTimeout(`${API_BASE}/screenshot/${ascii}`);
