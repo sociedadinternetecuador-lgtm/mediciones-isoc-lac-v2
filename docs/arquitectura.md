@@ -2823,3 +2823,146 @@ ausente de la lista de abiertos, sin error; la cadena de redirección
 real vía puerto 80→www sigue funcionando igual). Dominios con TLS/SSL
 normales (`nic.uy`) y con timeout real (`usa.gov`) no se vieron
 afectados.
+
+## Límite funcional de 20 dominios por análisis — 2026-09-13
+
+Decisión deliberada (no técnica): MEDICIONES es una herramienta de
+análisis técnico detallado, no un sistema de procesamiento masivo. Una
+prueba con 400 dominios confirmó que el sistema los acepta, pero eso
+implica tiempos de ejecución excesivos, más probabilidad de timeouts,
+PDFs desproporcionados y menor control metodológico por corrida. Se fija
+`MAX_DOMAINS_PER_ANALYSIS = 20` como techo duro del sub-tab "Reporte por
+lote" de Mediciones (`medicionesBatchStart()`/`POST
+/mediciones-batch/report`) — no de "Preparación de datasets de
+dominios" (validación DNS) ni de "DNSSEC batch"/"Observatorio", que son
+herramientas distintas con su propio alcance y no se tocaron.
+
+La constante está declarada dos veces — una en `index.html` (contexto
+navegador) y otra en `routes/medicionesBatchReport.routes.js` (contexto
+Node) — porque el proyecto no usa bundler ni módulo compartido entre
+cliente y servidor (regla del proyecto: sin frameworks nuevos). Es la
+duplicación mínima inevitable dada esa restricción, no un número mágico
+disperso: cada validación real del código (frontend y backend) lee de
+su única constante local.
+
+**Comportamiento**: si se supera el límite, no se inicia ninguna
+medición, no se trunca ni se divide la lista silenciosamente — se
+muestra un mensaje explícito (`alert()` con el texto acordado) y, para
+carga por archivo, una advertencia inline con el conteo real
+("El archivo contiene X dominios..."). La validación del servidor
+(`POST /mediciones-batch/report` → 400 `DOMAIN_LIMIT_EXCEEDED` con
+`received_count`/`max_allowed`) es la que realmente impide el bypass del
+frontend, ya que es el único endpoint del flujo de Mediciones que recibe
+la lista completa de dominios de una sola vez.
+
+**Archivos modificados**: `index.html` (`MAX_DOMAINS_PER_ANALYSIS`,
+`mbUpdateDomainCountUI()`, `medicionesBatchLoadFile()`, listener de
+`mb-domains-input`, guard en `medicionesBatchStart()`),
+`routes/medicionesBatchReport.routes.js` (`MAX_DOMAINS_PER_ANALYSIS`,
+validación en `handleCreateReport()`), `public/i18n.js` (claves
+`med.alert.domainLimitExceeded`, `med.batch.csvLimitWarning`, ES/EN),
+`test/medicionesBatchReport.routes.test.js` (casos 20/21/400). No se
+tocó ningún handler de los 54 checks, `classifyDataError()`, DNSSEC,
+RPKI, ni `/dataset/validate-dns`.
+
+**Tests**: backend vía `test/medicionesBatchReport.routes.test.js`
+(`npm test` completo OK) — 20 dominios → 201, 21 → 400
+`DOMAIN_LIMIT_EXCEEDED` (`received_count:21`), 400 → 400 (`received_count:400`).
+Frontend vía jsdom contra servidor real (puerto local temporal): 1/19/20
+dominios avanzan al análisis (sentinel en `initializeSummary()` antes de
+disparar red real), 21/50/400 quedan bloqueados por el `alert()` con el
+texto exacto pedido. Carga de CSV de 20 → mensaje verde normal; CSV de
+21 → advertencia roja "El archivo contiene 21 dominios. El máximo
+permitido es 20.". Llamada directa por `curl` al backend con 21/400
+dominios (sin pasar por el frontend) confirmada rechazada con el mismo
+código `DOMAIN_LIMIT_EXCEEDED`.
+
+## Runner de investigación regional (400 dominios) — cliente externo, 2026-09-13
+
+`scripts/regional-study/` — herramienta de investigación **fuera** de la
+aplicación (no se importa desde `server.js`/`index.html`, no forma parte
+del build/deploy de MEDICIONES). Automatiza 20 países × 20 dominios × 54
+checks corriendo 20 lotes **secuenciales** (nunca en paralelo) contra una
+instancia real de MEDICIONES ya en marcha, reusando exactamente
+`window.medicionesBatchStart()` vía `index.html` cargado sin modificar en
+`jsdom` — no reimplementa ningún check, y no toca `MAX_DOMAINS_PER_ANALYSIS`
+(sigue en 20, cada lote respeta ese límite tal cual). Descarga el JSON por
+el mismo endpoint que usa el botón "Descargar JSON" de la UI real
+(`GET /mediciones-batch/report/:id/export?format=json`).
+
+Detalle técnico no obvio: el `AbortSignal` de `jsdom` no es compatible con
+el `fetch` nativo de Node — sin puentearlo a un `AbortController` real de
+Node, el timeout real de 20s de `fetchWithTimeout()` (index.html) dejaría
+de abortar de verdad. Ver `scripts/regional-study/README.md` para el
+detalle completo, incluidas dos limitaciones reales del JSON exportado por
+MEDICIONES descubiertas al inspeccionar el código (no reimplementables sin
+tocar `index.html`, fuera de alcance de este pedido): `error_code` no
+viaja en el JSON por check (solo el `details` humano), y no hay timestamp
+por check, solo por corrida completa de un país.
+
+## Rediseño de la pantalla de Inicio — 2026-09-13
+
+El panel `tabPanelInicio` (`data-panel="inicio"`) se reescribió para
+comunicar en pocos segundos qué es MEDICIONES, qué evalúa, para qué sirve,
+cómo interpretar los resultados y quién coordina el proyecto — reemplaza
+el bloque anterior ("¿Qué es Mediciones ISOC LAC?" + grid de 3 tarjetas de
+módulos). Estructura: hero (texto + botón "Iniciar medición" + nota del
+límite de 20 dominios) → ámbitos evaluados (8 etiquetas: DNS, IPv4/IPv6,
+DNSSEC, RPKI, correo, TLS, seguridad web, configuración técnica — sin
+listar los 54 checks) → para qué sirve/audiencias → alcance y
+limitaciones (no es auditoría ni certificación; estados INCONCLUSIVE/
+NOT_APPLICABLE/MEASUREMENT_ERROR no son fallas) → institucional (proyecto
+coordinado por los capítulos de Internet Society de Uruguay, Paraguay,
+Argentina, Panamá y Ecuador — **no** se afirma participación formal de
+todos los capítulos LAC, solo de estos cinco como coordinadores).
+
+El botón "Iniciar medición" (`#inicio-cta-medicion`) no duplica el
+formulario ni la lógica de Mediciones: dispara el mismo mecanismo de
+navegación existente (`document.getElementById('tabBtnMediciones').click()`,
+igual que ya hacían los antiguos links "Ir al módulo →") y además hace
+`scrollIntoView` sobre `#mb-domains-input` (guardado tras comprobar que
+existe la función, para no romper en entornos sin esa API — encontrado al
+probar con `jsdom`, que no la implementa).
+
+`site.subtitle` (cabecera global, visible en todas las pestañas, no solo
+Inicio) se actualizó de "Herramienta experimental para apoyar las
+mediciones y la implementación del DNSSEC..." (enfocado solo en DNSSEC) a
+"Diagnóstico técnico de dominios de Internet." — más preciso dado que la
+herramienta ya cubre 54 checks más allá de DNSSEC.
+
+Los textos nuevos entran al diccionario de `public/i18n.js` (ES/EN) bajo
+las claves `inicio.hero.*`, `inicio.scope.*`, `inicio.purpose.*`,
+`inicio.limits.*` y `inicio.about.*` (esta última reemplaza el contenido
+anterior de `inicio.about.heading`/`.body`, que solo se usaba en este
+panel). Se eliminaron del diccionario `inicio.modules.*`,
+`inicio.module.*` e `inicio.goLink` — quedaban huérfanos tras el
+reemplazo (verificado que no los usaba ningún otro archivo antes de
+borrarlos).
+
+**Pestaña Observatorio oculta de la navegación pública** (no eliminada):
+`tabBtnObservatorio` recibió `style="display:none"`, `aria-hidden="true"`
+y `tabindex="-1"` — el botón, ambos paneles (`tabPanelObservatorio` y
+`tabPanelObservatorio Legacy`) y las rutas backend (`aggregate/`, `/obs`,
+`/zm`, `/aggregate` en `server.js`) siguen intactos en el código, solo
+inalcanzables desde la UI mientras se redefine el alcance de producto del
+Observatorio (ver auditoría de sesión previa). Comentario explícito en
+`index.html` junto al botón y junto a la sección: "Observatorio permanece
+deshabilitado en navegación mientras se redefine su alcance de producto."
+La tarjeta de Observatorio que existía en el grid de módulos de Inicio
+desapareció como parte del reemplazo de esa sección, no por un cambio
+aparte.
+
+**Verificación**: `npm test` completo sin cambios de resultado (el
+rediseño no tocó `routes/medicionesBatchReport.routes.js`, `aggregate/`
+ni `scripts/regional-study/`). Smoke `jsdom` contra el servidor real
+(`PORT=3501 node server.js`): `tabBtnObservatorio` presente en el DOM con
+`display:none`; texto del hero e institucional presentes en ES y en EN
+tras `setLanguage('en')`/`('es')`; click en el CTA activa
+`tabPanelMediciones` (`display:block`, botón con clase `active`) y
+`#mb-domains-input` queda presente/visible; cero errores de consola.
+Playwright (desktop 1280px/tablet 768px/mobile 375px) no pudo ejecutarse
+en este entorno por falta de red para descargar el binario de Chromium —
+la responsividad se verificó por revisión manual de las clases usadas
+(grid con breakpoints `sm:`, sin anchos fijos ni `min-width`, mismo
+patrón que otras secciones ya shippeadas de `index.html`), no por
+captura real de viewport.

@@ -478,9 +478,16 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       DNSSEC
     </button>
 
+    <!-- Observatorio permanece deshabilitado en navegación mientras se
+         redefine su alcance de producto (2026-09-13). No se elimina el
+         botón, el panel ni las rutas backend (aggregate/) — solo se oculta
+         de la navegación pública. Ver docs/arquitectura.md. -->
     <button
       id="tabBtnObservatorio"
       type="button"
+      style="display:none"
+      aria-hidden="true"
+      tabindex="-1"
       class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition"
       data-tab="observatorio"
       data-i18n="tab.observatorio"
@@ -535,54 +542,83 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
   style="display:none;margin-top:8px;margin-bottom:32px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"
   data-panel="inicio"
 >
-  <div class="mb-8">
-    <h2 class="text-xl font-bold text-gray-900 mb-2" data-i18n="inicio.about.heading">¿Qué es Mediciones ISOC LAC?</h2>
-    <p class="text-sm text-gray-700 leading-relaxed" data-i18n-html="inicio.about.body">
-      Esta plataforma es una iniciativa abierta impulsada por capítulos de <strong>Internet Society (ISOC)</strong>
-      en América Latina y el Caribe para generar evidencia técnica sobre la salud de la infraestructura de
-      Internet en la región: adopción de DNSSEC, seguridad de enrutamiento (RPKI) y buenas prácticas en
-      dominios ccTLD (<code>.ec</code>, <code>.co</code>, <code>.ar</code>, <code>.mx</code>, ...). Los datos
-      generados alimentan reportes que respaldan política pública regional y se integran con
-      <a href="https://pulse.internetsociety.org" target="_blank" class="text-blue-600 underline">ISOC Pulse</a>,
-      la plataforma global de métricas de Internet Society.
+  <!-- Hero — qué es / qué hace / acción principal -->
+  <div class="text-center mb-10 pb-8 border-b border-gray-100">
+    <p class="text-base md:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed mb-6" data-i18n="inicio.hero.lead">
+      MEDICIONES ISOC LAC permite analizar dominios de Internet y obtener evidencia técnica sobre la adopción,
+      configuración y disponibilidad de tecnologías y estándares relacionados con DNS, IPv4/IPv6, DNSSEC, RPKI,
+      correo electrónico, TLS, seguridad web y otros componentes de Internet.
+    </p>
+    <button
+      id="inicio-cta-medicion"
+      type="button"
+      onclick="document.getElementById('tabBtnMediciones').click(); const mbInput = document.getElementById('mb-domains-input'); if (mbInput?.scrollIntoView) mbInput.scrollIntoView({behavior:'smooth', block:'center'});"
+      class="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+      data-i18n="inicio.hero.cta"
+    >
+      Iniciar medición
+    </button>
+    <p class="text-xs text-gray-400 mt-3" data-i18n="inicio.hero.limit">
+      Analiza conjuntos de hasta 20 dominios por corrida.
     </p>
   </div>
 
-  <div class="mb-8">
-    <h2 class="text-xl font-bold text-gray-900 mb-4" data-i18n="inicio.modules.heading">Módulos de la plataforma</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="inicio.module.mediciones.title">Mediciones</div>
-        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.mediciones.body">
-          Análisis individual o por lote de un dominio: MX, DKIM, RPKI, WHOIS, CAA, TLSA, cabeceras de
-          seguridad, cadena TLS y más de 30 verificaciones técnicas por dominio.
-        </p>
-        <button onclick="document.getElementById('tabBtnMediciones').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
-      </div>
-
-      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n="inicio.module.dnssec.title">DNSSEC</div>
-        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.dnssec.body">
-          Valida la cadena de firma DNSSEC completa (TLD → dominio) y las delegaciones seguras (DS/DNSKEY),
-          en modo individual o por lote sobre listas de dominios.
-        </p>
-        <button onclick="document.getElementById('tabBtnDnssec').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
-      </div>
-
-      <div class="border border-gray-200 rounded-xl p-5 flex flex-col">
-        <div class="text-blue-600 font-bold text-sm uppercase tracking-wide mb-1" data-i18n-html="inicio.module.observatorio.title">Observatorio <span class="text-amber-600 normal-case font-semibold">(en construcción)</span></div>
-        <p class="text-sm text-gray-600 flex-1" data-i18n="inicio.module.observatorio.body">
-          Panel de comparación de la evolución de DNSSEC por país, entre países de la región y frente a otras
-          regiones del mundo — pendiente de definir las fuentes de datos.
-        </p>
-        <button onclick="document.getElementById('tabBtnObservatorio').click()"
-          class="mt-4 text-sm font-semibold text-blue-600 hover:underline text-left" data-i18n="inicio.goLink">Ir al módulo →</button>
-      </div>
-
+  <!-- Ámbitos evaluados -->
+  <div class="mb-10">
+    <h2 class="text-lg font-bold text-gray-900 mb-4 text-center" data-i18n="inicio.scope.heading">¿Qué puede evaluar?</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.dns">DNS</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.ip">IPv4 / IPv6</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.dnssec">DNSSEC</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.rpki">RPKI</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.email">Correo electrónico</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.tls">TLS</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.websec">Seguridad web</div>
+      <div class="border border-gray-200 rounded-lg py-3 px-2 text-center text-sm font-medium text-gray-700" data-i18n="inicio.scope.config">Configuración técnica</div>
     </div>
+  </div>
+
+  <!-- Para qué sirve / a quién ayuda -->
+  <div class="mb-10 max-w-3xl mx-auto">
+    <h2 class="text-lg font-bold text-gray-900 mb-2" data-i18n="inicio.purpose.heading">¿Para qué sirve?</h2>
+    <p class="text-sm text-gray-700 leading-relaxed mb-3" data-i18n="inicio.purpose.body">
+      Su propósito es facilitar la identificación de configuraciones implementadas, ausentes o incorrectas,
+      resultados no verificables y posibles barreras técnicas.
+    </p>
+    <p class="text-sm font-semibold text-gray-800 mb-1" data-i18n="inicio.purpose.audienceHeading">Puede ser útil para:</p>
+    <ul class="text-sm text-gray-600 list-disc list-inside space-y-0.5">
+      <li data-i18n="inicio.purpose.audience1">administradores de dominios y servicios</li>
+      <li data-i18n="inicio.purpose.audience2">organizaciones públicas y privadas</li>
+      <li data-i18n="inicio.purpose.audience3">academia</li>
+      <li data-i18n="inicio.purpose.audience4">comunidad técnica</li>
+      <li data-i18n="inicio.purpose.audience5">investigadores</li>
+    </ul>
+  </div>
+
+  <!-- Alcance y limitaciones -->
+  <div class="mb-10 max-w-3xl mx-auto border border-amber-100 bg-amber-50/40 rounded-xl p-5">
+    <h2 class="text-lg font-bold text-gray-900 mb-2" data-i18n="inicio.limits.heading">Cómo interpretar los resultados</h2>
+    <p class="text-sm text-gray-700 leading-relaxed mb-2" data-i18n="inicio.limits.body1">
+      MEDICIONES no sustituye una auditoría de seguridad ni constituye una certificación.
+    </p>
+    <p class="text-sm text-gray-700 leading-relaxed mb-2" data-i18n="inicio.limits.body2">
+      Los resultados representan evidencia técnica obtenida en el momento de la medición y deben interpretarse
+      según el alcance y las limitaciones de cada prueba.
+    </p>
+    <p class="text-sm text-gray-700 leading-relaxed" data-i18n="inicio.limits.body3">
+      Estados como INCONCLUSIVE, NOT_APPLICABLE o MEASUREMENT_ERROR no deben interpretarse automáticamente
+      como fallas del dominio.
+    </p>
+  </div>
+
+  <!-- Institucional — quiénes coordinan -->
+  <div class="max-w-3xl mx-auto pt-6 border-t border-gray-100 text-center">
+    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-500 mb-2" data-i18n="inicio.about.heading">Sobre el proyecto</h2>
+    <p class="text-sm text-gray-600 leading-relaxed" data-i18n-html="inicio.about.body">
+      MEDICIONES ISOC LAC surge del trabajo colaborativo de capítulos de Internet Society de América Latina y
+      el Caribe. El proyecto es coordinado por los capítulos de Internet Society de Uruguay, Paraguay,
+      Argentina, Panamá y Ecuador.
+    </p>
   </div>
 
 </section>
@@ -1190,6 +1226,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
 
 <!-- ═══════════════════════════════════════════════════════════ OBSERVATORIO -->
 <!--
+  Observatorio permanece deshabilitado en navegación mientras se redefine
+  su alcance de producto (2026-09-13) — ver docs/arquitectura.md. El botón
+  de pestaña (tabBtnObservatorio) está oculto y ningún elemento de la UI
+  activa este data-panel; ambas secciones de abajo (activa y legacy) y las
+  rutas backend (aggregate/, /obs, /zm, /aggregate) siguen intactas, sin
+  eliminar nada.
+
   Módulo simplificado: el Observatorio ya NO hará análisis batch complejos.
   La versión anterior (motor de análisis, biblioteca de reportes, historial)
   queda en reserva más abajo — desconectada del sistema de tabs (su
@@ -4941,6 +4984,13 @@ function downloadBlob(blob, filename) {
 // cola de concurrencia y el ensamblado/envío del payload final al backend
 // (POST /mediciones-batch/report).
 
+// Límite funcional deliberado (no técnico, ver docs/arquitectura.md):
+// MEDICIONES es una herramienta de análisis detallado, no de procesamiento
+// masivo. Misma constante replicada en routes/medicionesBatchReport.routes.js
+// (verificación de servidor) — no hay bundler/módulo compartido entre
+// navegador y Node en este proyecto.
+const MAX_DOMAINS_PER_ANALYSIS = 20;
+
 let mbCheckboxes = [];
 let mbCancelled = false;
 let mbSourceMode = 'paste';
@@ -5004,6 +5054,19 @@ function renderMbCheckOptions() {
 }
 renderMbCheckOptions();
 
+// Refleja el conteo de dominios detectados junto al límite de
+// MAX_DOMAINS_PER_ANALYSIS — un único punto para la advertencia visual
+// (no bloquea nada por sí sola; el bloqueo real está en
+// medicionesBatchStart() y, como resguardo, en el backend).
+function mbUpdateDomainCountUI(domains) {
+  const el = document.getElementById('mb-domain-count');
+  const overLimit = domains.length > MAX_DOMAINS_PER_ANALYSIS;
+  el.textContent = domains.length + ' dominios' + (overLimit ? ` (máximo ${MAX_DOMAINS_PER_ANALYSIS})` : '');
+  el.classList.toggle('text-red-600', overLimit);
+  el.classList.toggle('font-semibold', overLimit);
+  el.classList.toggle('text-gray-400', !overLimit);
+}
+
 function medicionesBatchLoadFile(input) {
   const file = input.files[0];
   if (!file) return;
@@ -5014,9 +5077,17 @@ function medicionesBatchLoadFile(input) {
     mbSourceMode = 'upload';
     mbSourceFilename = file.name;
     const domains = parseBatchDomains(text);
-    document.getElementById('mb-domain-count').textContent = domains.length + ' dominios';
+    mbUpdateDomainCountUI(domains);
     const nameEl = document.getElementById('mb-file-name');
-    nameEl.textContent = '✓ Archivo cargado: ' + file.name + ' — ' + domains.length + ' dominios detectados';
+    if (domains.length > MAX_DOMAINS_PER_ANALYSIS) {
+      nameEl.textContent = t('med.batch.csvLimitWarning').replace('{n}', domains.length);
+      nameEl.classList.remove('text-green-600');
+      nameEl.classList.add('text-red-600');
+    } else {
+      nameEl.textContent = '✓ Archivo cargado: ' + file.name + ' — ' + domains.length + ' dominios detectados';
+      nameEl.classList.remove('text-red-600');
+      nameEl.classList.add('text-green-600');
+    }
     nameEl.classList.remove('hidden');
   };
   reader.readAsText(file);
@@ -5026,7 +5097,7 @@ document.getElementById('mb-domains-input').addEventListener('input', function (
   mbSourceMode = 'paste';
   mbSourceFilename = null;
   const domains = parseBatchDomains(this.value);
-  document.getElementById('mb-domain-count').textContent = domains.length + ' dominios';
+  mbUpdateDomainCountUI(domains);
 });
 
 function mbGetDomainsList() {
@@ -5126,6 +5197,7 @@ async function medicionesBatchStart() {
   const selectedChecks = Array.from(mbCheckboxes).filter((cb) => cb.checked).map((cb) => cb.dataset.check);
 
   if (!domains.length) { alert(t('med.alert.noDomains')); return; }
+  if (domains.length > MAX_DOMAINS_PER_ANALYSIS) { alert(t('med.alert.domainLimitExceeded')); return; }
   if (!selectedChecks.length) { alert(t('med.alert.noChecks')); return; }
 
   initializeSummary(selectedChecks);
