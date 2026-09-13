@@ -2560,3 +2560,104 @@ total de la corrida: 70 → 50 (los 20 que este fix corrige, ninguna otra
 categoría cambió en cantidad — las diferencias en `INCONCLUSIVE`/`PASS`
 del resto de checks son variación normal de Tranco/RDAP/PageSpeed/Archive
 entre corridas, ya documentada, no atribuible a este cambio).
+
+## Motor DNSSEC (`realDns.adapter.js`): retry único + caché/coalescing por consulta — 2026-09-13
+
+**Contexto**: análisis previo (solo lectura, sin cambios) no logró
+reproducir los timeouts DNSKEY reportados en ninguna de 3 condiciones
+(dominio individual, 20 dominios concurrentes vía `/dnssec-analysis`,
+corrida real completa de 20×54) — la red DNS real, verificada con `dig`
+UDP/TCP desde `server1`, resuelve rápido y limpio en todos los niveles de
+la cadena para los dominios probados. Se encontró sí una fragilidad
+arquitectónica real: cero reintentos + "cualquier fallo aislado en
+cualquiera de las 6-9 consultas por dominio invalida el dominio entero a
+`indeterminate`" + duplicación de consultas TLD/zona intermedia entre
+dominios del mismo lote sin ningún caché. Esta corrección ataca
+exclusivamente esos dos últimos puntos (retry + caché), sin tocar
+timeout, clasificación DNSSEC, ni agregar un segundo proveedor DoH.
+
+**Confirmación previa a implementar — qué es transporte fallido vs.
+respuesta DNS válida**: `fetchJson()` (la función que hace el
+`https.get()` a `dns.google`) **solo** rechaza su promesa ante timeout,
+error de red o un cuerpo no parseable como JSON. Una respuesta DNS real
+— NOERROR/NODATA, NXDOMAIN, SERVFAIL — llega **siempre** como HTTP 200
+con un campo `Status` distinto (0/2/3) dentro del cuerpo JSON, nunca como
+excepción; `normalizeAnswer()` la interpreta después, ya fuera del
+`catch`. Por construcción, entonces, cualquier excepción capturada en
+`queryGoogleDoh()` es un fallo de transporte y nunca una respuesta DNS —
+no hizo falta una lista de códigos a excluir: SERVFAIL/NXDOMAIN/ausencia
+de DS/DNSKEY nunca llegan a ese `catch`, así que nunca disparan retry.
+
+**`logic/adapters/dns/realDns.adapter.js`** — único archivo modificado:
+
+1. **Retry único** (`fetchJsonWithRetry`): si `fetchJson()` lanza una
+   excepción, se espera un backoff corto y fijo (`RETRY_BACKOFF_MS =
+   200`) y se reintenta exactamente una vez más. Si el segundo intento
+   también falla, se propaga tal cual (mismo comportamiento de
+   `mapDohError()`/clasificación de ahí en adelante, sin cambios — un
+   dominio con ambos intentos fallidos en cualquiera de sus consultas
+   sigue cayendo en `indeterminate`, sin ocultar el fallo). Peor caso por
+   consulta: ~2× `QUERY_TIMEOUT_MS` (5000ms sin tocar) + 200ms de
+   backoff — acotado, no descontrolado, y como las consultas de un mismo
+   dominio corren en paralelo (`Promise.all`, sin cambios en
+   `dnssec.service.js`), el peor caso por DOMINIO sigue siendo ese mismo
+   techo, no la suma de sus 6-9 consultas.
+2. **Caché + request coalescing** (`queryGoogleDoh`): mismo patrón ya
+   validado en `fetchWebsite()`/`lookupIpMeta()` — clave
+   `` `${name}|${type}` `` (ej. `com|DNSKEY`, `amazon.com|DNSKEY`,
+   `com|DS`), promesa guardada en `dohPending` **antes** de esperar la
+   consulta (coalescing real para llamadas concurrentes), resultado
+   cacheado en `dohCache` con TTL de 5 min (`DOH_CACHE_TTL_MS`) **solo si
+   la consulta tuvo éxito** — un fallo, incluso tras el reintento, nunca
+   queda cacheado. `queryDnskey`/`queryDs`/`queryNameExistence` no
+   cambiaron ni una línea — siguen llamando a `queryGoogleDoh(name,
+   type)` igual que antes, el cambio es enteramente interno a esa
+   función.
+3. **Instrumentación mínima** (`getDohStats()`/`resetDohStats()`,
+   exportadas): contadores en memoria (`totalCalls`, `uniqueQueries`,
+   `cacheHits`, `pendingReused`, `retries`, `retriesRecovered`,
+   `retriesFailed`) — solo para verificación, no se expone ningún
+   endpoint HTTP nuevo ni se tocó `server.js`/`dnssec.service.js`/
+   `dnssec.rules.js`/`dnssec.processor.js`.
+
+**Tests** (contra el módulo real, interceptando `https.get` con el mismo
+flujo de eventos que usa Node — no una réplica de lógica): A (éxito al
+primer intento, 1 request) — B (timeout luego éxito, recupera) — C
+(ambos timeout, `query_status: 'timeout'`, sigue siendo el camino a
+`indeterminate`) — D (2 llamadas concurrentes idénticas, 1 request real +
+1 `pending_reused`) — E (misma consulta después de resuelta, `cache_hit`,
+0 requests nuevos) — F (`com|DNSKEY` vs `amazon.com|DNSKEY`,
+independientes, sin cruce) — G1/G2/G3 (NODATA/NXDOMAIN/SERVFAIL — sin
+retry, confirmado) — extra (JSON inválido sí es transporte fallido, sí
+reintenta). **10/10 OK**. `npm test` completo OK.
+
+**Corrida real** (20 dominios, llamando a `getDnssecAnalysis()` +
+`processDnssecAnalysis()` directamente en el mismo proceso para leer
+`getDohStats()` — funcionalmente equivalente a 20 llamadas concurrentes a
+`/dnssec-analysis`, mismo código exacto que usa `server.js`):
+
+| Métrica | Valor |
+|---|---|
+| Llamadas totales a `queryGoogleDoh()` | 134 |
+| Consultas reales únicas (`uniqueQueries`) | **122** |
+| `pendingReused` (ahorradas por coalescing) | **12** |
+| `cacheHits` | 0 (esperado: las 20 corren simultáneas, sin ventana de tiempo entre ellas para que aplique TTL en vez de coalescing) |
+| `retries` | 0 (red sana en el momento de la prueba — consistente con el análisis previo) |
+| Tiempo total del lote | 1.4s |
+
+**Clasificación final — idéntica a la corrida previa a este fix** (mismos
+20 dominios, mismo código de reglas sin tocar): `not_implemented`: 11,
+`ok`: 5, `blocked_at_tld`: 3, `blocked_at_parent`: 1, `indeterminate`: 0
+— **confirmado bit a bit igual**, como exigía el alcance ("no cambies la
+lógica de clasificación").
+
+**¿Hay evidencia real que justifique un segundo proveedor DoH?** No, con
+esta corrida. La red hacia `dns.google` estuvo sana (`retries: 0`) y el
+único problema demostrable — la duplicación de consultas TLD entre
+dominios del mismo lote — ya lo resuelve el caché/coalescing (12/134,
+9%, evitadas). El retry solo se ejercitó en los tests mockeados, nunca
+en la corrida real, porque no hubo ningún fallo de transporte que
+disparara. Sin una reproducción real de una falla de `dns.google` no hay
+base empírica para justificar la complejidad y el riesgo adicional de un
+segundo proveedor — queda como mejora identificada pero no priorizada,
+consistente con el análisis anterior.
