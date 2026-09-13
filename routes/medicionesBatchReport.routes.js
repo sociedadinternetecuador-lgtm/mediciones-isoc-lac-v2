@@ -35,6 +35,14 @@ const {
 // que el mismo techo sirve de resguardo sin inventar un número nuevo.
 const MAX_PAYLOAD_CHARS = 20 * 1024 * 1024; // 20 MB de JSON
 
+// Límite funcional deliberado (no técnico): MEDICIONES es una herramienta
+// de análisis técnico detallado, no de procesamiento masivo. Ver
+// docs/arquitectura.md — misma constante replicada en index.html
+// (mbGetDomainsList/medicionesBatchStart) porque no hay bundler ni módulo
+// compartido entre navegador y servidor en este proyecto; esta es la
+// verificación que impide el bypass del frontend.
+const MAX_DOMAINS_PER_ANALYSIS = 20;
+
 const MDTOPDF_URL = process.env.MDTOPDF_URL || 'http://server1:8600';
 
 function readBody(req, maxChars) {
@@ -76,6 +84,15 @@ async function handleCreateReport(req, res) {
     return sendJson(res, 400, {
       error: 'invalid_payload',
       message: 'El payload debe incluir al menos "domains" (arreglo).',
+    });
+  }
+
+  if (body.domains.length > MAX_DOMAINS_PER_ANALYSIS) {
+    return sendJson(res, 400, {
+      error: 'DOMAIN_LIMIT_EXCEEDED',
+      message: `Máximo ${MAX_DOMAINS_PER_ANALYSIS} dominios por análisis. Se recibieron ${body.domains.length}.`,
+      received_count: body.domains.length,
+      max_allowed: MAX_DOMAINS_PER_ANALYSIS,
     });
   }
 

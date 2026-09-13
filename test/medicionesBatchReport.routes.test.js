@@ -130,6 +130,26 @@ async function run() {
     assert.strictEqual(invalid.status, 400);
     assert.strictEqual(invalid.body.error, 'invalid_payload');
 
+    // ─── límite de 20 dominios por análisis (impide bypass del frontend) ─
+    const makeDomainsPayload = (n) => ({
+      ...SAMPLE_PAYLOAD,
+      domains: Array.from({ length: n }, (_, i) => ({ ...SAMPLE_PAYLOAD.domains[0], domain: `dominio${i}.example` })),
+    });
+
+    const exactly20 = await requestJson(baseUrl, 'POST', '/mediciones-batch/report', makeDomainsPayload(20));
+    assert.strictEqual(exactly20.status, 201, '20 dominios debe permitirse (límite inclusive)');
+
+    const exceeds21 = await requestJson(baseUrl, 'POST', '/mediciones-batch/report', makeDomainsPayload(21));
+    assert.strictEqual(exceeds21.status, 400);
+    assert.strictEqual(exceeds21.body.error, 'DOMAIN_LIMIT_EXCEEDED');
+    assert.strictEqual(exceeds21.body.received_count, 21);
+    assert.strictEqual(exceeds21.body.max_allowed, 20);
+
+    const exceeds400 = await requestJson(baseUrl, 'POST', '/mediciones-batch/report', makeDomainsPayload(400));
+    assert.strictEqual(exceeds400.status, 400);
+    assert.strictEqual(exceeds400.body.error, 'DOMAIN_LIMIT_EXCEEDED');
+    assert.strictEqual(exceeds400.body.received_count, 400);
+
     // ─── GET ?format=json de un id existente devuelve el payload ────
     const jsonExport = await requestJson(baseUrl, 'GET', `/mediciones-batch/report/${reportId}/export?format=json`);
     assert.strictEqual(jsonExport.status, 200);
