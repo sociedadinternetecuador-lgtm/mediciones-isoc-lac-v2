@@ -355,6 +355,13 @@ function errorMessage(e) {
     if (e.code === 'MALWARE_TIMEOUT') return 'Timeout consultando el servicio de detección de malware';
     if (e.code === 'MALWARE_SOURCE_UNAVAILABLE') return 'Servicio de detección de malware no disponible';
     if (e.code === 'MALWARE_INVALID_RESPONSE') return 'El servicio de detección de malware devolvió una respuesta inválida';
+    // (2026-09-13) — ECONNREFUSED confirmado en vivo contra el servicio
+    // objetivo (TCP directo + openssl s_client, no un timeout ni una
+    // condición ambigua) — código propio por handler, ECONNREFUSED
+    // genérico no se toca en ningún otro módulo.
+    if (e.code === 'TLS_CONNECTION_REFUSED') return 'Conexión rechazada por el servicio TLS del dominio';
+    if (e.code === 'SSLCHAIN_CONNECTION_REFUSED') return 'Conexión rechazada al consultar la cadena de certificados';
+    if (e.code === 'SECURITYTXT_CONNECTION_REFUSED') return 'Conexión rechazada al consultar security.txt';
   }
   return 'Servicio no disponible';
 }
@@ -1177,6 +1184,14 @@ async function handleSecurityTxt(domain, res) {
     const found = data.response.statusCode && data.response.statusCode >= 200 && data.response.statusCode < 300;
     sendJSON(res, 200, { domain, found, finalUrl: data.finalUrl, chain: data.chain });
   } catch (e) {
+    // (2026-09-13) — mismo criterio que handleTls()/handleSslChain(): un
+    // ECONNREFUSED acá significa que la conexión necesaria para revisar
+    // security.txt fue rechazada explícitamente por el destino — código
+    // propio de este handler, no una regla global.
+    if (e && e.code === 'ECONNREFUSED') {
+      const code = 'SECURITYTXT_CONNECTION_REFUSED';
+      return sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
+    }
     sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
 }
@@ -1218,6 +1233,19 @@ async function handleTls(domain, res) {
           const finalCode = confirmed ? 'WEBFETCH_NO_ADDRESS_RECORD' : e.code;
           sendJSON(res, 200, { domain, error: errorMessage({ code: finalCode }), error_code: finalCode });
         });
+        return;
+      }
+      // (2026-09-13) — verificado en vivo (TCP directo + openssl s_client
+      // desde server1) contra copaair.com: ECONNREFUSED acá es un rechazo
+      // real y confirmado del propio servicio TLS objetivo (nada escucha
+      // en el puerto 443 de esa IP exacta), no un timeout ni una condición
+      // ambigua — código propio de este handler, no una regla global sobre
+      // ECONNREFUSED (que en otros handlers tiene semántica distinta, ej.
+      // handleOpenPorts lo usa como resultado normal de "puerto cerrado").
+      // tls/key/ocsp (cliente) leen todos esta misma respuesta.
+      if (e && e.code === 'ECONNREFUSED') {
+        const code = 'TLS_CONNECTION_REFUSED';
+        sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
         return;
       }
       sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
@@ -1290,6 +1318,14 @@ async function handleSslChain(domain, res) {
           const finalCode = confirmed ? 'WEBFETCH_NO_ADDRESS_RECORD' : e.code;
           sendJSON(res, 200, { domain, error: errorMessage({ code: finalCode }), error_code: finalCode });
         });
+        return;
+      }
+      // (2026-09-13) — mismo criterio que handleTls(): ECONNREFUSED acá es
+      // un rechazo real y confirmado del servicio objetivo, código propio
+      // de este handler.
+      if (e && e.code === 'ECONNREFUSED') {
+        const code = 'SSLCHAIN_CONNECTION_REFUSED';
+        sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
         return;
       }
       sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });

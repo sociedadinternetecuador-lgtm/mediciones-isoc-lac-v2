@@ -2742,3 +2742,84 @@ inventes otro proveedor"): registrar una cuenta gratuita en
 `server1:~/projects/MEDICIONES/.env` es lo único que falta para que el
 check vuelva a producir PASS/FAIL reales — es una acción manual fuera del
 alcance de este cambio de código, ya documentada en `.env.example`.
+
+## ECONNREFUSED confirmado vs. HPE_CLOSED_CONNECTION ambiguo — códigos por handler, sin regla global — 2026-09-13
+
+**Contexto**: de los `MEASUREMENT_ERROR` residuales, 5 `ECONNREFUSED`
+(`copaair.com`, checks `tls`/`key`/`ocsp`/`sslchain`/`securitytxt`) y 1
+`HPE_CLOSED_CONNECTION` (`corporacionfavorita.com`/`redirectchain`).
+Verificado en vivo antes de tocar código: DNS de `copaair.com` correcto
+(`204.74.99.103`), TCP a puerto 80 conecta, TCP a puerto 443 da
+`Connection refused` (`errno=111`) confirmado con `bash /dev/tcp` **y**
+`openssl s_client` (rechazo a nivel de socket, ni siquiera arranca el
+handshake TLS) — `www.copaair.com` resuelve a una IP totalmente distinta
+donde 443 sí funciona. Conclusión: rechazo real y determinista del
+servicio objetivo, no un timeout, no un problema de conectividad local
+(confirmado: la misma máquina conecta sin problema a `www.copaair.com:443`
+segundos después).
+
+**Decisión explícita: sin regla global `ECONNREFUSED → FAIL`.** `ECONNREFUSED`
+se usa en otros módulos con semántica distinta (`handleOpenPorts` lo trata
+como resultado normal — puerto cerrado es un dato, no un error; handlers
+con fallback https→http, terceros como RDAP/Tranco, etc.). Se agregaron
+**3 códigos propios**, uno por handler, asignados solo en la rama
+`e.code === 'ECONNREFUSED'` de cada uno:
+
+| Código | Handler | Checks del cliente que lo consumen |
+|---|---|---|
+| `TLS_CONNECTION_REFUSED` | `handleTls()` | `tls`, `key`, `ocsp` (mismo endpoint `/tlsinfo`, sin duplicar lógica) |
+| `SSLCHAIN_CONNECTION_REFUSED` | `handleSslChain()` | `sslchain` |
+| `SECURITYTXT_CONNECTION_REFUSED` | `handleSecurityTxt()` | `securitytxt` |
+
+Los 3 → `FAIL` en `classifyDataError()` (nuevo set `CONNECTION_REFUSED_CODES`,
+separado de `CERTIFICATE_ERROR_CODES` para no mezclar significados). El
+`ECONNREFUSED` crudo (sin pasar por estos 3 handlers) sigue sin mapeo
+propio — comportamiento sin cambios en cualquier otro lugar del código.
+
+**`HPE_CLOSED_CONNECTION`**: reproducido con `curl -I -L` (mismo método
+`HEAD`, mismos redirects que usa `redirectchain`) — **no se reprodujo**
+con `curl` (la cadena completa de `corporacionfavorita.com`, sitio en
+Vercel, con una mezcla de HTTP/1.0→HTTP/2 entre saltos de la
+redirección, resolvió sin problema). Al reintentar contra el propio
+adaptador HTTP del proyecto (3 veces seguidas) el error **sí reapareció
+las 3 veces** — indica una incompatibilidad puntual entre el parser HTTP
+nativo de Node y ese patrón de redirección mixto, distinta del
+comportamiento de `curl`, pero sin evidencia de que sea un rechazo
+explícito del servidor ni tampoco un bug claro del instrumento. Se
+mapeó a `INCONCLUSIVE` (nuevo set `AMBIGUOUS_TRANSPORT_CODES` en
+`classifyDataError()`) — **sin tocar la lógica de red ni intentar
+"arreglar" el comportamiento**, tal como se pidió explícitamente.
+
+**Archivos modificados**: `server.js` (`handleTls`, `handleSslChain`,
+`handleSecurityTxt`, `errorMessage()`), `index.html`
+(`classifyDataError()`). Nada más — `ECONNREFUSED` genérico, `TIMEOUT`,
+`ETIMEDOUT`, `fetchJSON`, `resolveFinalWebTarget`, el fallback
+HTTPS→HTTP, `malware`/URLhaus, DNSSEC, RDAP, Archive, Ranking, PageSpeed
+y SMTPUTF8 no se tocaron.
+
+**Tests**: A/B/C (los 3 códigos nuevos → FAIL, contra `copaair.com` real),
+D (`handleOpenPorts`/`redirectchain` con `ECONNREFUSED` — comportamiento
+sin cambios, verificado en vivo), E (`HPE_CLOSED_CONNECTION` →
+INCONCLUSIVE, vía `classifyDataError()` directo y vía mock del `case
+'redirectchain'`), F (TLS normal contra `nic.uy` — éxito sin cambios),
+G (timeout TLS contra `usa.gov` real — sigue siendo `TIMEOUT`, no se
+transformó en `CONNECTION_REFUSED`). **Todos verificados en vivo o vía
+jsdom contra el cliente real, sin mocks de lógica replicada** (a
+diferencia de rondas anteriores, acá sí fue reproducible con dominios
+reales). `npm test` completo OK.
+
+**Corrida real** (`copaair.com`, `corporacionfavorita.com`):
+
+| Check | Antes | Después |
+|---|---|---|
+| `tls`/`key`/`ocsp` (copaair.com) | MEASUREMENT_ERROR (`ECONNREFUSED`) | **FAIL** (`TLS_CONNECTION_REFUSED`) |
+| `sslchain` (copaair.com) | MEASUREMENT_ERROR (`ECONNREFUSED`) | **FAIL** (`SSLCHAIN_CONNECTION_REFUSED`) |
+| `securitytxt` (copaair.com) | MEASUREMENT_ERROR (`ECONNREFUSED`) | **FAIL** (`SECURITYTXT_CONNECTION_REFUSED`) |
+| `redirectchain` (corporacionfavorita.com) | MEASUREMENT_ERROR (`HPE_CLOSED_CONNECTION`) | **INCONCLUSIVE** |
+
+**Sin regresiones detectadas**: `openports`/`redirectchain` contra
+`copaair.com` mantienen su comportamiento previo (puerto 443 simplemente
+ausente de la lista de abiertos, sin error; la cadena de redirección
+real vía puerto 80→www sigue funcionando igual). Dominios con TLS/SSL
+normales (`nic.uy`) y con timeout real (`usa.gov`) no se vieron
+afectados.

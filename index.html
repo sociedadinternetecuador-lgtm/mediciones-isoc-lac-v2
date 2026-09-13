@@ -2419,11 +2419,27 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     // dominio (la IP la resolvió el propio DNS del dominio). INFO en vez de
     // NOT_APPLICABLE porque el check en sí sigue siendo válido para
     // cualquier IP pública normal, solo esta IP puntual no tiene datos.
+    // (2026-09-13) — ECONNREFUSED verificado en vivo (TCP directo + openssl
+    // s_client) contra el servicio objetivo real (no un timeout, no una
+    // condición ambigua) en 3 handlers puntuales — códigos propios de cada
+    // uno, NO una regla global sobre ECONNREFUSED (que en otros checks/
+    // handlers tiene semántica distinta).
+    const CONNECTION_REFUSED_CODES = new Set([
+        'TLS_CONNECTION_REFUSED', 'SSLCHAIN_CONNECTION_REFUSED', 'SECURITYTXT_CONNECTION_REFUSED'
+    ]);
+    // HPE_CLOSED_CONNECTION: conexión cerrada a medio parseo HTTP — no
+    // reproducible de forma determinista (verificado con curl -I -L,
+    // completó sin problema), ambiguo entre transitorio de red y
+    // comportamiento del proveedor — no se puede afirmar con certeza que
+    // sea un rechazo real ni un bug del instrumento.
+    const AMBIGUOUS_TRANSPORT_CODES = new Set(['HPE_CLOSED_CONNECTION']);
     function classifyDataError(data) {
         if (CERTIFICATE_ERROR_CODES.has(data.error_code)) return 'FAIL';
+        if (CONNECTION_REFUSED_CODES.has(data.error_code)) return 'FAIL';
         if (data.error_code === 'IPMETA_NOT_FOUND') return 'INFO';
         if (NOT_APPLICABLE_CODES.has(data.error_code)) return 'NOT_APPLICABLE';
         if (EXTERNAL_UNAVAILABLE_CODES.has(data.error_code)) return 'INCONCLUSIVE';
+        if (AMBIGUOUS_TRANSPORT_CODES.has(data.error_code)) return 'INCONCLUSIVE';
         return 'MEASUREMENT_ERROR';
     }
 
