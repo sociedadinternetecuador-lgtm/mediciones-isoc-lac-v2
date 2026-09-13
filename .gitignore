@@ -3,3 +3,11 @@ node_modules/
 # Log de mediciones (server.js, recordMeasurement()) — datos de runtime,
 # uno por día, se acumulan en el volumen data/ del deploy. No versionar.
 data/measurements/
+
+# Resultados de corridas de diagnóstico (dataset generado, no fuente) —
+# reproducible ejecutando la medición de nuevo, no se versiona.
+data/baseline/
+
+# Bytecode de Python (validador/), se regenera solo.
+__pycache__/
+*.pyc
