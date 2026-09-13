@@ -2391,9 +2391,23 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
         'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'CERT_NOT_YET_VALID'
     ]);
+    // (2026-09-12) — clasificación semántica de los MEASUREMENT_ERROR
+    // residuales: se distingue "el dominio no responde/no tiene algo" (un
+    // hecho real y medible) de "un tercero que solo aporta contexto sobre
+    // el dominio no respondió" (Tranco, rdap.org, Wayback Machine,
+    // PageSpeed — ninguno de los 4 es el dominio medido). Un fallo del
+    // segundo tipo no es un hallazgo del dominio, así que no debe mostrarse
+    // igual que un timeout real contra el dominio mismo (ese sigue en
+    // MEASUREMENT_ERROR, sin cambios — ver docs/arquitectura.md).
+    const EXTERNAL_UNAVAILABLE_CODES = new Set([
+        'RDAP_UNAVAILABLE', 'RANKING_UNAVAILABLE', 'PAGESPEED_QUOTA_EXCEEDED',
+        'ARCHIVE_TIMEOUT', 'ARCHIVE_UNAVAILABLE'
+    ]);
+    const NOT_APPLICABLE_CODES = new Set(['WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS']);
     function classifyDataError(data) {
         if (CERTIFICATE_ERROR_CODES.has(data.error_code)) return 'FAIL';
-        if (data.error_code === 'WEBFETCH_NO_ADDRESS_RECORD') return 'NOT_APPLICABLE';
+        if (NOT_APPLICABLE_CODES.has(data.error_code)) return 'NOT_APPLICABLE';
+        if (EXTERNAL_UNAVAILABLE_CODES.has(data.error_code)) return 'INCONCLUSIVE';
         return 'MEASUREMENT_ERROR';
     }
 
@@ -2754,8 +2768,18 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                             default: return `${r.server}: sin datos`;
                         }
                     }).join('; ') || 'No permite SMTPUTF8';
-                    const ok = data.results?.length && data.results.every(r => r.status === 'supports');
-                    return { label, status: ok ? 'PASS' : 'FAIL', details };
+                    if (!data.results?.length) return { label, status: 'MEASUREMENT_ERROR', details };
+                    const ok = data.results.every(r => r.status === 'supports');
+                    if (ok) return { label, status: 'PASS', details };
+                    // (2026-09-12) — antes CUALQUIER resultado que no fuera
+                    // 'supports' en todos los MX se marcaba FAIL, incluyendo
+                    // 'timeout'/'connection-error' — un timeout no confirma
+                    // que el servidor no soporte SMTPUTF8, solo que no se
+                    // pudo comprobar. FAIL solo si todos los MX respondieron
+                    // de forma definitiva ('supports'/'no'); si alguno no se
+                    // pudo medir, el resultado es INCONCLUSIVE.
+                    const inconclusive = data.results.some(r => r.status === 'timeout' || r.status === 'connection-error');
+                    return { label, status: inconclusive ? 'INCONCLUSIVE' : 'FAIL', details };
                 }
                 case 'rpki': {
                     const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);

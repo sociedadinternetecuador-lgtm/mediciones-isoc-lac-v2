@@ -2356,3 +2356,98 @@ contra `web.archive.org` en esta corrida puntual (el código de
 `handleArchive` solo ganó `error_code`, no se tocó su timeout ni su
 lógica — variación normal de un servicio externo entre dos corridas en
 momentos distintos, no atribuible al fix).
+
+## Clasificación semántica de MEASUREMENT_ERROR: dependencia externa vs. dominio — 2026-09-12
+
+**Principio**: un fallo contra un TERCERO que solo aporta contexto sobre
+el dominio (Tranco, rdap.org, `web.archive.org`, PageSpeed) no es un
+hallazgo sobre el dominio medido — mezclarlo con "no pudimos medir el
+dominio" (timeout/refuse contra el dominio mismo) infla
+`MEASUREMENT_ERROR` de forma engañosa. Del análisis de los 101
+`MEASUREMENT_ERROR` residuales se separaron ambos casos y se aplicaron
+los cambios mínimos correspondientes.
+
+**`classifyDataError()` (index.html)**, 3 códigos ya existentes más 5
+nuevos, agrupados en dos sets:
+```js
+const EXTERNAL_UNAVAILABLE_CODES = new Set([
+  'RDAP_UNAVAILABLE', 'RANKING_UNAVAILABLE', 'PAGESPEED_QUOTA_EXCEEDED',
+  'ARCHIVE_TIMEOUT', 'ARCHIVE_UNAVAILABLE'
+]); // -> INCONCLUSIVE
+const NOT_APPLICABLE_CODES = new Set([
+  'WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS'
+]); // -> NOT_APPLICABLE
+```
+
+**`handleQuality()`**: `error_code: 'PAGESPEED_QUOTA_EXCEEDED'` en las dos
+ramas de cuota agotada (el cooldown de 10 min y el `RESOURCE_EXHAUSTED`
+recién detectado) — otros errores de PageSpeed no relacionados con cuota
+quedan sin código específico, sin cambios.
+
+**`handleArchive()`**: `ARCHIVE_TIMEOUT` (timeout) / `ARCHIVE_UNAVAILABLE`
+(cualquier otro fallo de transporte o respuesta no-JSON) — **se descartó
+`ARCHIVE_NO_DATA`**: verificado en vivo que la API CDX de Wayback Machine
+responde 200 con `[]` (JSON válido) cuando el dominio no tiene snapshots,
+que el código YA trata como éxito (`entries: []`) sin lanzar excepción —
+no existe una ruta de fallo real que ese código capturaría.
+
+**`handleSmtpUtf8()`**: `NO_MX_RECORDS` cuando `dns.resolveMx()` da
+`ENODATA` (dominio real, sin MX) — se distingue explícitamente de
+`ENOTFOUND` (dominio que no resuelve en absoluto, condición más grave,
+sin cambios). Además, **bug real corregido en `index.html`**: el case
+`'smtputf8'` marcaba `FAIL` ante CUALQUIER resultado que no fuera
+`'supports'` en todos los MX, incluyendo `'timeout'`/`'connection-error'`
+— un timeout no confirma que el servidor no soporte SMTPUTF8, solo que no
+se pudo comprobar. Ahora: `FAIL` solo si todos los MX respondieron de
+forma definitiva (`'supports'`/`'no'`); `INCONCLUSIVE` si alguno no se
+pudo medir.
+
+**Tests**: 7 casos de `classifyDataError()` + 5 de la lógica de
+`smtputf8` (incl. mezcla supports+no, mezcla no+timeout, solo
+connection-error), todos vía mocks/jsdom sin depender de que los
+servicios externos fallen en el momento exacto de la prueba. 11/11 OK.
+
+**Verificación end-to-end** (corrida real 20×54):
+
+| Estado | Antes | Ahora |
+|---|---|---|
+| PASS | 573 | 537 |
+| FAIL | 254 | 240 |
+| INFO | 83 | 83 |
+| INCONCLUSIVE | 29 | 99 |
+| NOT_APPLICABLE | 40 | 51 |
+| MEASUREMENT_ERROR | 101 | 70 |
+
+De los 101 `MEASUREMENT_ERROR` originales: **51 reclasificados** (20
+`PAGESPEED_QUOTA_EXCEEDED`→INCONCLUSIVE, 10 `RANKING_UNAVAILABLE`→INCONCLUSIVE,
+7 `RDAP_NOT_FOUND`→NOT_APPLICABLE, 4 `NO_MX_RECORDS`→NOT_APPLICABLE, 3
+`ARCHIVE_TIMEOUT`→INCONCLUSIVE, 3 `RDAP_UNAVAILABLE`→INCONCLUSIVE, 2
+`ARCHIVE_UNAVAILABLE`→INCONCLUSIVE, 2 `ranking` con datos reales esta vez
+→PASS), **50 se mantienen `MEASUREMENT_ERROR`** correctamente (44
+`TIMEOUT` + 4 `ETIMEDOUT` + 1 `ECONNREFUSED` + 1 `HPE_CLOSED_CONNECTION`,
+todos contra el dominio medido directamente, no contra un tercero).
+Además, 14 `smtputf8` que antes eran `FAIL` (mezclando timeouts con "no
+soporta") ahora son `INCONCLUSIVE` correctamente.
+
+**Verificación de que ningún fallo real del dominio quedó oculto**: se
+revisaron los 45 casos con `error_code` `TIMEOUT`/`ECONNREFUSED`/
+`ETIMEDOUT` contra el dominio mismo (excluyendo `quality`/`ranking`/
+`domaininfo`/`archive`, que son deliberadamente dependencias externas) —
+los 45 siguen visibles como `MEASUREMENT_ERROR` o `FAIL`, ninguno se
+"blanqueó".
+
+**Hallazgo nuevo, NO corregido en esta ronda** (fuera del alcance de los
+4 cambios autorizados, código no tocado): 20 casos nuevos de
+`MEASUREMENT_ERROR` en `asn`/`serverlocation`/`serverinfo` (7+7+6, en
+`nic.uy`/`nic.us`/`uba.ar`/`presidencia.gob.pa`/`udelar.edu.uy`/
+`usa.gov`/`utp.ac.pa`) que antes pasaban. Investigado con el log de
+mediciones: es `lookupIpMeta()` (proveedor de geolocalización de IP,
+primario + fallback, sin relación con RDAP/Tranco/Archive/PageSpeed)
+golpeando su propio rate limit — el propio código ya documenta este
+riesgo ("Rate limit exceeded" en su comentario). No se disparó en la
+corrida anterior porque menos checks completaban trabajo real en la
+misma ventana de tiempo; al corregir los otros 4 puntos, más checks
+llegan a ejecutar la consulta de geolocalización dentro de la misma
+ventana y superan el límite del proveedor. Mismo patrón que Tranco/RDAP/
+Archive/PageSpeed — candidato claro para una futura ronda con un código
+propio (ej. `IPMETA_UNAVAILABLE`), no implementado ahora.

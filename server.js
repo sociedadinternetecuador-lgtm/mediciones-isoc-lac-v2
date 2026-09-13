@@ -264,6 +264,13 @@ function errorMessage(e) {
     if (e.code === 'RDAP_TIMEOUT') return 'Timeout consultando el servicio RDAP';
     if (e.code === 'RDAP_UNAVAILABLE') return 'Servicio RDAP no disponible';
     if (e.code === 'RDAP_INVALID_RESPONSE') return 'El servicio RDAP devolvió una respuesta inválida';
+    // (2026-09-12) — clasificación semántica de los MEASUREMENT_ERROR
+    // residuales: Archive (web.archive.org) y PageSpeed son dependencias
+    // externas que solo aportan contexto sobre el dominio, nunca al
+    // dominio mismo — un fallo ahí no es un hallazgo del dominio medido.
+    if (e.code === 'ARCHIVE_TIMEOUT') return 'Timeout consultando Wayback Machine';
+    if (e.code === 'ARCHIVE_UNAVAILABLE') return 'Servicio de Wayback Machine no disponible';
+    if (e.code === 'NO_MX_RECORDS') return 'El dominio no tiene registros MX';
   }
   return 'Servicio no disponible';
 }
@@ -498,7 +505,23 @@ async function checkSmtpUtf8(server) {
 async function handleSmtpUtf8(domain, res) {
   domain = normalizeDomain(domain);
   try {
-    const mx = await dns.resolveMx(domain);
+    let mx;
+    try {
+      mx = await dns.resolveMx(domain);
+    } catch (e) {
+      // (2026-09-12) — antes un dominio sin registros MX (una condición
+      // real y válida: no recibe correo) se reportaba con el mismo
+      // error_code genérico ENODATA que usan otras consultas DNS con
+      // significado distinto (ej. DKIM/TXT) — sin un código propio, el
+      // cliente no puede distinguir "no tiene MX" de un fallo real de
+      // medición. Solo se re-etiqueta ENODATA (dominio existe, sin MX);
+      // ENOTFOUND (el dominio no resuelve en absoluto) sigue igual, es una
+      // condición distinta y más grave que no se quiere ocultar acá.
+      if (e && e.code === 'ENODATA') {
+        throw Object.assign(new Error('El dominio no tiene registros MX'), { code: 'NO_MX_RECORDS' });
+      }
+      throw e;
+    }
     // Antes recorría los registros MX en secuencia — cada uno puede tardar
     // hasta 15s (checkSmtpUtf8 ya prueba sus 2 puertos en paralelo, pero
     // un MX puede agotar igual el timeout completo si ambos puertos están
@@ -1247,7 +1270,7 @@ async function handleQuality(domain, res) {
   domain = normalizeDomain(domain);
 
   if (Date.now() < pageSpeedQuotaExhaustedUntil) {
-    return sendJSON(res, 200, { domain, error: pageSpeedQuotaMessage });
+    return sendJSON(res, 200, { domain, error: pageSpeedQuotaMessage, error_code: 'PAGESPEED_QUOTA_EXCEEDED' });
   }
 
   try {
@@ -1267,11 +1290,17 @@ async function handleQuality(domain, res) {
     // un fallo de red.
     if (data.error) {
       const message = data.error.message || 'PageSpeed devolvió un error';
-      if (isPageSpeedQuotaError(data.error)) {
+      const isQuota = isPageSpeedQuotaError(data.error);
+      if (isQuota) {
         pageSpeedQuotaExhaustedUntil = Date.now() + PAGESPEED_QUOTA_COOLDOWN_MS;
         pageSpeedQuotaMessage = message;
       }
-      return sendJSON(res, 200, { domain, error: message });
+      // (2026-09-12) — la cuota agotada es un límite de NUESTRA cuenta de
+      // Google, no un hallazgo sobre el dominio — se distingue con un
+      // error_code propio para que el cliente pueda clasificarla aparte de
+      // un fallo genérico de PageSpeed (otros errores de la API, sin
+      // relación con cuota, se dejan tal cual, sin código específico).
+      return sendJSON(res, 200, { domain, error: message, error_code: isQuota ? 'PAGESPEED_QUOTA_EXCEEDED' : undefined });
     }
     const lighthouse = data.lighthouseResult?.categories || {};
     sendJSON(res, 200, {
@@ -1839,12 +1868,24 @@ async function handleArchive(domain, res) {
     const data = await fetchJSON(
       `https://web.archive.org/cdx/search/cdx?url=${domain}&output=json&limit=5&fl=timestamp,original,statuscode`
     );
+    // (2026-09-12) — verificado en vivo: cuando el dominio no tiene
+    // snapshots, la API CDX de Wayback Machine responde 200 con "[]" (JSON
+    // válido, se parsea sin error) — NO hace falta un código especial para
+    // "sin historial", ya llega acá como éxito con entries:[] igual que
+    // siempre. Lo único que amerita distinguirse es cuando la consulta a
+    // web.archive.org en sí misma no se pudo completar.
     const entries = Array.isArray(data)
       ? data.slice(1).map(item => ({ timestamp: item[0], original: item[1], status: item[2] }))
       : [];
     sendJSON(res, 200, { domain, entries });
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
+    // (2026-09-12) — antes cualquier fallo acá (timeout de
+    // web.archive.org, error de red, respuesta no-JSON) se perdía en el
+    // genérico "Servicio no disponible" sin error_code — indistinguible de
+    // un timeout real del DOMINIO medido, cuando en realidad
+    // handleArchive() nunca contacta al dominio, solo a Wayback Machine.
+    const code = e && e.code === 'TIMEOUT' ? 'ARCHIVE_TIMEOUT' : 'ARCHIVE_UNAVAILABLE';
+    sendJSON(res, 200, { domain, error: errorMessage({ code }), error_code: code });
   }
 }
 
