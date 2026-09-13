@@ -1,0 +1,8 @@
+node_modules/
+results/*/
+logs/*.log
+consolidated/*.json
+consolidated/*.csv
+!results/.gitkeep
+!logs/.gitkeep
+!consolidated/.gitkeep

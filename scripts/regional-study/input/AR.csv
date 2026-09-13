@@ -1,0 +1,21 @@
+﻿country,country_code,sector,domain
+Argentina,AR,Gobierno,argentina.gob.ar
+Argentina,AR,Gobierno,arca.gob.ar
+Argentina,AR,Gobierno,bcra.gob.ar
+Argentina,AR,Gobierno,salud.gob.ar
+Argentina,AR,Academia,uba.ar
+Argentina,AR,Academia,unlp.edu.ar
+Argentina,AR,Academia,unc.edu.ar
+Argentina,AR,Academia,utn.edu.ar
+Argentina,AR,Finanzas,bancogalicia.com
+Argentina,AR,Finanzas,santander.com.ar
+Argentina,AR,Finanzas,bbva.com.ar
+Argentina,AR,Finanzas,macro.com.ar
+Argentina,AR,Sector privado,mercadolibre.com.ar
+Argentina,AR,Sector privado,aerolineas.com
+Argentina,AR,Sector privado,clarin.com
+Argentina,AR,Sector privado,lanacion.com.ar
+Argentina,AR,Infraestructura digital,nic.ar
+Argentina,AR,Infraestructura digital,cabase.org.ar
+Argentina,AR,Infraestructura digital,telecom.com.ar
+Argentina,AR,Infraestructura digital,movistar.com.ar

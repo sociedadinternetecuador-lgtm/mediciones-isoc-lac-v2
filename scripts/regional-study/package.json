@@ -1,0 +1,13 @@
+{
+  "name": "mediciones-regional-study-runner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cliente/orquestador externo de investigación. NO forma parte de la aplicación MEDICIONES — corre 20 lotes secuenciales de 20 dominios contra una instancia real de MEDICIONES ya en marcha, usando exactamente su flujo/backend existente. Ver README.md.",
+  "scripts": {
+    "start": "node runner.mjs"
+  },
+  "dependencies": {
+    "jsdom": "^29.0.0"
+  }
+}
