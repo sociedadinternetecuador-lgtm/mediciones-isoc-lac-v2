@@ -2401,11 +2401,22 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     // MEASUREMENT_ERROR, sin cambios — ver docs/arquitectura.md).
     const EXTERNAL_UNAVAILABLE_CODES = new Set([
         'RDAP_UNAVAILABLE', 'RANKING_UNAVAILABLE', 'PAGESPEED_QUOTA_EXCEEDED',
-        'ARCHIVE_TIMEOUT', 'ARCHIVE_UNAVAILABLE'
+        'ARCHIVE_TIMEOUT', 'ARCHIVE_UNAVAILABLE',
+        // (2026-09-13) — lookupIpMeta() (proveedor de geolocalización/ASN
+        // por IP): mismo criterio, un tercero que no respondió no es un
+        // hallazgo sobre el dominio.
+        'IPMETA_RATE_LIMITED', 'IPMETA_UNAVAILABLE'
     ]);
     const NOT_APPLICABLE_CODES = new Set(['WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS']);
+    // IPMETA_NOT_FOUND: el proveedor SÍ respondió, de forma definitiva, que
+    // no tiene metadata para esa IP (ej. rango privado/reservado) — es un
+    // dato ausente legítimo, no una medición fallida ni una condición del
+    // dominio (la IP la resolvió el propio DNS del dominio). INFO en vez de
+    // NOT_APPLICABLE porque el check en sí sigue siendo válido para
+    // cualquier IP pública normal, solo esta IP puntual no tiene datos.
     function classifyDataError(data) {
         if (CERTIFICATE_ERROR_CODES.has(data.error_code)) return 'FAIL';
+        if (data.error_code === 'IPMETA_NOT_FOUND') return 'INFO';
         if (NOT_APPLICABLE_CODES.has(data.error_code)) return 'NOT_APPLICABLE';
         if (EXTERNAL_UNAVAILABLE_CODES.has(data.error_code)) return 'INCONCLUSIVE';
         return 'MEASUREMENT_ERROR';

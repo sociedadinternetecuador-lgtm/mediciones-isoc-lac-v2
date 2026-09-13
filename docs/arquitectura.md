@@ -2451,3 +2451,112 @@ llegan a ejecutar la consulta de geolocalización dentro de la misma
 ventana y superan el límite del proveedor. Mismo patrón que Tranco/RDAP/
 Archive/PageSpeed — candidato claro para una futura ronda con un código
 propio (ej. `IPMETA_UNAVAILABLE`), no implementado ahora.
+
+## `lookupIpMeta()`: sin caché ni coalescing, duplicación confirmada asn/serverinfo — 2026-09-13
+
+**Causa raíz** (análisis previo, confirmado con evidencia en vivo): `lookupIpMeta()`
+no tenía ninguna caché ni deduplicación — 4 handlers independientes
+(`handleServerInfo`, `handleServerLocation`, `handleIpInfo`, `handleIpv4`)
+resuelven la IP del dominio cada uno por su cuenta y llaman al proveedor
+externo por separado, incluso cuando terminan consultando la MISMA IP.
+Además, **`asn` y `serverinfo` (dos checks distintos del cliente) llaman
+literalmente al mismo endpoint** (`/serverinfo/:domain`) — confirmado en
+código (`fetchWithTimeout(`${API_BASE}/serverinfo/${ascii}`)` en ambos
+`case`). Hasta 5 llamadas reales por dominio para la misma IP. Verificado
+en vivo: `ipwho.is` (primario) devuelve 429 "Rate limit exceeded" con
+`Retry-After: 80784` (~22h, cuota larga ya agotada); `ip-api.com`
+(fallback) sano pero con límite real de 45 req/min (confirmado vía
+cabeceras `X-Rl`/`X-Ttl`) — la duplicación multiplicaba la carga sobre
+ese fallback lo suficiente como para superar su ventana dentro de una
+sola corrida.
+
+**Corrección — caché + request coalescing, mismo patrón que `fetchWebsite()`**
+(`server.js`, `lookupIpMeta()`):
+```js
+const IPMETA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+const ipMetaCache = new Map();   // resultado resuelto por IP
+const ipMetaPending = new Map(); // promesa en curso por IP
+```
+Primera llamada para una IP: cache miss → se crea la promesa, se guarda
+en `ipMetaPending` **antes** de esperar la consulta externa, se ejecuta
+la consulta, se guarda el resultado en `ipMetaCache` solo si tuvo éxito
+(un fallo nunca queda cacheado — la siguiente llamada reintenta limpio),
+y se borra de `ipMetaPending` en `finally`. Llamadas concurrentes
+posteriores para la misma IP reutilizan exactamente la misma promesa
+(`pending_reused`); una llamada posterior dentro del TTL reutiliza el
+resultado resuelto (`cache_hit`); una IP distinta siempre dispara su
+propia consulta. TTL de 5 minutos — la geolocalización/ASN de una IP no
+cambia dentro de una corrida ni de un día; el TTL es una constante única
+(`IPMETA_CACHE_TTL_MS`) fácil de ajustar si hiciera falta. Sin
+infraestructura nueva — reutiliza `cacheGet`/`cacheSet` (ya usadas por
+`htmlCache`/`headerCache`/`tlsCache`) y `recordCacheEvent` (ya usada por
+`fetchWebsite()`, mismo campo `domain` del log ahora contiene la IP en
+vez de un dominio — mismo esquema, distinta clave).
+
+**Clasificación del motivo real de fallo** — nueva
+`classifyIpMetaFailure(e)`: ninguno de los dos proveedores da un HTTP
+status fiable (`fetchJSON` no revisa `statusCode`), así que se lee el
+mensaje del cuerpo (mismo criterio que `isPageSpeedQuotaError()`):
+`/rate limit/i` → `RATE_LIMITED`; `/private range|invalid query|reserved
+range/i` → `NOT_FOUND` (verificado en vivo con `ip-api.com` contra una IP
+privada real); `e.code === 'TIMEOUT'` → `TIMEOUT` (ya viene confiable, sin
+parseo de texto). Si el primario falla por `NOT_FOUND`, **no se llama al
+fallback** — una IP privada/inválida lo es para cualquier proveedor, no
+tiene sentido gastar su cupo. Tres códigos nuevos:
+
+| Código | Cuándo | `classifyDataError()` |
+|---|---|---|
+| `IPMETA_RATE_LIMITED` | 429/"rate limit" en primario y/o fallback | `INCONCLUSIVE` |
+| `IPMETA_UNAVAILABLE` | cualquier otro fallo de transporte en ambos proveedores | `INCONCLUSIVE` |
+| `IPMETA_NOT_FOUND` | el proveedor respondió con certeza que no tiene datos para esa IP | `INFO` — a diferencia de `NOT_APPLICABLE` (reservado para "este check no aplica a este dominio"), acá el check SÍ aplica, solo esta IP puntual no tiene metadata; el proveedor respondió de forma definitiva, no es una medición fallida |
+
+**Handlers**: `handleServerInfo`/`handleServerLocation` ya propagaban
+`error_code: e && e.code` en su `catch` de siempre — no necesitaron
+cambios, heredan los 3 códigos nuevos automáticamente. `handleIpInfo`/
+`handleIpv4` tragaban el error por IP en silencio (`catch (e) {}`) — se
+agregó un campo **aditivo** `geoErrors: [{ip, error, error_code}]` junto
+a los campos existentes (`geo`/`geos`, sin tocar), visible en la
+respuesta sin cambiar el contrato que el frontend ya consume.
+
+**Duplicación `asn`/`serverinfo`**: no se tocó el frontend — la caché del
+lado servidor ya garantiza que la segunda llamada idéntica (venga de
+`asn` o de `serverinfo`, mismo endpoint) golpea `pending_reused`/
+`cache_hit` y no genera una segunda consulta externa. Verificado en vivo:
+en los 20 dominios de la corrida real, `asn` y `serverinfo` **coinciden
+al 100%** (antes podían discrepar — ver hallazgo de la ronda anterior con
+`nic.uy`/`nic.us`/`tiendainglesa.com.uy`).
+
+**Tests**: A (4 llamadas concurrentes, misma IP) → 1 `new_fetch` + resto
+`cache_hit`/`pending_reused`, 0 llamadas externas duplicadas. B (llamada
+posterior dentro del TTL) → `cache_hit`, 0 llamadas nuevas. C (2 IPs
+distintas simultáneas) → 1 `new_fetch` cada una, sin cruce. D (primario
+en 429 real ahora mismo) → fallback cubre, datos reales sin error. E/E2/F/F2
+(mockeados, mismo patrón que rondas anteriores para condiciones no
+reproducibles en vivo de forma determinista): ambos proveedores caídos →
+`IPMETA_UNAVAILABLE`; ambos rate-limited → `IPMETA_RATE_LIMITED` (no
+`UNAVAILABLE`); IP privada → `IPMETA_NOT_FOUND` sin llamar al fallback.
+G (asn+serverlocation+serverinfo+ipinfo repetidos, mismo dominio) → 1
+`new_fetch`, resto `pending_reused`. **11/11 OK**. `npm test` completo OK.
+
+**Verificación end-to-end** (corrida real 20×54):
+
+| Check | MEASUREMENT_ERROR antes | después |
+|---|---|---|
+| `asn` | 7 | **0** |
+| `serverlocation` | 7 | **0** |
+| `serverinfo` | 6 | **0** |
+| `ipinfo` | 0 | 0 (sin cambio, ya no fallaba a nivel de check) |
+| `ipv4` | 0 | 0 (sin cambio) |
+
+Eventos `lookupIpMeta()` en la corrida: 133 totales — **38 `new_fetch`**
+(consulta real disparada), **57 `pending_reused`**, **38 `cache_hit`** —
+para **44 IPs únicas** (6 de ellas ya estaban tibias en caché por la
+batería de tests A-G corrida minutos antes en el mismo proceso, dentro
+del TTL de 5 min — confirma el TTL funcionando correctamente incluso
+entre corridas separadas, no es un error). De un techo estimado de ~100
+llamadas potenciales (análisis de la ronda anterior) a 38 intentos reales
+— muy cerca del número de IPs únicas, tal como se buscaba. `MEASUREMENT_ERROR`
+total de la corrida: 70 → 50 (los 20 que este fix corrige, ninguna otra
+categoría cambió en cantidad — las diferencias en `INCONCLUSIVE`/`PASS`
+del resto de checks son variación normal de Tranco/RDAP/PageSpeed/Archive
+entre corridas, ya documentada, no atribuible a este cambio).

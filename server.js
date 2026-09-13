@@ -113,6 +113,23 @@ async function resolveFirstIp(domain) {
   return { ip: null, family: null };
 }
 
+// (2026-09-13) — mismo criterio que isPageSpeedQuotaError(): ninguno de
+// los dos proveedores de metadata IP devuelve un HTTP status fiable que
+// fetchJSON pueda leer (fetchJSON no revisa statusCode, solo parsea el
+// body) — ambos señalan el motivo real DENTRO del cuerpo JSON. Verificado
+// en vivo: ipwho.is -> {"success":false,"message":"Rate limit exceeded"};
+// ip-api.com -> {"status":"fail","message":"private range"} /
+// {"status":"fail","message":"invalid query"}. El timeout sí tiene su
+// propio `.code` real (ver fetchJSON), no hace falta parsear texto para
+// ese caso.
+function classifyIpMetaFailure(e) {
+  if (e && e.code === 'TIMEOUT') return 'TIMEOUT';
+  const message = (e && e.message) || '';
+  if (/rate limit/i.test(message)) return 'RATE_LIMITED';
+  if (/(private range|invalid query|reserved range)/i.test(message)) return 'NOT_FOUND';
+  return null;
+}
+
 async function lookupIpMetaPrimary(ip) {
   const data = await fetchJSON(`https://ipwho.is/${encodeURIComponent(ip)}`);
   if (!data || data.success === false) {
@@ -178,19 +195,74 @@ async function lookupIpMetaFallback(ip) {
   };
 }
 
+// (2026-09-13) — mismo bug de condición de carrera/duplicación que ya se
+// corrigió en fetchWebsite(): asn/serverinfo/serverlocation/ipinfo/ipv4
+// resuelven la IP del dominio cada uno por su cuenta y llamaban a
+// lookupIpMeta() sin ninguna caché ni coalescing — hasta 5 consultas
+// reales al mismo proveedor externo para la MISMA IP en una sola corrida
+// (confirmado: asn y serverinfo son el mismo endpoint exacto,
+// /serverinfo/:domain, llamado 2 veces). El proveedor primario
+// (ipwho.is) tiene cuota diaria, no por-minuto — ipMetaCache guarda el
+// resultado resuelto por IP (TTL abajo); ipMetaPending guarda la PROMESA
+// en curso apenas se crea, igual que htmlPending en fetchWebsite() — una
+// IP distinta siempre dispara su propia consulta nueva.
+const IPMETA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min: geolocalización/ASN de una IP no cambia dentro de una corrida ni de un día
+const ipMetaCache = new Map();
+const ipMetaPending = new Map();
+
 async function lookupIpMeta(ip) {
   if (!ip) throw new Error('Sin dirección IP');
-  try {
-    return await lookupIpMetaPrimary(ip);
-  } catch (primaryError) {
+
+  const cached = cacheGet(ipMetaCache, ip, IPMETA_CACHE_TTL_MS);
+  if (cached) {
+    recordCacheEvent('lookupIpMeta', ip, 'cache_hit');
+    return cached;
+  }
+  if (ipMetaPending.has(ip)) {
+    recordCacheEvent('lookupIpMeta', ip, 'pending_reused');
+    return ipMetaPending.get(ip);
+  }
+
+  recordCacheEvent('lookupIpMeta', ip, 'new_fetch');
+  const promise = (async () => {
+    let primaryError;
     try {
-      return await lookupIpMetaFallback(ip);
-    } catch (fallbackError) {
-      // Se reporta el error del proveedor primario (más específico, ej.
-      // "Rate limit exceeded") — el del fallback es menos informativo si
-      // ambos fallan.
-      throw primaryError;
+      const info = await lookupIpMetaPrimary(ip);
+      cacheSet(ipMetaCache, ip, info);
+      return info;
+    } catch (e) {
+      primaryError = e;
     }
+
+    // Un IP privada/reservada/inválida lo es para cualquier proveedor —
+    // no tiene sentido gastar cupo del fallback preguntando lo mismo.
+    if (classifyIpMetaFailure(primaryError) === 'NOT_FOUND') {
+      throw Object.assign(new Error('Sin metadata disponible para esta IP'), { code: 'IPMETA_NOT_FOUND' });
+    }
+
+    try {
+      const info = await lookupIpMetaFallback(ip);
+      cacheSet(ipMetaCache, ip, info);
+      return info;
+    } catch (fallbackError) {
+      if (classifyIpMetaFailure(fallbackError) === 'NOT_FOUND') {
+        throw Object.assign(new Error('Sin metadata disponible para esta IP'), { code: 'IPMETA_NOT_FOUND' });
+      }
+      const rateLimited =
+        classifyIpMetaFailure(primaryError) === 'RATE_LIMITED' ||
+        classifyIpMetaFailure(fallbackError) === 'RATE_LIMITED';
+      if (rateLimited) {
+        throw Object.assign(new Error('El proveedor de metadata IP alcanzó su límite de consultas'), { code: 'IPMETA_RATE_LIMITED' });
+      }
+      throw Object.assign(new Error('Servicio de metadata IP no disponible'), { code: 'IPMETA_UNAVAILABLE' });
+    }
+  })();
+
+  ipMetaPending.set(ip, promise);
+  try {
+    return await promise;
+  } finally {
+    ipMetaPending.delete(ip);
   }
 }
 
@@ -271,6 +343,11 @@ function errorMessage(e) {
     if (e.code === 'ARCHIVE_TIMEOUT') return 'Timeout consultando Wayback Machine';
     if (e.code === 'ARCHIVE_UNAVAILABLE') return 'Servicio de Wayback Machine no disponible';
     if (e.code === 'NO_MX_RECORDS') return 'El dominio no tiene registros MX';
+    // (2026-09-13) — lookupIpMeta(): mismo criterio, dependencia externa
+    // de geolocalización/ASN por IP, no un hallazgo sobre el dominio.
+    if (e.code === 'IPMETA_RATE_LIMITED') return 'El proveedor de metadata IP alcanzó su límite de consultas';
+    if (e.code === 'IPMETA_UNAVAILABLE') return 'Servicio de metadata IP no disponible';
+    if (e.code === 'IPMETA_NOT_FOUND') return 'Sin metadata disponible para esta IP';
   }
   return 'Servicio no disponible';
 }
@@ -414,13 +491,21 @@ async function handleIpv4(domain, res) {
   try {
     const ips = await dns.resolve4(domain);
     const geos = [];
+    const geoErrors = [];
     for (const ip of ips) {
       try {
         const info = await lookupIpMeta(ip);
         geos.push({ ip, country: info.country, lat: info.latitude, lon: info.longitude, asn: info.asn });
-      } catch (e) {}
+      } catch (e) {
+        // (2026-09-13) — antes se descartaba en silencio: si lookupIpMeta()
+        // fallaba para una IP, esa IP simplemente desaparecía del arreglo
+        // `geos` sin dejar rastro. `geoErrors` es aditivo (no cambia
+        // `ips`/`geos`, que el cliente ya consume tal cual) — deja visible
+        // en la respuesta qué IP no se pudo medir y por qué.
+        geoErrors.push({ ip, error: errorMessage(e), error_code: e && e.code });
+      }
     }
-    sendJSON(res, 200, { domain, ips, geos });
+    sendJSON(res, 200, { domain, ips, geos, geoErrors });
   } catch (e) {
     if (e.code === 'ENODATA' || e.code === 'ENOTFOUND') {
       sendJSON(res, 200, { domain, ips: [], geos: [] });
@@ -1140,14 +1225,19 @@ async function handleIpInfo(domain, res) {
   try {
     const { v4: ipv4, v6: ipv6 } = await resolveAddresses(domain);
     const geo = [];
+    const geoErrors = [];
     const ips = [...ipv4, ...ipv6].slice(0, 5);
     for (const ip of ips) {
       try {
         const info = await lookupIpMeta(ip);
         geo.push(info);
-      } catch (e) {}
+      } catch (e) {
+        // (2026-09-13) — ver mismo comentario en handleIpv4(): aditivo, no
+        // cambia `geo` que el cliente ya consume tal cual.
+        geoErrors.push({ ip, error: errorMessage(e), error_code: e && e.code });
+      }
     }
-    sendJSON(res, 200, { domain, ipv4, ipv6, geo });
+    sendJSON(res, 200, { domain, ipv4, ipv6, geo, geoErrors });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
