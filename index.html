@@ -1850,7 +1850,10 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             checks: [
                 { key: 'spf', label: 'SPF', labelEs: 'SPF', default: true },
                 { key: 'dmarc', label: 'DMARC', labelEs: 'DMARC', default: true },
-                { key: 'dkim', label: 'DKIM', labelEs: 'DKIM', default: false }
+                { key: 'dkim', label: 'DKIM', labelEs: 'DKIM', default: false },
+                { key: 'maildnssec', label: 'Mail DNSSEC', labelEs: 'DNSSEC del correo', default: false },
+                { key: 'mailipv6', label: 'Mail IPv6', labelEs: 'IPv6 en servidores de correo', default: false },
+                { key: 'starttls', label: 'STARTTLS', labelEs: 'STARTTLS', default: false }
             ]
         },
         {
@@ -1950,6 +1953,9 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         dmarc: 'Comprueba si existe política DMARC en _dmarc del dominio.',
         spf: 'Comprueba si el dominio publica una política SPF en registros TXT.',
         dkim: 'Busca una clave DKIM con el selector configurado o por defecto.',
+        maildnssec: 'Comprueba si la resolución de los servidores de correo (MX, hasta 5) está protegida por una cadena DNSSEC validada (bit AD de un resolver validador) — no exige que el propio hostname MX sea un punto de delegación con DS/DNSKEY propios.',
+        mailipv6: 'Comprueba si los servidores de correo (MX) del dominio publican registros AAAA — hasta 5 servidores, solo resolución DNS, no conectividad real.',
+        starttls: 'Comprueba si los servidores MX (hasta 5) anuncian STARTTLS y permiten establecer una negociación TLS real por SMTP en el puerto 25 (sin enviar correo) — distingue "anuncia" de "funciona". La medición requiere conectividad TCP saliente al puerto 25 desde el nodo de medición.',
         whois: 'Consulta fuentes WHOIS/RDAP para datos públicos del registrante, sujetos a redacción por privacidad.',
         domaininfo: 'Consulta RDAP para registrar, estado y fechas relevantes del dominio.',
         securitytxt: 'Comprueba si existe /.well-known/security.txt para reportar vulnerabilidades.',
@@ -2862,6 +2868,101 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     // pudo medir, el resultado es INCONCLUSIVE.
                     const inconclusive = data.results.some(r => r.status === 'timeout' || r.status === 'connection-error');
                     return { label, status: inconclusive ? 'INCONCLUSIVE' : 'FAIL', details };
+                }
+                // FASE 1 CORREO (2026-09-15, revisada 2026-09-16) —
+                // maildnssec/mailipv6/starttls: los 3 checks de correo que
+                // Paraguay agregó después de nuestra separación (ver
+                // AUDITORIA_CHECKS_FALTANTES_MEDICIONES.md e
+                // IMPLEMENTACION_MEDICIONES_FASE1_CORREO.md § "Revisión
+                // crítica frente al upstream Paraguay").
+                //
+                // Política de 3 vías usada por los 3 (documentada una sola
+                // vez acá): cuando TODOS los MX probados se pudieron medir
+                // con certeza pero no están de acuerdo entre sí (algunos sí,
+                // algunos no), el resultado es una adopción parcial REAL,
+                // no una medición dudosa — se reporta INFO, no FAIL. Solo
+                // cuando al menos un MX no se pudo medir en absoluto
+                // (timeout/sin conexión/bloqueado) el conjunto pasa a
+                // INCONCLUSIVE, porque ahí sí falta evidencia para certificar
+                // el resultado completo.
+                case 'maildnssec': {
+                    // Mide si la RESOLUCIÓN de los servidores MX (no del
+                    // dominio que envía/recibe) está protegida por una
+                    // cadena DNSSEC validada — usa el bit AD de dns.google
+                    // sobre una consulta A/AAAA normal, no presencia de
+                    // DS/DNSKEY en el hostname exacto (ese enfoque, el de
+                    // Paraguay, da falsos negativos cuando el MX no es él
+                    // mismo un punto de delegación — el caso común; ver
+                    // servidor para el caso real verificado con nic.ar).
+                    const data = await fetchWithTimeout(`${API_BASE}/maildnssec/${ascii}`);
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
+                    const results = data.results || [];
+                    if (!results.length) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin datos' };
+                    const STATE_TEXT = { secure: 'DNSSEC validado', insecure: 'sin DNSSEC', broken: 'DNSSEC roto/inválido', unresolved: 'no se pudo resolver' };
+                    const details = results.map(r => `${r.server}: ${STATE_TEXT[r.state] || 'sin datos'}`).join('; ');
+                    const determined = results.filter(r => r.state === 'secure' || r.state === 'insecure' || r.state === 'broken');
+                    if (!determined.length) return { label, status: 'MEASUREMENT_ERROR', details };
+                    if (determined.length < results.length) return { label, status: 'INCONCLUSIVE', details };
+                    const allSecure = determined.every(r => r.state === 'secure');
+                    const noneSecure = determined.every(r => r.state !== 'secure');
+                    if (allSecure) return { label, status: 'PASS', details };
+                    if (noneSecure) return { label, status: 'FAIL', details };
+                    return { label, status: 'INFO', details }; // adopción mixta entre MX
+                }
+                case 'mailipv6': {
+                    // Solo resolución AAAA de los MX — no conectividad real.
+                    const data = await fetchWithTimeout(`${API_BASE}/mailipv6/${ascii}`);
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
+                    const results = data.results || [];
+                    if (!results.length) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin datos' };
+                    const details = results.map(r => r.present === null
+                        ? `${r.server}: no se pudo determinar`
+                        : `${r.server}: ${r.present ? 'con AAAA' : 'sin AAAA'}`
+                    ).join('; ');
+                    const determined = results.filter(r => r.present !== null);
+                    if (!determined.length) return { label, status: 'MEASUREMENT_ERROR', details };
+                    if (determined.length < results.length) return { label, status: 'INCONCLUSIVE', details };
+                    const allYes = determined.every(r => r.present);
+                    const allNo = determined.every(r => !r.present);
+                    if (allYes) return { label, status: 'PASS', details };
+                    if (allNo) return { label, status: 'FAIL', details };
+                    return { label, status: 'INFO', details };
+                }
+                case 'starttls': {
+                    // Mide si la negociación TLS realmente se completa tras
+                    // el comando STARTTLS (no solo si el servidor lo anuncia
+                    // en EHLO) — ver server.js/probeStarttls() para el
+                    // detalle del intento de handshake real, sin enviar
+                    // correo. 'announced_only' = anunció STARTTLS pero la
+                    // negociación falló — cuenta como "no funciona" para
+                    // PASS/FAIL, pero queda visible por separado en los
+                    // detalles.
+                    const data = await fetchWithTimeout(`${API_BASE}/starttls/${ascii}`);
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
+                    const details = data.results?.map(r => {
+                        switch (r.status) {
+                            case 'supports': return `${r.server}: sí (handshake TLS completo)`;
+                            case 'announced_only': return `${r.server}: anuncia STARTTLS pero la negociación TLS falló`;
+                            case 'no': return `${r.server}: no`;
+                            case 'timeout': return `${r.server}: timeout`;
+                            case 'connection-error': return `${r.server}: sin conexión`;
+                            case 'blocked': return `${r.server}: destino bloqueado (IP privada/interna)`;
+                            default: return `${r.server}: sin datos`;
+                        }
+                    }).join('; ') || 'No permite STARTTLS';
+                    if (!data.results?.length) return { label, status: 'MEASUREMENT_ERROR', details };
+                    // Determinados = se pudo concluir algo real (soporta,
+                    // anuncia-pero-falla, o no soporta). Indeterminados =
+                    // no se pudo medir en absoluto (timeout/sin
+                    // conexión/bloqueado por la guarda SSRF).
+                    const determinedTls = data.results.filter(r => r.status === 'supports' || r.status === 'no' || r.status === 'announced_only');
+                    if (!determinedTls.length) return { label, status: 'MEASUREMENT_ERROR', details };
+                    if (determinedTls.length < data.results.length) return { label, status: 'INCONCLUSIVE', details };
+                    const allSupport = determinedTls.every(r => r.status === 'supports');
+                    const noneSupport = determinedTls.every(r => r.status !== 'supports');
+                    if (allSupport) return { label, status: 'PASS', details };
+                    if (noneSupport) return { label, status: 'FAIL', details };
+                    return { label, status: 'INFO', details }; // adopción mixta entre MX ya determinados
                 }
                 case 'rpki': {
                     const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);

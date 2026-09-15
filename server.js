@@ -68,7 +68,12 @@ const { handleDatasetRequest } = require('./routes/datasetPreparation.routes');
 const { handleContentRequest } = require('./routes/content.routes');
 const { handleAdminRequest } = require('./routes/admin.routes');
 const { handleMedicionesBatchReportRequest } = require('./routes/medicionesBatchReport.routes');
-const { fetchSafePage, resolveFinalWebTarget } = require('./logic/adapters/safeWebFetch.adapter');
+// Se mantiene la referencia al módulo completo (no se desestructura
+// resolvePublicAddresses) para que los tests puedan reemplazarla con un
+// mock (safeWebFetchAdapter.resolvePublicAddresses = fn) — mismo patrón que
+// ya usa test/content.publicVisibility.test.js con emailAdapter.sendMail.
+const safeWebFetchAdapter = require('./logic/adapters/safeWebFetch.adapter');
+const { fetchSafePage, resolveFinalWebTarget } = safeWebFetchAdapter;
 const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -668,6 +673,320 @@ async function dnssecGoogle(domain) {
     }
   } catch (e) {}
   return result;
+}
+
+// ─── FASE 1 CORREO (2026-09-15, revisada 2026-09-16) — maildnssec /
+// mailipv6 / starttls ────────────────────────────────────────────────────
+// Los tres checks de correo que el fork de Paraguay agregó después de
+// nuestra separación (ver AUDITORIA_CHECKS_FALTANTES_MEDICIONES.md, commit
+// base 0d14f45). Paraguay/upstream es una REFERENCIA histórica y funcional,
+// no una especificación — no se copió su código tal cual, y su semántica
+// original de maildnssec/starttls se revisó y se corrigió tras encontrar
+// problemas conceptuales reales (ver IMPLEMENTACION_MEDICIONES_FASE1_CORREO.md
+// § "Revisión crítica frente al upstream Paraguay" para la evidencia
+// completa, incluyendo un caso real verificado en producción: nic.ar).
+//
+// Límite deliberado (Paraguay no tenía ninguno): como máximo 5 MX por
+// dominio, ordenados por prioridad ascendente — evita que un dominio con
+// muchos MX dispare decenas de consultas/conexiones dentro de una sola
+// corrida de hasta 20 dominios.
+const MAX_MX_PROBED = 5;
+// Corto y controlado — un solo puerto (25), no 15s x 2 puertos como
+// smtputf8. Configurable por entorno solo para que los tests puedan
+// simular un timeout real sin esperar 8s de verdad (nunca se toca en
+// despliegue normal).
+const STARTTLS_TIMEOUT_MS = Number(process.env.STARTTLS_TIMEOUT_MS) || 8000;
+
+function sortAndCapMx(mxRecords) {
+  return [...mxRecords]
+    .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+    .slice(0, MAX_MX_PROBED);
+}
+
+// Mismo re-etiquetado que ya usa handleSmtpUtf8(): un dominio sin MX es una
+// condición real y válida (no recibe correo), no un fallo de medición —
+// NO_MX_RECORDS ya está en NOT_APPLICABLE_CODES del lado del cliente
+// (index.html), así que no hace falta tocar esa clasificación.
+async function resolveMxOrNotApplicable(domain) {
+  try {
+    return await dns.resolveMx(domain);
+  } catch (e) {
+    if (e && e.code === 'ENODATA') {
+      throw Object.assign(new Error('El dominio no tiene registros MX'), { code: 'NO_MX_RECORDS' });
+    }
+    throw e;
+  }
+}
+
+// ── maildnssec: revisado y corregido (2026-09-16) ──────────────────────
+//
+// Pregunta funcional real: ¿la resolución DNS relevante para la
+// infraestructura de correo del dominio está protegida mediante DNSSEC?
+//
+// La primera versión de este check (y la de Paraguay, de la que partió)
+// respondía esa pregunta consultando DS/DNSKEY directamente en el hostname
+// MX (dnssecGoogle(exchange), heredada de dnssecGoogle() del check `dnssec`
+// dormido). Eso es INCORRECTO en el caso general: DS/DNSKEY existen por
+// ZONA (punto de delegación real, con NS propios), no por hostname. La
+// inmensa mayoría de los hostnames MX (ej. mail.proveedor.net) NO son ellos
+// mismos una zona delegada — son un registro A/AAAA normal dentro de la
+// zona real (proveedor.net, o más arriba). Preguntar por DS/DNSKEY
+// exactamente en ese nombre produce FALSO NEGATIVO sistemático aunque la
+// cadena de confianza real (root → tld → dominio real → ese registro) esté
+// perfectamente firmada y validada.
+//
+// Caso real verificado en producción (2026-09-16) que confirma el
+// problema: nic.ar (DNSSEC: ok, confirmado en auditorías previas) tiene
+// como MX mx30.slyt.gob.ar / mx20.slyt.gob.ar — un dominio de correo
+// COMPLETAMENTE DISTINTO (slyt.gob.ar), que sí está firmado. Consultar
+// DNSKEY exactamente en "mx30.slyt.gob.ar" no devuelve nada (no es un punto
+// de delegación); consultar DS ahí devuelve SERVFAIL. Sin embargo, una
+// consulta A normal a "mx30.slyt.gob.ar" contra un resolver validador
+// (dns.google) devuelve AD:true — la cadena real SÍ está intacta y
+// validada, el check anterior lo habría reportado como "sin DNSSEC" de
+// forma incorrecta.
+//
+// Corrección: en vez de inferir seguridad por presencia de DS/DNSKEY en el
+// nombre exacto, se usa el bit AD (Authenticated Data) que devuelve
+// dns.google (resolver DNSSEC-validante) en una consulta A/AAAA normal —
+// eso refleja si la cadena de confianza REAL (dondequiera que esté el
+// punto de delegación efectivo) validó correctamente para ese nombre
+// específico, sin necesidad de que MEDICIONES determine por sí mismo cuál
+// es la zona autoritativa pertinente. No reutiliza dnssecGoogle() (esa
+// función queda intacta, solo la usa el check `dnssec` dormido, sin
+// relación con este) ni el módulo DNSSEC independiente de Ecuador — es un
+// helper propio, local a este archivo.
+//
+// Clasificación del upstream: IMPRECISA (el enfoque DS/DNSKEY-por-hostname
+// es razonable solo cuando el MX coincide con un punto de delegación real,
+// pero produce falsos negativos en el caso general, que es mayoritario).
+// Clasificación de esta versión: REIMPLEMENTADA PARA CORREGIR UPSTREAM.
+//
+// Limitación que SÍ se conserva conscientemente: esto refleja la validación
+// de UN resolver público (Google), no una reconstrucción independiente de
+// la cadena completa por MEDICIONES — es la misma limitación práctica que
+// tiene cualquier chequeo basado en el bit AD de un tercero. Se documenta,
+// no se oculta.
+async function checkAuthenticatedResolution(hostname) {
+  for (const type of ['A', 'AAAA']) {
+    let data;
+    try {
+      data = await fetchJSON(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=${type}`);
+    } catch (e) {
+      continue; // probar el otro tipo antes de rendirse
+    }
+    if (data.Status === 0 && Array.isArray(data.Answer) && data.Answer.length > 0) {
+      return { state: data.AD ? 'secure' : 'insecure', queriedType: type };
+    }
+    if (data.Status === 2) {
+      // SERVFAIL — dns.google solo devuelve esto a un cliente que no pidió
+      // CD=1 cuando la validación DNSSEC de la cadena falla realmente (no
+      // es un timeout ni un problema de red): alguien intentó proteger
+      // este nombre con DNSSEC y la cadena está rota. Distinto de
+      // "insecure" (nunca se firmó) — se conserva la distinción en el
+      // estado, aunque para PASS/FAIL ambos cuentan como "no protegido hoy".
+      return { state: 'broken', queriedType: type };
+    }
+    // Status 3 (NXDOMAIN) u otro: probar el siguiente tipo de registro.
+  }
+  return { state: 'unresolved', queriedType: null };
+}
+
+async function handleMailDnssec(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const mx = sortAndCapMx(await resolveMxOrNotApplicable(domain));
+    const domainAuth = await checkAuthenticatedResolution(domain);
+    const results = await Promise.all(mx.map(async (record) => {
+      const auth = await checkAuthenticatedResolution(record.exchange);
+      return { server: record.exchange, state: auth.state };
+    }));
+    sendJSON(res, 200, { domain, domainState: domainAuth.state, results });
+  } catch (e) {
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
+  }
+}
+
+// Semántica exacta de mailipv6 (documentada porque no es obvia): mide,
+// para cada servidor MX, si publica un registro AAAA — solo resolución DNS,
+// NO conectividad IPv6 real (mismo alcance/limitación que el check `ipv6`
+// que ya existe en MEDICIONES para el dominio principal). No exige que
+// TODOS los MX tengan AAAA para considerar el resultado positivo, ni
+// convierte automáticamente la ausencia de AAAA en un error de medición
+// (ver getCheckResult() en index.html para la política exacta: PASS si
+// todos, FAIL si ninguno, INFO si es mixto — adopción parcial es un dato
+// real, no un fallo binario).
+async function handleMailIpv6(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const mx = sortAndCapMx(await resolveMxOrNotApplicable(domain));
+    const results = await Promise.all(mx.map(async (record) => {
+      const exchange = record.exchange;
+      try {
+        const ips = await dns.resolve6(exchange);
+        return { server: exchange, present: ips.length > 0 };
+      } catch (e) {
+        if (e && (e.code === 'ENODATA' || e.code === 'ENOTFOUND')) {
+          // Confirmado: no tiene AAAA. Resultado real, no un error.
+          return { server: exchange, present: false };
+        }
+        // SERVFAIL/timeout/etc. — no se pudo determinar para este MX.
+        return { server: exchange, present: null, error_code: e && e.code };
+      }
+    }));
+    sendJSON(res, 200, { domain, results });
+  } catch (e) {
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
+  }
+}
+
+// ── starttls: revisado (2026-09-16) ─────────────────────────────────────
+//
+// Pregunta funcional real: ¿los servidores MX que reciben correo para el
+// dominio anuncian STARTTLS para SMTP entre servidores?
+//
+// Puerto: solo 25 (entrega SMTP real entre servidores — el puerto que
+// STARTTLS protege). Se evaluó explícitamente el puerto 587 (que sí usa
+// Paraguay) y se descartó a propósito: 587 es "message submission"
+// (RFC 6409), un protocolo distinto pensado para clientes autenticados que
+// envían correo, no para la recepción MX-a-MX que es lo que este check
+// pregunta. Incluirlo "porque Paraguay lo hace" habría mezclado dos
+// preguntas distintas bajo un mismo nombre.
+//
+// Anunciado vs. funcional: la primera versión de este check solo
+// verificaba que el servidor ANUNCIE STARTTLS en la respuesta a EHLO — no
+// que la negociación TLS realmente se complete. Un servidor puede anunciar
+// STARTTLS y aun así fallar al negociarlo (certificado corrupto,
+// configuración rota) — una distinción real y útil que el simple anuncio
+// no captura. Esta versión intenta la negociación TLS real tras ver el
+// anuncio (comando STARTTLS → banner 220 → tls.connect() envolviendo el
+// mismo socket) — pero SIN enviar correo: la conexión se cierra en cuanto
+// se confirma (o falla) el handshake, nunca se llega a MAIL FROM/RCPT
+// TO/DATA. rejectUnauthorized:false porque este check mide si el cifrado
+// oportunista está disponible, no si el certificado es válido (eso sería
+// un check distinto).
+//
+// Salvaguardas SSRF (iguales o superiores a Paraguay, que no tenía
+// ninguna):
+//  (a) resuelve el hostname UNA vez vía resolvePublicAddresses() — ya
+//      rechaza loopback/RFC1918/link-local/ULA IPv6/multicast/CGNAT — y
+//      conecta DIRECTO a esa IP ya validada (nunca vuelve a resolver el
+//      hostname al conectar), cerrando la ventana de DNS rebinding;
+//  (b) puerto fijo (25), nunca proporcionado por quien usa la herramienta;
+//  (c) timeout corto (STARTTLS_TIMEOUT_MS) que cubre TODA la sonda
+//      (negociación SMTP + intento de TLS), y siempre destruye el socket
+//      al finalizar — nunca queda una conexión abierta indefinidamente.
+async function probeStarttls(exchange) {
+  let addresses;
+  try {
+    addresses = await safeWebFetchAdapter.resolvePublicAddresses(exchange);
+  } catch (e) {
+    // Incluye WEBFETCH_BLOCKED_IP (IP privada/interna) y
+    // WEBFETCH_NO_ADDRESS_RECORD — en ambos casos no se puede/debe conectar.
+    return { server: exchange, status: 'blocked', error_code: e && e.code };
+  }
+  const target = addresses[0];
+  return new Promise((resolve) => {
+    let buffer = '';
+    let ehloSent = false;
+    let starttlsSent = false;
+    let capabilities = [];
+    let finished = false;
+    const socket = net.createConnection({ host: target.address, port: 25 });
+    const timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      socket.destroy();
+      resolve({ server: exchange, status: 'timeout' });
+    }, STARTTLS_TIMEOUT_MS);
+    const finish = (status) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      try { socket.end(); } catch (e) {}
+      try { socket.destroy(); } catch (e) {}
+      resolve({ server: exchange, status, capabilities });
+    };
+    // Intenta subir la MISMA conexión TCP a TLS — nunca abre un socket
+    // nuevo, nunca envía ningún comando SMTP después de esto (ni siquiera
+    // QUIT: alcanza con destruir el socket una vez confirmado el resultado).
+    // IMPORTANTE: se quita el listener de texto plano (onPlainData) ANTES
+    // de entregarle el socket a tls.connect() — si ambos siguieran activos,
+    // los bytes del handshake TLS podrían leerse (parcialmente) como si
+    // fueran texto SMTP, corrompiendo la negociación.
+    const attemptTlsUpgrade = () => {
+      socket.off('data', onPlainData);
+      let tlsSocket;
+      try {
+        tlsSocket = tls.connect({ socket, servername: exchange, rejectUnauthorized: false });
+      } catch (e) {
+        return finish('announced_only');
+      }
+      tlsSocket.once('secureConnect', () => finish('supports'));
+      tlsSocket.once('error', () => finish('announced_only'));
+    };
+    function onPlainData(data) {
+      buffer += data.toString();
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!ehloSent && /^220[ -]/.test(line)) {
+          socket.write('EHLO mediciones.isoc-lac\r\n');
+          ehloSent = true;
+          continue;
+        }
+        if (ehloSent && !starttlsSent && /^250[ -]/.test(line)) {
+          capabilities.push(line.replace(/^250[ -]/, '').trim());
+          if (line.startsWith('250 ')) {
+            const announced = capabilities.some((cap) => /^STARTTLS\b/i.test(cap));
+            if (!announced) return finish('no');
+            starttlsSent = true;
+            socket.write('STARTTLS\r\n');
+            return; // esperar la respuesta (220 / 4xx / 5xx) al comando
+          }
+          continue;
+        }
+        if (starttlsSent) {
+          if (/^220/.test(line)) return attemptTlsUpgrade();
+          if (/^[45]\d\d/.test(line)) {
+            // El servidor anunció STARTTLS pero rechazó el comando —
+            // anuncio sin soporte funcional real.
+            return finish('announced_only');
+          }
+        }
+      }
+    }
+    socket.on('data', onPlainData);
+    socket.on('error', () => finish('connection-error'));
+    socket.on('end', () => {
+      if (!finished) finish(starttlsSent ? 'announced_only' : 'no');
+    });
+  });
+}
+
+// Nota de límite conocido (no resuelto en esta revisión): si el servidor
+// envía la respuesta "220 ..." al comando STARTTLS y los primeros bytes
+// del handshake TLS en el MISMO segmento TCP, la porción de handshake que
+// llegue junto con esa línea se descarta (el parser de texto plano no la
+// reenvía a tls.connect()) — el resultado sería 'timeout' en vez de
+// 'supports' para ese caso puntual, nunca un falso PASS. No se intentó
+// resolver con un buffer más sofisticado por ser una herramienta de
+// diagnóstico, no un cliente SMTP de producción.
+
+// La política de agregación de varios MX (todos soportan / mezcla conocida
+// / ninguno / no se pudo medir) vive en getCheckResult() del lado del
+// cliente (index.html, case 'starttls') — ver ese comentario para el
+// detalle exacto y por qué "INCONCLUSIVE" se reserva solo para cuando la
+// evidencia es insuficiente, no para adopción parcial ya determinada.
+async function handleStarttls(domain, res) {
+  domain = normalizeDomain(domain);
+  try {
+    const mx = sortAndCapMx(await resolveMxOrNotApplicable(domain));
+    const results = await Promise.all(mx.map((record) => probeStarttls(record.exchange)));
+    sendJSON(res, 200, { domain, results });
+  } catch (e) {
+    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
+  }
 }
 
 async function handleDnssec(domain, res) {
@@ -3519,6 +3838,9 @@ if (parsed.pathname === "/dnssec-analysis") {
   if (segments[0] === 'ipv4' && segments[1]) return handleIpv4(segments[1], res);
   if (segments[0] === 'ipv6' && segments[1]) return handleIpv6(segments[1], res);
   if (segments[0] === 'smtputf8' && segments[1]) return handleSmtpUtf8(segments[1], res);
+  if (segments[0] === 'maildnssec' && segments[1]) return handleMailDnssec(segments[1], res);
+  if (segments[0] === 'mailipv6' && segments[1]) return handleMailIpv6(segments[1], res);
+  if (segments[0] === 'starttls' && segments[1]) return handleStarttls(segments[1], res);
   if (segments[0] === 'dnssec' && segments[1]) return handleDnssec(segments[1], res);
   if (segments[0] === 'dkim' && segments[1])
     return handleDkim(segments[1], parsed.searchParams.get('selector') || 'default', res);
@@ -3621,4 +3943,16 @@ if (parsed.pathname === "/dnssec-analysis") {
 });
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Guarda añadida (2026-09-15) para permitir que los tests hagan
+// require('../server.js') sin abrir un puerto real — server.js sigue
+// arrancando exactamente igual que antes vía `node server.js`/`npm start`
+// (ahí require.main === module es siempre true). Puramente aditivo: nada
+// cambia en producción/despliegue.
+if (require.main === module) {
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+// Exports mínimos para tests (2026-09-15) — únicamente los 3 checks nuevos
+// de correo de esta fase, para poder probarlos con dns/net mockeados sin
+// levantar el servidor completo. No cambia ningún comportamiento existente.
+module.exports = { handleMailDnssec, handleMailIpv6, handleStarttls, MAX_MX_PROBED };

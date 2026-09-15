@@ -239,6 +239,7 @@ async function resolveFinalWebTarget(target, options = {}) {
 module.exports = {
   fetchSafePage,
   resolveFinalWebTarget,
+  resolvePublicAddresses,
   isBlockedIp,
   validateUrlPolicy
 };

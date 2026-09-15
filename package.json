@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/datasetDomains.parity.test.js && node test/dnsValidation.classify.parity.test.js && node test/contentStore.crud.test.js && node test/adminAuth.session.test.js && node test/content.publicVisibility.test.js && node test/medicionesBatchReport.exporter.test.js && node test/medicionesBatchReport.routes.test.js && node test/safeWebFetch.adapter.test.js"
+    "test": "node test/datasetDomains.parity.test.js && node test/dnsValidation.classify.parity.test.js && node test/contentStore.crud.test.js && node test/adminAuth.session.test.js && node test/content.publicVisibility.test.js && node test/medicionesBatchReport.exporter.test.js && node test/medicionesBatchReport.routes.test.js && node test/safeWebFetch.adapter.test.js && node test/medicionesMailChecks.test.js && node test/medicionesCheckRegistry.test.js"
   },
   "keywords": [],
   "author": "",
