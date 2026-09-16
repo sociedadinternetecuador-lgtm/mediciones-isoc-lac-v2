@@ -14,13 +14,26 @@
 const assert = require('assert');
 const { getDnssecGuidance } = require('../logic/content/dnssecGuidance.content');
 const { getGlossaryForStatus } = require('../logic/content/dnssecGlossary.content');
-const { DNSSEC_FINAL_STATUS } = require('../config/dnssec.constants');
+const { DNSSEC_FINAL_STATUS, DNSSEC_DELEGATION_STATUS } = require('../config/dnssec.constants');
 
 function run() {
   const reachableStates = Object.values(DNSSEC_FINAL_STATUS);
   assert.strictEqual(reachableStates.length, 7, 'DNSSEC_FINAL_STATUS debe tener exactamente 7 valores tras eliminar READY');
   assert.ok(!reachableStates.includes('ready'), '"ready" no debe seguir siendo un valor de DNSSEC_FINAL_STATUS');
   console.log('PASS constants_sin_ready_7_valores');
+
+  // ── DNSSEC_DELEGATION_STATUS.BROKEN eliminado (ver
+  // AUDITORIA_DNSSEC_BROKEN_DELEGATION.md): era un estado interno inalcanzable
+  // — el único invocador de mapDelegationStatus() calculaba `secure` y
+  // `dsPresent` a partir del mismo valor fuente, así que la condición que
+  // producía BROKEN nunca podía cumplirse. Quedan exactamente 3 valores. ──
+  {
+    const delegationStates = Object.values(DNSSEC_DELEGATION_STATUS);
+    assert.strictEqual(delegationStates.length, 3, 'DNSSEC_DELEGATION_STATUS debe tener exactamente 3 valores tras eliminar BROKEN');
+    assert.deepStrictEqual(new Set(delegationStates), new Set(['secure', 'insecure', 'unknown']));
+    assert.ok(!delegationStates.includes('broken'), '"broken" no debe seguir siendo un valor de DNSSEC_DELEGATION_STATUS');
+    console.log('PASS constants_sin_broken_3_valores_delegacion');
+  }
 
   // ── Cada uno de los 7 estados alcanzables tiene guía completa (no cae al default genérico) ──
   for (const status of reachableStates) {

@@ -69,7 +69,13 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
   // causa raíz más útil de comunicar (arreglarla primero desbloquea todo
   // lo que depende de ella).
   const brokenAncestorZone = ancestorZones.find((z) => hasStatus(z?.status, ["unsigned"]));
-  const brokenAncestorDelegation = ancestorDelegations.find((d) => hasStatus(d?.status, ["insecure", "broken"]));
+  // (2026-09-16) — "broken" se quitó de esta búsqueda: DNSSEC_DELEGATION_STATUS.BROKEN
+  // se eliminó por ser inalcanzable (ver AUDITORIA_DNSSEC_BROKEN_DELEGATION.md);
+  // "insecure" sigue siendo una señal real y necesaria (delegación ancestro sin
+  // DS publicado, ej. zona intermedia firmada cuya propia delegación desde SU
+  // padre no tiene DS — no se pierde ninguna detección al quitar "broken",
+  // porque esa rama nunca se producía con datos reales.
+  const insecureAncestorDelegation = ancestorDelegations.find((d) => hasStatus(d?.status, ["insecure"]));
   // "Ambiguo" = ni claramente firmado/seguro ni claramente roto (status
   // "unknown") por un motivo que YA no cayó en hasHardErrors (evitar
   // duplicar esa clasificación) — nunca se debe forzar un veredicto "ok"
@@ -187,21 +193,20 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
   }
 
   // 3.6) NUEVO (2026-09-16) — Misma idea que 3.5, pero la ruptura está en
-  // la DELEGACIÓN entre dos zonas ancestro (una zona intermedia publica
-  // DNSKEY, pero el DS que la vincula con SU propia zona padre no es
-  // válido) — un patrón estructuralmente análogo a "DS sin DNSKEY"/"DNSKEY
-  // sin DS" a nivel del propio dominio (regla 6/8 más abajo), pero
-  // ocurriendo un nivel arriba. También se reporta como blocked_at_parent:
-  // desde la perspectiva del dominio analizado, es un problema externo,
-  // no de su propia configuración.
-  if (brokenAncestorDelegation) {
+  // la DELEGACIÓN entre dos zonas ancestro: el padre de esa zona intermedia
+  // no publica un DS para ella (delegación "insecure" en ese punto) — un
+  // patrón estructuralmente análogo a "DNSKEY sin DS" a nivel del propio
+  // dominio (regla 6 más abajo), pero ocurriendo un nivel arriba. También
+  // se reporta como blocked_at_parent: desde la perspectiva del dominio
+  // analizado, es un problema externo, no de su propia configuración.
+  if (insecureAncestorDelegation) {
     const final_status = DNSSEC_FINAL_STATUS.BLOCKED_AT_PARENT;
     return {
       final_status,
       readiness: DNSSEC_READINESS.BLOCKED_BY_PARENT,
       blocking_level: "parent",
-      summary: `La delegación de ${brokenAncestorDelegation.from} hacia ${brokenAncestorDelegation.to}, en un nivel intermedio de la cadena hacia ${domainZone.zone}, no es segura, bloqueando la cadena de confianza.`,
-      technical_summary: `Delegación intermedia ${brokenAncestorDelegation.from} -> ${brokenAncestorDelegation.to} sin DS válido. El dominio no puede completar la cadena DNSSEC sin acción de esa capa.`,
+      summary: `La delegación de ${insecureAncestorDelegation.from} hacia ${insecureAncestorDelegation.to}, en un nivel intermedio de la cadena hacia ${domainZone.zone}, no es segura, bloqueando la cadena de confianza.`,
+      technical_summary: `Delegación intermedia ${insecureAncestorDelegation.from} -> ${insecureAncestorDelegation.to} sin DS válido. El dominio no puede completar la cadena DNSSEC sin acción de esa capa.`,
     };
   }
 

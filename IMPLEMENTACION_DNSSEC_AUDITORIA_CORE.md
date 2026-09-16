@@ -284,15 +284,14 @@ corrección IDNA) — ningún cambio de alcance.
   correspondencia real DS↔DNSKEY) ampliaría el alcance del motor
   (cripto-validación), algo explícitamente fuera de esta fase.
 
-  **Pendiente técnico registrado, sin resolver**:
-  `mapDelegationStatus -> BROKEN parece no alcanzable mediante el flujo
-  DoH actual.` No se ha demostrado que esto produzca ninguna
-  clasificación incorrecta hoy (la rama simplemente nunca se ejercita en
-  producción) — no es, por sí solo, evidencia de un bug. Requiere una
-  auditoría separada, independiente de esta fase, antes de decidir si se
-  elimina (si de verdad es inalcanzable por diseño) o se activa (si
-  debería poder producirse y hoy no lo hace por otro motivo). No se
-  modifica en esta fase.
+  **Pendiente técnico — RESUELTO el 2026-09-16 (ver §19).** Se registró
+  como `mapDelegationStatus -> BROKEN parece no alcanzable mediante el
+  flujo DoH actual`, se auditó por separado en
+  `AUDITORIA_DNSSEC_BROKEN_DELEGATION.md` (confirmando, con evidencia
+  ejecutable, que era 100% inalcanzable y que su ausencia no afectaba
+  ningún veredicto final), y se eliminó de
+  `DNSSEC_DELEGATION_STATUS`/`mapDelegationStatus()`. Ya no es un
+  pendiente abierto.
 
 ## 18. Corrección aplicada: rupturas en niveles intermedios de la cadena
 
@@ -367,7 +366,127 @@ también en vivo contra DNS real (`example.com` sigue `ok`/`high`;
 
 **Limitación residual**: ninguna conocida específica a niveles
 intermedios. La única limitación residual nueva identificada durante esta
-microfase es la de §17 (rama `BROKEN` de `mapDelegationStatus` no
-alcanzable hoy vía el flujo real) — menor, no relacionada con la
-detección de rupturas intermedias en sí, y explícitamente no corregida
-por estar fuera del alcance aprobado de esta microfase.
+microfase (rama `BROKEN` de `mapDelegationStatus` no alcanzable hoy vía
+el flujo real) quedó resuelta en la microfase siguiente — ver §19.
+
+## 19. Resolución del pendiente técnico BROKEN (2026-09-16)
+
+Ver auditoría completa en `AUDITORIA_DNSSEC_BROKEN_DELEGATION.md`.
+Resume aquí solo el cambio aplicado y su alcance.
+
+### Qué se eliminó
+
+- `config/dnssec.constants.js`: `DNSSEC_DELEGATION_STATUS.BROKEN` — el
+  enum queda con exactamente 3 valores (`SECURE`, `INSECURE`, `UNKNOWN`).
+- `services/dnssec.service.js`: la rama `if (dsPresent === true && secure
+  === false) return DNSSEC_DELEGATION_STATUS.BROKEN;` dentro de
+  `mapDelegationStatus()` — la función ahora solo puede devolver los 3
+  valores restantes.
+- `logic/rules/dnssec.rules.js`: se quitó `"broken"` del arreglo de
+  búsqueda `hasStatus(d?.status, ["insecure", "broken"])` (quedó solo
+  `["insecure"]`) y se renombró la variable `brokenAncestorDelegation` →
+  `insecureAncestorDelegation` (ya nunca podía coincidir con `"broken"`,
+  el nombre anterior habría sido engañoso). **La regla que la consume
+  (bloqueo por delegación ancestro insegura → `blocked_at_parent`) no se
+  eliminó ni se modificó en su lógica — sigue siendo necesaria y real**
+  para el caso "delegación ancestro sin DS publicado", que es distinto e
+  independiente del caso que `BROKEN` intentaba cubrir.
+
+### No se sustituyó por una etiqueta artificial
+
+Tal como exigía el alcance de esta fase: al quitar la rama de `BROKEN`,
+la función simplemente cae en su `return UNKNOWN` ya existente — el mismo
+resultado que ya producía en la práctica (la rama nunca se ejecutaba con
+datos reales, así que remover el código muerto no cambia ningún
+comportamiento observable).
+
+### Consumidores revisados, no modificados donde no era necesario
+
+- Regla 8 de `computeDnssecConclusion()` (nivel del propio dominio, "DS
+  presente + DNSKEY ausente" → `misconfigured`): usa `ds_present`
+  directamente, nunca leyó `status === "broken"` — sin cambios.
+- `brokenAncestorZone`/ahora `insecureAncestorDelegation` (nivel
+  ancestro): la detección real de "DS presente + DNSKEY ausente" en un
+  ancestro sigue funcionando exactamente igual, porque siempre dependió
+  del **estado de la zona** (`unsigned`, vía `mapZoneStatus`), nunca del
+  estado de la delegación — confirmado con test dedicado
+  (`service_ds_sin_dnskey_intermedio_sigue_blocked_at_parent`).
+
+### Correspondencia criptográfica DS↔DNSKEY: permanece fuera de alcance
+
+Documentado expresamente (`docs/metodologia-dnssec.md`, sección
+"Limitaciones declaradas" y "Fuera de alcance del core"): el motor NUNCA
+compara el contenido del DS con el DNSKEY real de la zona hija — "DS
+presente + DNSKEY presente" no equivale a "cadena criptográficamente
+válida", solo a "ambos registros existen". Un DS que apunte a una clave
+rotada o inexistente, mientras la zona hija publica *alguna* otra
+DNSKEY, se seguiría reportando `ok`. Esta limitación **no se resuelve en
+esta fase** (requeriría verificar el hash del DS contra el DNSKEY, fuera
+del alcance estructural del core) y queda fijada con un test explícito
+(`service_ds_dnskey_presentes_no_afirma_validacion_criptografica`) que
+confirma que ningún texto del resultado afirma una validación
+criptográfica que nunca se realizó.
+
+### JSON crudo (`/dnssec-analysis?format=json`)
+
+Verificado en vivo, sin cambios de comportamiento: `example.com` sigue
+`final_status: "ok"`, delegación `"secure"`; `dnssec-failed.org` sigue
+`final_status: "misconfigured"`. El campo `delegation.status` ya no
+puede mostrar `"broken"` (no existe); para el caso "DS presente + DNSKEY
+ausente" sigue mostrando `"secure"` (la etiqueta más precisa que el
+modelo actual puede producir sin cruzar datos de DNSKEY en el cálculo de
+`secure` — ver siguiente párrafo) — el **veredicto final** de 7 estados
+sigue siendo correcto porque lo determina el estado de la zona, no el de
+la delegación.
+
+**Sobre corregir la etiqueta `"secure"` misma**: los datos de DNSKEY por
+zona (`preliminaryZones`) técnicamente ya están calculados en el mismo
+alcance de `getDnssecAnalysis()` antes de construirse las delegaciones,
+así que sería *posible* cruzarlos para que `secure` deje de ser un alias
+de `ds.found`. **Se decidió explícitamente no hacerlo en esta fase**:
+cambiar cómo se calcula `secure` afectaría también a
+`hasSecureDelegation()` y a las reglas 5/6/8 de `computeDnssecConclusion()`
+que leen `secureDelegation` — es decir, dejaría de ser "eliminar un
+estado muerto" para convertirse en "cambiar cómo se determina la
+seguridad de una delegación", exactamente el tipo de ampliación de
+alcance que esta fase (y la decisión que la originó) excluye
+explícitamente ("NO intentar hacerlo alcanzable"). Queda documentado como
+posible mejora futura en `docs/metodologia-dnssec.md`, no implementada.
+
+### Tests añadidos (7)
+
+`test/dnssecContent.test.js`: 1 test nuevo
+(`constants_sin_broken_3_valores_delegacion`). `test/dnssecService.test.js`:
+3 tests nuevos (`service_broken_nunca_producido_matriz_ds_dnskey` — 4
+combinaciones DS/DNSKEY confirmando que `"broken"` nunca aparece;
+`service_ds_sin_dnskey_intermedio_sigue_blocked_at_parent` — extremo a
+extremo, confirma que el veredicto final no cambió;
+`service_ds_dnskey_presentes_no_afirma_validacion_criptografica` — fija
+la limitación de forma ejecutable). `test/dnssecRules.test.js`: el
+fixture del escenario F se corrigió para usar `status: 'secure'` (el
+valor que el sistema real produce) en vez del artificial `'broken'`
+usado antes de esta resolución — mismo resultado final, sin cambios en la
+lógica de `dnssec.rules.js`.
+
+Además, `test/dnssecBrokenDelegationAudit.test.js` (archivo de auditoría
+de la fase de investigación previa, no registrado en `package.json`, no
+parte de la suite de producción) se conserva sin modificar como registro
+histórico de la evidencia que sustentó esta decisión.
+
+### Validación final
+
+```
+npm test
+-> 18/18 archivos de test OK
+-> 60 checks MEDICIONES, 0 duplicados (sin cambio)
+-> 38 tests DNSSEC en verde (34 previos + 1 en dnssecContent + 3 en
+   dnssecService; el fixture de multinivel_F se corrigió sin cambiar el
+   conteo de dnssecRules)
+-> smoke test manual: example.com -> ok/secure (sin cambio);
+   dnssec-failed.org -> misconfigured (sin cambio); "broken" no aparece
+   en ningún JSON de salida
+```
+
+**Confirmado**: los 7 estados finales no cambiaron, MEDICIONES no fue
+tocado, ningún módulo externo al core DNSSEC fue modificado, no se
+incorporó RRSIG/NSEC3/multi-resolver/AD-EDE-decisorio/DNSViz.

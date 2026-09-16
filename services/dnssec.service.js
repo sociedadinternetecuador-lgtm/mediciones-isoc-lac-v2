@@ -24,10 +24,21 @@ function mapZoneStatus(found, queryStatus) {
   return DNSSEC_ZONE_STATUS.UNKNOWN;
 }
 
+// (2026-09-16) — se eliminó la rama que devolvía DNSSEC_DELEGATION_STATUS.BROKEN
+// ("dsPresent === true && secure === false"). El único invocador (más abajo,
+// en getDnssecAnalysis()) calcula `secure` como `ds.found === true` y pasa
+// `dsPresent` como el mismo `ds.found` sin transformar — son algebraicamente
+// el mismo dato, así que esa condición nunca podía cumplirse (demostrado con
+// 24 combinaciones representativas del flujo DoH real en
+// AUDITORIA_DNSSEC_BROKEN_DELEGATION.md). El caso que pretendía cubrir (DS
+// presente en el padre, DNSKEY ausente en la zona hija) ya se detecta
+// correctamente por el estado de esa zona (UNSIGNED, vía mapZoneStatus) en
+// computeDnssecConclusion() — no se pierde ninguna clasificación al quitar
+// esta rama; simplemente cae, de forma honesta, en UNKNOWN, que es lo que ya
+// ocurría en la práctica (la rama nunca se ejecutaba con datos reales).
 function mapDelegationStatus(secure, dsPresent, queryStatus) {
   if (secure === true) return DNSSEC_DELEGATION_STATUS.SECURE;
   if (dsPresent === false && queryStatus === "no_data") return DNSSEC_DELEGATION_STATUS.INSECURE;
-  if (dsPresent === true && secure === false) return DNSSEC_DELEGATION_STATUS.BROKEN;
   return DNSSEC_DELEGATION_STATUS.UNKNOWN;
 }
 

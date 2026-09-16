@@ -119,6 +119,15 @@ lectura en particular".
 - No incluye la zona raíz en la verificación de la cadena.
 - No valida firmas RRSIG (vigencia, algoritmo) — solo observa presencia
   estructural de DNSKEY/DS.
+- **No verifica que un DS corresponda criptográficamente a un DNSKEY
+  concreto** — solo observa que ambos existan (presencia), nunca que el
+  DS publicado en la zona padre realmente describa (por hash/digest) una
+  de las claves que la zona hija publica. Un DS "huérfano" (apunta a una
+  clave rotada o inexistente) mientras la zona hija sí publica *alguna*
+  DNSKEY se reportaría como `ok`/`secure` — una limitación estructural
+  real, documentada explícitamente (ver `AUDITORIA_DNSSEC_BROKEN_
+  DELEGATION.md`), no corregida por requerir verificación criptográfica
+  fuera del alcance del core.
 - No consulta NSEC/NSEC3.
 - No contacta servidores autoritativos directamente (usa un resolver
   recursivo) — no detecta inconsistencias entre autoritativos ni
@@ -148,6 +157,10 @@ lectura en particular".
 ## Fuera de alcance del core (por diseño, no por descuido)
 
 - Validación criptográfica completa de RRSIG.
+- Verificación de correspondencia criptográfica DS↔DNSKEY (comparar el
+  hash publicado en el DS contra las claves realmente publicadas por la
+  zona hija) — más simple que validar RRSIG, pero igualmente fuera del
+  alcance estructural actual.
 - Análisis avanzado de NSEC/NSEC3.
 - Comparación multi-resolver (Google/Cloudflare/otros).
 - Análisis de consistencia multi-autoritativo / detección de lame
@@ -178,6 +191,13 @@ Identificadas durante la auditoría de 2026-09-16, listadas aquí
   ya obtenidos (hoy solo se cuenta su presencia).
 - Señalar algoritmos DNSSEC legados/débiles (SHA-1, DSA) como hallazgo de
   higiene de seguridad.
+- Verificar la correspondencia criptográfica DS↔DNSKEY (comparar el hash
+  del DS contra las claves realmente publicadas por la zona hija) — el
+  dato de DNSKEY por zona ya se calcula en `getDnssecAnalysis()`
+  (`preliminaryZones`) pero nunca se cruza con el resultado de la
+  consulta DS; cruzarlos permitiría detectar un DS "huérfano" (ver
+  `AUDITORIA_DNSSEC_BROKEN_DELEGATION.md`), pero implica decidir a qué
+  estado final alimentaría y no se persigue en esta fase.
 - Análisis RRSIG completo (vigencia, expiración, algoritmo real).
 - Consulta y análisis de NSEC/NSEC3 (parámetros, pruebas de no
   existencia).

@@ -31,6 +31,8 @@ const https = require('https');
 const { EventEmitter } = require('events');
 
 const { getDnssecAnalysis } = require('../services/dnssec.service');
+const { processDnssecAnalysis } = require('../logic/processors/dnssec.processor');
+const { DNSSEC_DELEGATION_STATUS } = require('../config/dnssec.constants');
 
 // ─── Mock de https.get (Google DoH) ─────────────────────────────────────
 // responder(name, type) -> objeto de respuesta DoH real | { timeout: true }
@@ -146,6 +148,102 @@ async function run() {
     assert.strictEqual(domainZone.validation_problem, 'dnssec_validation_failure');
     assert.strictEqual(result.assessment_meta.confidence, 'high');
     console.log('PASS service_e2e_servfail_con_ds_confidence_alta');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Resolución del pendiente técnico BROKEN (2026-09-16) — ver
+  // AUDITORIA_DNSSEC_BROKEN_DELEGATION.md e
+  // IMPLEMENTACION_DNSSEC_AUDITORIA_CORE.md. DNSSEC_DELEGATION_STATUS.BROKEN
+  // se eliminó por ser inalcanzable; estos tests confirman, contra el flujo
+  // real (DoH mockeado), que el estado interno de cada delegación siempre
+  // cae en uno de los 3 valores restantes, y que los escenarios que BROKEN
+  // pretendía cubrir siguen resolviendo al mismo estado FINAL correcto por
+  // otra vía (el estado de la zona), sin pérdida de exactitud.
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── delegation.status nunca es "broken" (ya no existe como valor posible;
+  // se confirma que cae siempre en uno de los 3 valores restantes) a lo
+  // largo de una matriz representativa de combinaciones DS/DNSKEY ──
+  {
+    const scenarios = [
+      { label: 'ds_y_dnskey_presentes', domain: 'broken-check-a.example', dsFound: true, dnskeyFound: true },
+      { label: 'ds_ausente_dnskey_presente', domain: 'broken-check-b.example', dsFound: false, dnskeyFound: true },
+      { label: 'ds_presente_dnskey_ausente', domain: 'broken-check-c.example', dsFound: true, dnskeyFound: false },
+      { label: 'ninguno_presente', domain: 'broken-check-d.example', dsFound: false, dnskeyFound: false }
+    ];
+    for (const s of scenarios) {
+      mockDoh((name, type) => {
+        if (name === 'example' && type === 'DNSKEY') return ok(dnskeyAnswer(name));
+        if (name === s.domain && type === 'DNSKEY') return s.dnskeyFound ? ok(dnskeyAnswer(name)) : noData();
+        if (name === s.domain && type === 'DS') return s.dsFound ? ok(dsAnswer(name)) : noData();
+        if (['A', 'AAAA', 'CNAME'].includes(type) && name === s.domain) return ok(aAnswer(name));
+        return noData();
+      });
+      const result = await getDnssecAnalysis(s.domain);
+      const delegationStatus = result.raw_checks.delegations[0].status;
+      assert.notStrictEqual(delegationStatus, 'broken', `${s.label}: "broken" ya no debe ser un valor posible`);
+      assert.ok(
+        Object.values(DNSSEC_DELEGATION_STATUS).includes(delegationStatus),
+        `${s.label}: "${delegationStatus}" debe ser uno de los 3 valores restantes de DNSSEC_DELEGATION_STATUS`
+      );
+    }
+    console.log('PASS service_broken_nunca_producido_matriz_ds_dnskey');
+  }
+
+  // ── DS presente + DNSKEY ausente en un nivel intermedio -> sigue dando
+  // el mismo estado FINAL correcto (blocked_at_parent), detectado por el
+  // estado de la ZONA (unsigned) — no por el de la delegación, que ahora
+  // se etiqueta honestamente "secure" (no "broken", que ya no existe) ──
+  {
+    const domain = 'leaf.broken-check-mid.example';
+    mockDoh((name, type) => {
+      if (name === 'example' && type === 'DNSKEY') return ok(dnskeyAnswer(name));
+      // "broken-check-mid.example": el TLD publica DS para ella, pero ELLA
+      // no publica DNSKEY -- el caso que BROKEN pretendía representar.
+      if (name === 'broken-check-mid.example' && type === 'DNSKEY') return noData();
+      if (name === 'broken-check-mid.example' && type === 'DS') return ok(dsAnswer(name));
+      if (name === domain && type === 'DNSKEY') return ok(dnskeyAnswer(name));
+      if (name === domain && type === 'DS') return ok(dsAnswer(name));
+      if (['A', 'AAAA', 'CNAME'].includes(type) && name === domain) return ok(aAnswer(name));
+      return noData();
+    });
+    const result = await getDnssecAnalysis(domain);
+    const midZone = result.raw_checks.zones.find(z => z.zone === 'broken-check-mid.example');
+    const midDelegation = result.raw_checks.delegations.find(d => d.to === 'broken-check-mid.example');
+    assert.strictEqual(midZone.status, 'unsigned');
+    assert.strictEqual(midDelegation.status, 'secure', 'Etiquetado honesto: ds_present=true -> "secure" (nunca "broken", que ya no existe)');
+
+    const processed = processDnssecAnalysis(result);
+    assert.strictEqual(processed.dnssec.final_status, 'blocked_at_parent', 'El veredicto final sigue siendo correcto, vía el estado de zona');
+    console.log('PASS service_ds_sin_dnskey_intermedio_sigue_blocked_at_parent');
+  }
+
+  // ── DS y DNSKEY AMBOS presentes -> el motor NUNCA afirma "validado
+  // criptográficamente": solo observa presencia, nunca compara el DS con
+  // el DNSKEY. Este test fija esa limitación de forma explícita y
+  // ejecutable, no solo como nota de documentación. ──
+  {
+    const domain = 'crypto-not-checked.example';
+    mockDoh((name, type) => {
+      if (name === 'example' && type === 'DNSKEY') return ok(dnskeyAnswer(name));
+      if (name === domain && type === 'DNSKEY') return ok(dnskeyAnswer(name));
+      if (name === domain && type === 'DS') return ok(dsAnswer(name));
+      if (['A', 'AAAA', 'CNAME'].includes(type) && name === domain) return ok(aAnswer(name));
+      return noData();
+    });
+    const result = await getDnssecAnalysis(domain);
+    const processed = processDnssecAnalysis(result);
+    // El resultado es "ok" -- pero eso significa únicamente "DS y DNSKEY
+    // están AMBOS presentes", nunca "el DS fue verificado criptográficamente
+    // contra el DNSKEY". El motor no tiene ningún mecanismo para detectar un
+    // DS que apunte a una clave equivocada o rotada -- limitación declarada,
+    // no un bug de este hallazgo puntual (ver AUDITORIA_DNSSEC_BROKEN_DELEGATION.md §7).
+    assert.strictEqual(processed.dnssec.final_status, 'ok');
+    assert.ok(
+      !JSON.stringify(processed).toLowerCase().includes('criptográficamente válid'),
+      'Ningún texto debe afirmar que la cadena fue verificada criptográficamente -- el motor solo observa presencia'
+    );
+    console.log('PASS service_ds_dnskey_presentes_no_afirma_validacion_criptografica');
   }
 
   console.log('\nOK — orquestación DNSSEC (dnssec.service.js): todos los casos pasaron.');

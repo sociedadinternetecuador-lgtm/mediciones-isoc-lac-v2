@@ -345,9 +345,14 @@ function run() {
     console.log('PASS multinivel_E_dnskey_sin_ds_en_nivel_intermedio');
   }
 
-  // ── F) DS presente pero DNSKEY ausente en un nivel intermedio (la
-  // delegación hacia la zona intermedia sí tiene DS, pero esa zona no
-  // devuelve DNSKEY -> delegación "broken") -> blocked_at_parent ──
+  // ── F) DS presente pero DNSKEY ausente en un nivel intermedio -> sigue
+  // dando blocked_at_parent, detectado por el estado de la ZONA (unsigned),
+  // no por el de la delegación. (2026-09-16 — DNSSEC_DELEGATION_STATUS.BROKEN
+  // se eliminó por ser inalcanzable, ver AUDITORIA_DNSSEC_BROKEN_DELEGATION.md:
+  // el único productor real de `status` en una delegación con DS presente
+  // SIEMPRE etiqueta "secure" — nunca "broken" — así que el fixture usa el
+  // valor honesto que el sistema real produciría; lo que realmente atrapa
+  // esta ruptura es que la zona "gob.ec" en sí no tiene DNSKEY.) ──
   {
     const zones = [
       zone({ zone: 'ec', level: 1, status: 'signed', query_status: 'ok' }),
@@ -356,8 +361,10 @@ function run() {
       zone({ zone: 'a.b.gob.ec', level: 4, status: 'signed', query_status: 'ok' })
     ];
     const delegations = [
-      // ...aunque el padre sí publica un DS para ella: DS sin DNSKEY un nivel arriba.
-      delegation({ from: 'ec', to: 'gob.ec', ds_present: true, secure: false, status: 'broken', query_status: 'ok' }),
+      // ...aunque el padre sí publica un DS para ella (DS sin DNSKEY un nivel
+      // arriba) — mapDelegationStatus() real la etiqueta "secure" igual,
+      // porque solo mira presencia de DS, nunca DNSKEY del hijo.
+      delegation({ from: 'ec', to: 'gob.ec', ds_present: true, secure: true, status: 'secure', query_status: 'ok' }),
       delegation({ from: 'gob.ec', to: 'b.gob.ec', ds_present: true, secure: true, status: 'secure', query_status: 'ok' }),
       delegation({ from: 'b.gob.ec', to: 'a.b.gob.ec', ds_present: true, secure: true, status: 'secure', query_status: 'ok' })
     ];

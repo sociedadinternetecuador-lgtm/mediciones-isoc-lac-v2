@@ -27,10 +27,20 @@ const DNSSEC_ZONE_STATUS = {
   UNKNOWN: "unknown"
 };
 
+// (2026-09-16) — "BROKEN" se eliminó: mapDelegationStatus()
+// (services/dnssec.service.js) nunca podía producirlo — su único invocador
+// calcula `secure = ds.found === true` y pasa `dsPresent = ds.found` (el
+// mismo valor fuente), así que la condición `dsPresent === true && secure
+// === false` era algebraicamente imposible. Demostrado con 24
+// combinaciones representativas del flujo DoH real, ninguna lo producía.
+// Ver AUDITORIA_DNSSEC_BROKEN_DELEGATION.md e
+// IMPLEMENTACION_DNSSEC_AUDITORIA_CORE.md. El caso que pretendía cubrir
+// (DS presente, DNSKEY del hijo ausente) ya se detecta correctamente por
+// el estado de la zona (UNSIGNED) — no se pierde ninguna capacidad de
+// diagnóstico al eliminarlo.
 const DNSSEC_DELEGATION_STATUS = {
   SECURE: "secure",
   INSECURE: "insecure",
-  BROKEN: "broken",
   UNKNOWN: "unknown"
 };
 
