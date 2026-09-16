@@ -44,6 +44,19 @@
    (verificado contra el relay real) — mismo hallazgo que en otros
    proyectos CORPECE que usan la misma cuenta.
 
+8. **Logos institucionales — ya están en el proyecto, no pedirlos ni
+   buscarlos en Descargas.**
+   - `public/assets/ISOC_Logo_Dark-RGB.png` — isotipo + wordmark oscuro de
+     Internet Society (horizontal, fondo transparente).
+   - `public/assets/mediciones_grupo_trabajo.jpeg` — logo del Grupo de
+     Trabajo de Mediciones de Internet Society (cuadrado 1024×1024, fondo
+     azul, con el ícono ISOC + texto "Grupo de Trabajo de Mediciones de
+     Internet" + ícono de barras, todo incrustado en la imagen). Es el
+     archivo que el usuario compartió por chat (originalmente en
+     `~/Downloads/mediciones_logo.jpeg`, 2026-09-16) — ya copiado acá,
+     usar esta ruta siempre que se necesite este logo (portada del PDF de
+     reportes, cabecera de `index.html`, etc.), no volver a pedirlo.
+
 ## Estado actual (2026-08-14)
 
 Flujo de Preparación de datasets implementado y cerrado:
