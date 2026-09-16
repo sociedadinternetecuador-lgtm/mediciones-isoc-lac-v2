@@ -41,6 +41,7 @@ const contentStore = require('../logic/adapters/contentStore.adapter');
 // Se usa como objeto (no desestructurado) a propósito: permite a los tests
 // reemplazar emailAdapter.sendMail por un stub sin tocar este módulo.
 const emailAdapter = require('../logic/adapters/email.adapter');
+const { injectI18nVersion } = require('../logic/adapters/i18nVersion.adapter');
 
 const CONTENT_TYPES = new Set(['blog', 'events', 'materials']);
 const MAX_BODY_BYTES = 1 * 1024 * 1024; // 1 MB — payloads de texto, sin adjuntos binarios
@@ -106,10 +107,10 @@ function requireSuperAdmin(req, res) {
 
 function serveAdminPage(res) {
   const filePath = path.join(__dirname, '..', 'admin.html');
-  fs.readFile(filePath, (err, data) => {
+  fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) return sendJson(res, 500, { error: 'admin_page_not_found' });
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(data);
+    res.end(injectI18nVersion(data));
   });
 }
 

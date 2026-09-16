@@ -81,6 +81,7 @@ const { handleMedicionesBatchReportRequest } = require('./routes/medicionesBatch
 // ya usa test/content.publicVisibility.test.js con emailAdapter.sendMail.
 const safeWebFetchAdapter = require('./logic/adapters/safeWebFetch.adapter');
 const { fetchSafePage, resolveFinalWebTarget } = safeWebFetchAdapter;
+const { injectI18nVersion } = require('./logic/adapters/i18nVersion.adapter');
 const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -4148,7 +4149,7 @@ if (parsed.pathname === "/dnssec-analysis") {
   // 👉 Servir la interfaz web en la raíz
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
     const filePath = path.join(__dirname, 'index.html');
-    return fs.readFile(filePath, (err, data) => {
+    return fs.readFile(filePath, 'utf8', (err, data) => {
       if (err) {
         return sendJSON(res, 500, { error: 'Index file not found' });
       }
@@ -4156,7 +4157,7 @@ if (parsed.pathname === "/dnssec-analysis") {
         'Content-Type': 'text/html; charset=utf-8',
         'Access-Control-Allow-Origin': '*'
       });
-      res.end(data);
+      res.end(injectI18nVersion(data));
     });
   }
 

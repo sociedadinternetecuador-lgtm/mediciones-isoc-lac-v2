@@ -11,8 +11,11 @@
      (fase 7 del plan de traducción, pendiente); esto solo conecta la
      infraestructura y el botón para que la elección de idioma sea
      consistente entre "/" y "/admin". -->
-<!-- ?v= rompe la caché de borde de Cloudflare — ver la nota igual en
-     index.html. Subir este número cada vez que se edite public/i18n.js. -->
+<!-- ?v= rompe la caché de borde de Cloudflare y la del navegador — el
+     servidor lo reemplaza por un hash real de public/i18n.js al servir
+     esta página (ver logic/adapters/i18nVersion.adapter.js y la nota
+     completa en index.html); el número de acá es solo un placeholder,
+     no hace falta editarlo a mano. -->
 <script src="/i18n.js?v=11"></script>
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; }

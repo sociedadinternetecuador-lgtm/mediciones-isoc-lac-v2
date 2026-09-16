@@ -12,11 +12,16 @@
          usen en su primer render. -->
     <!-- ?v= rompe la caché de borde de Cloudflare (max-age=14400 por
          defecto para .js, aunque nuestro servidor no manda ningún
-         Cache-Control — es un comportamiento propio de Cloudflare).
-         Encontrado 2026-09-11: sin esto, un usuario podía quedar viendo
-         claves crudas ("med.heading") en vez del texto traducido durante
-         horas después de cada despliegue que cambiara el diccionario.
-         Subir este número cada vez que se edite public/i18n.js. -->
+         Cache-Control — es un comportamiento propio de Cloudflare) y la
+         del navegador. El número de acá abajo es solo un placeholder: el
+         servidor (logic/adapters/i18nVersion.adapter.js) lo reemplaza al
+         servir esta página por un hash del contenido REAL de
+         public/i18n.js en ese momento — no hace falta (ni sirve de nada)
+         editarlo a mano. Encontrado 2026-09-11 y otra vez 2026-09-16: el
+         número manual se olvidaba de subir, y quedaba gente viendo claves
+         crudas ("inicio.hero.lead") en vez del texto traducido, a veces
+         durante días, aunque el archivo en el servidor ya estuviera
+         corregido. -->
     <script src="/i18n.js?v=11"></script>
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
