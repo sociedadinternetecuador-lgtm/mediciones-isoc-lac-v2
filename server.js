@@ -1455,19 +1455,98 @@ async function handleWhois(domain, res) {
   });
 }
 
+// Fase 3 (2026-09-16) — reescrito. La versión anterior enviaba
+// `doc=https://${domain}` para que fuera el propio validador quien
+// descargara la página (sin fallback HTTP, sin manejo de redirecciones,
+// sin ningún guard de destinos privados) y clasificaba "warnings" como
+// "cualquier mensaje que no sea type==='error'" — verificado en vivo contra
+// la API real de validator.w3.org/nu que eso también cuenta mensajes
+// puramente informativos (type:'info' sin subType) como si fueran avisos
+// de conformidad. Ver IMPLEMENTACION_MEDICIONES_FASE3_W3C.md para la
+// auditoría completa (incluye el hallazgo de que Paraguay/upstream mezcla
+// esta validación de marcado con una batería propia de heurísticas de
+// accesibilidad por regex, sumando ambos conteos en un solo "errors" sin
+// distinguirlos — no se replica: Ecuador ya mide accesibilidad real vía
+// Lighthouse/axe-core en el check `quality`).
+const W3C_NU_ENDPOINT = 'https://validator.w3.org/nu/?out=json';
+const W3C_MESSAGE_CAP = 40;
+
+async function validateHtmlWithNu(html) {
+  const data = await fetchJSON(W3C_NU_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    body: html
+  });
+  if (!Array.isArray(data?.messages)) {
+    throw Object.assign(new Error('Respuesta inválida del validador W3C/Nu'), {
+      code: 'W3C_INVALID_RESPONSE'
+    });
+  }
+  return data.messages;
+}
+
 async function handleW3C(domain, res) {
   domain = normalizeDomain(domain);
+
+  // El HTML se obtiene con el mismo mecanismo seguro que ya usan
+  // headers/sitefeatures/etc. (HTTPS primero, fallback HTTP, redirecciones
+  // acotadas, bloqueo de destinos privados/loopback/link-local/ULA en cada
+  // salto) — nunca se envía la URL del dominio al validador externo: se le
+  // envía el HTML ya obtenido como cuerpo POST, así que el validador nunca
+  // decide a qué destino conectarse.
+  let page;
   try {
-    const data = await fetchJSON(
-      `https://validator.w3.org/nu/?doc=https://${domain}&out=json`
-    );
-    const messages = Array.isArray(data.messages) ? data.messages : [];
-    const errors = messages.filter(m => m.type === 'error').length;
-    const warnings = messages.filter(m => m.type !== 'error').length;
-    sendJSON(res, 200, { domain, errors, warnings });
+    page = await fetchWebsite(domain);
   } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
+    return sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
   }
+
+  const html = String(page.body || '');
+  if (!html.trim()) {
+    return sendJSON(res, 200, {
+      domain,
+      error: 'El sitio respondió sin contenido HTML para validar',
+      error_code: 'W3C_EMPTY_BODY'
+    });
+  }
+
+  let messages;
+  try {
+    messages = await validateHtmlWithNu(html);
+  } catch (e) {
+    return sendJSON(res, 200, {
+      domain,
+      error: 'El validador W3C/Nu no respondió correctamente',
+      error_code: e && e.code === 'W3C_INVALID_RESPONSE' ? 'W3C_INVALID_RESPONSE' : 'W3C_VALIDATOR_UNAVAILABLE'
+    });
+  }
+
+  // Vocabulario real de la Nu Html Checker (verificado en vivo, 2026-09-15/16):
+  // type 'error' = error de conformidad; type 'info' + subType 'warning' =
+  // aviso real; type 'info' sin subType = mensaje puramente informativo (no
+  // cuenta como aviso); type 'non-document-error' = el validador no pudo
+  // procesar el envío por completo (el conteo de errores/avisos ya no es
+  // fiable — se marca `incomplete` para que el frontend use INCONCLUSIVE en
+  // vez de confiar en un PASS/FAIL derivado de datos parciales).
+  const errors = messages.filter(m => m.type === 'error').length;
+  const warnings = messages.filter(m => m.type === 'info' && m.subType === 'warning').length;
+  const incomplete = messages.some(m => m.type === 'non-document-error');
+
+  sendJSON(res, 200, {
+    domain,
+    url: page.url,
+    statusCode: page.statusCode,
+    errors,
+    warnings,
+    incomplete,
+    messagesTotal: messages.length,
+    messages: messages.slice(0, W3C_MESSAGE_CAP).map(m => ({
+      type: m.type,
+      subType: m.subType || null,
+      message: m.message,
+      lastLine: m.lastLine || null
+    }))
+  });
 }
 
 async function handleHeaders(domain, res) {
@@ -4042,11 +4121,10 @@ if (require.main === module) {
   server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-// Exports mínimos para tests (2026-09-15) — los 3 checks de correo de la
-// fase 1 más rpki/routing de la fase 2 (esta última reutiliza rpkiValidity,
-// no crea un check nuevo — ver IMPLEMENTACION_MEDICIONES_FASE2_ROUTING_RPKI.md),
-// para poder probarlos con dns/net/https mockeados sin levantar el servidor
-// completo. No cambia ningún comportamiento existente.
+// Exports mínimos para tests (2026-09-15/16) — los 3 checks de correo de
+// la fase 1, rpki/routing de la fase 2, y w3c de la fase 3 — para poder
+// probarlos con dns/net/https mockeados sin levantar el servidor completo.
+// No cambia ningún comportamiento existente.
 module.exports = {
   handleMailDnssec,
   handleMailIpv6,
@@ -4055,5 +4133,6 @@ module.exports = {
   handleRpki,
   rpkiValidity,
   ipToCymruQuery,
-  resolveOriginRoutesViaCymru
+  resolveOriginRoutesViaCymru,
+  handleW3C
 };

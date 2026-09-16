@@ -1924,6 +1924,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 { key: 'listedpages', label: 'Listed Pages', labelEs: 'Páginas listadas (sitemap)', default: false },
                 { key: 'socialtags', label: 'Social Tags', labelEs: 'Etiquetas sociales', default: false },
                 { key: 'quality', label: 'Quality Metrics', labelEs: 'Métricas de calidad', default: false },
+                { key: 'w3c', label: 'HTML Validation (W3C/Nu)', labelEs: 'Validación HTML (W3C/Nu)', default: false },
                 { key: 'archive', label: 'Archive History', labelEs: 'Historial de archivo (Wayback)', default: false },
                 { key: 'ranking', label: 'Global Ranking', labelEs: 'Ranking global', default: false },
                 { key: 'screenshot', label: 'Screenshot', labelEs: 'Captura de pantalla', default: false }
@@ -1966,6 +1967,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         listedpages: 'Lee sitemap.xml y extrae URLs declaradas.',
         socialtags: 'Extrae metadatos sociales como Open Graph, Twitter cards, descripción y viewport.',
         quality: 'Consulta métricas de PageSpeed/Lighthouse cuando el servicio externo responde.',
+        w3c: 'Obtiene el HTML de la página principal (con el mismo mecanismo seguro que otros checks del sitio: HTTPS primero, redirecciones acotadas, bloqueo de destinos privados) y lo envía al validador Nu (validator.w3.org), el verificador de conformidad HTML5 del W3C/WHATWG. Reporta errores y avisos de marcado (etiquetas, atributos, anidamiento). No es una auditoría de accesibilidad — para eso, ver el puntaje de accesibilidad (Lighthouse) del check "Métricas de calidad".',
         archive: 'Consulta historial básico de capturas en Internet Archive.',
         ranking: 'Consulta ranking global aproximado del dominio en Tranco.',
         malware: 'Consulta URLHaus para señales públicas de malware o phishing asociadas al dominio.',
@@ -2679,6 +2681,34 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     if (typeof data.bestPractices === 'number') lines.push(`Mejores prácticas: ${(data.bestPractices * 100).toFixed(0)}`);
                     if (typeof data.seo === 'number') lines.push(`SEO: ${(data.seo * 100).toFixed(0)}`);
                     return { label, status: lines.length ? 'PASS' : 'INFO', details: lines.length ? lines : 'Sin datos de Lighthouse' };
+                }
+                case 'w3c': {
+                    const data = await fetchWithTimeout(`${API_BASE}/w3c/${ascii}`);
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
+                    const details = [];
+                    if (data.url) details.push(`URL validada: ${data.url}`);
+                    details.push(`Errores de conformidad: ${data.errors}`);
+                    details.push(`Avisos: ${data.warnings}`);
+                    if (Array.isArray(data.messages) && data.messages.length) {
+                        data.messages.forEach(m => {
+                            const kind = m.type === 'error' ? 'Error' : (m.subType === 'warning' ? 'Aviso' : 'Info');
+                            const line = m.lastLine ? ` (línea ${m.lastLine})` : '';
+                            details.push(`${kind}${line}: ${m.message}`);
+                        });
+                        if (data.messagesTotal > data.messages.length) {
+                            details.push(`… y ${data.messagesTotal - data.messages.length} mensaje(s) adicional(es) no mostrados.`);
+                        }
+                    }
+                    // El validador puede reportarse a sí mismo incapaz de procesar
+                    // el documento por completo (type: 'non-document-error') — en
+                    // ese caso el conteo de errores/avisos ya no es fiable, así que
+                    // no se fuerza PASS/FAIL con datos parciales.
+                    let status;
+                    if (data.incomplete) status = 'INCONCLUSIVE';
+                    else if (data.errors > 0) status = 'FAIL';
+                    else if (data.warnings > 0) status = 'INFO';
+                    else status = 'PASS';
+                    return { label, status, details };
                 }
                 case 'archive': {
                     const data = await fetchWithTimeout(`${API_BASE}/archive/${ascii}`);
