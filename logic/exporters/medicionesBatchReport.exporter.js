@@ -182,7 +182,10 @@ function truncate(value, maxLen) {
 // Mediciones ISOC LAC generado por este exportador — no dependen del
 // dataset analizado, igual criterio que SYSTEM_LIMITATIONS más abajo).
 const REPORT_CONTACT = 'https://mediciones.isoc.org.ec  ·  info@isoc.org.ec';
-const REPORT_EYEBROW = 'Grupo de Trabajo de Mediciones de Internet';
+// Sin "eyebrow": el logo (mediciones_grupo_trabajo.jpeg) ya trae el texto
+// "Grupo de Trabajo de Mediciones de Internet" incrustado en la imagen —
+// repetirlo como texto aparte duplicaría la misma frase dos veces en la
+// carátula.
 // Texto reutilizado de docs/GUIA_MEDICIONES_ISOC_LAC.md § "1. Introducción"
 // (condensado para caber en la carátula) — no se redactó contenido nuevo.
 const REPORT_DESCRIPTION = 'MEDICIONES ISOC LAC es una iniciativa de Internet Society en América Latina y el Caribe que genera información técnica abierta sobre el estado de la infraestructura de Internet en la región.';
@@ -194,10 +197,10 @@ const REPORT_COORDINATED_BY = 'Coordinado por: ISOC Argentina, ISOC Ecuador, ISO
 // vez al cargar el módulo, no en cada reporte. Si el archivo no está
 // disponible por algún motivo, se degrada a "sin logo" (el template lo
 // omite con $if(logo)$) en vez de romper la generación del reporte.
-const LOGO_PATH = path.join(__dirname, '..', '..', 'public', 'assets', 'ISOC_Logo_Dark-RGB.png');
+const LOGO_PATH = path.join(__dirname, '..', '..', 'public', 'assets', 'mediciones_grupo_trabajo.jpeg');
 let REPORT_LOGO_DATA_URI = '';
 try {
-  REPORT_LOGO_DATA_URI = `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`;
+  REPORT_LOGO_DATA_URI = `data:image/jpeg;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`;
 } catch (e) {
   REPORT_LOGO_DATA_URI = '';
 }
@@ -210,7 +213,6 @@ function frontmatter({ title, subtitle, author }) {
     `subtitle: "${escYaml(subtitle)}"`,
     `author: "${escYaml(author)}"`,
     `contact: "${escYaml(REPORT_CONTACT)}"`,
-    `eyebrow: "${escYaml(REPORT_EYEBROW)}"`,
     `description: "${escYaml(REPORT_DESCRIPTION)}"`,
     `coordinated_by: "${escYaml(REPORT_COORDINATED_BY)}"`,
     ...(REPORT_LOGO_DATA_URI ? [`logo: "${REPORT_LOGO_DATA_URI}"`] : []),

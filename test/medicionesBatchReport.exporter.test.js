@@ -19,10 +19,12 @@ function assertFrontmatter(markdown) {
   assert.ok(/subtitle:\s*"/.test(block), 'frontmatter debe incluir subtitle');
   assert.ok(/author:\s*"/.test(block), 'frontmatter debe incluir author');
   assert.ok(/contact:\s*".*mediciones\.isoc\.org\.ec.*info@isoc\.org\.ec/.test(block), 'la carátula debe incluir sitio web y correo de contacto');
-  assert.ok(/eyebrow:\s*".*Mediciones de Internet/.test(block), 'la carátula debe incluir el eyebrow del Grupo de Trabajo');
+  // Sin "eyebrow": el logo ya trae ese texto incrustado en la imagen (ver
+  // exporter) — no debe duplicarse como campo de texto aparte.
+  assert.ok(!/eyebrow:/.test(block), 'no debe incluir "eyebrow" — el logo ya trae ese texto incrustado en la imagen');
   assert.ok(/description:\s*".*Internet Society/.test(block), 'la carátula debe incluir la descripción institucional');
   assert.ok(/coordinated_by:\s*"Coordinado por:.*ISOC/.test(block), 'la carátula debe incluir los capítulos ISOC coordinadores');
-  assert.ok(/logo:\s*"data:image\/png;base64,/.test(block), 'la carátula debe incluir el logo embebido como data URI');
+  assert.ok(/logo:\s*"data:image\/jpeg;base64,/.test(block), 'la carátula debe incluir el logo embebido como data URI');
 }
 
 // El frontmatter YAML (título/subtítulo/autor/contacto/carátula, incluido
