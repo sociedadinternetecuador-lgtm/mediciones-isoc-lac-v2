@@ -1741,6 +1741,23 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         <div class="px-4 py-3 border-b border-gray-200">
           <h3 class="text-md font-semibold text-gray-800" data-i18n="med.batch.tableHeading">Tabla de resultados — dominio × verificación</h3>
           <div id="mb-status-legend" class="text-xs mt-2"></div>
+          <!-- DNSViz (2026-09-16): enlace externo opcional junto a cada
+               dominio en la primera columna de la tabla — NO es un check de
+               MEDICIONES (no está en groupDefinitions/checkConfig, no se
+               cuenta en las columnas), no dispara ninguna llamada desde el
+               backend, y no modifica ningún estado PASS/FAIL/INFO/
+               INCONCLUSIVE/NOT_APPLICABLE/MEASUREMENT_ERROR. Ver
+               AUDITORIA_DNSVIZ_VS_DNSSEC_ECUADOR.md — decisión: solo enlace,
+               nunca scraping ni integración backend. -->
+          <div class="text-xs text-gray-400 mt-1">
+            <strong class="text-gray-500">DNSViz — diagnóstico DNSSEC externo:</strong>
+            cada dominio de la tabla incluye un enlace opcional a
+            <span class="font-medium">dnsviz.net</span>, un servicio externo e
+            independiente de MEDICIONES para un análisis visual adicional de
+            DNS/DNSSEC. Se abre únicamente si decides hacer clic; en ese
+            momento DNSViz conocerá el dominio consultado. MEDICIONES no
+            realiza esa consulta ni incorpora su resultado a ninguna medición.
+          </div>
         </div>
         <div class="table-scroll-wrap">
           <input type="range" id="mb-comparative-slider-top" class="table-scroll-slider table-scroll-slider-top" min="0" max="0" value="0" step="1"
@@ -2204,6 +2221,26 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     function toASCII(domain) {
         try { return new URL('http://' + domain).hostname; }
         catch (e) { return domain; }
+    }
+
+    // DNSViz (2026-09-16) — enlace externo opcional, iniciado por el
+    // usuario, hacia el sitio oficial de DNSViz (https://dnsviz.net). NO es
+    // un check de MEDICIONES: no hace ninguna llamada desde este backend, no
+    // descarga HTML/JS/imágenes de DNSViz, no analiza su respuesta. Ver
+    // AUDITORIA_DNSVIZ_VS_DNSSEC_ECUADOR.md. El dominio se normaliza con la
+    // misma función (toASCII) que ya usa getCheckResult() antes de construir
+    // cualquier URL — nunca se acepta ni se usa una URL arbitraria del
+    // usuario, solo el dominio ya validado por la medición actual.
+    function buildDnsvizLink(domain) {
+        const host = toASCII(domain);
+        const a = document.createElement('a');
+        a.href = `https://dnsviz.net/d/${encodeURIComponent(host)}/dnssec/`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'ml-2 text-xs font-normal text-gray-400 hover:text-blue-600 hover:underline whitespace-nowrap';
+        a.textContent = 'DNSViz ↗';
+        a.title = 'Abrir DNSViz (dnsviz.net) — servicio externo e independiente para un diagnóstico visual adicional de DNS/DNSSEC de este dominio. MEDICIONES no realiza esta consulta: se envía únicamente si abres el enlace.';
+        return a;
     }
 
     async function fetchWithTimeout(resource, options = {}, timeout = 20000) {
@@ -5554,6 +5591,7 @@ function mbRenderPreview(payload) {
     const domainTd = document.createElement('td');
     domainTd.className = 'px-4 py-3 font-medium text-gray-700 whitespace-nowrap';
     domainTd.textContent = d.domain;
+    domainTd.appendChild(buildDnsvizLink(d.domain));
     row.appendChild(domainTd);
     selectedChecks.forEach((key) => {
       const td = document.createElement('td');
