@@ -1890,6 +1890,8 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                 { key: 'asn', label: 'ASN', labelEs: 'ASN', default: true },
                 { key: 'serverstatus', label: 'Server Status', labelEs: 'Estado del servidor', default: true },
                 { key: 'openports', label: 'Open Ports', labelEs: 'Puertos abiertos', default: false },
+                { key: 'ping', label: 'ICMP Ping (IPv4)', labelEs: 'Ping ICMP (IPv4)', default: false },
+                { key: 'pingv6', label: 'ICMP Ping (IPv6)', labelEs: 'Ping ICMP (IPv6)', default: false },
                 { key: 'redirectchain', label: 'Redirect Chain', labelEs: 'Cadena de redirecciones', default: true },
                 { key: 'block', label: 'Block Detection', labelEs: 'Detección de bloqueo', default: false },
                 { key: 'dnsrecords', label: 'DNS Records', labelEs: 'Registros DNS', default: true },
@@ -1941,6 +1943,8 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         asn: 'Identifica el Sistema Autónomo que anuncia la IP principal del dominio.',
         serverstatus: 'Consulta el estado HTTP final del sitio después de redirecciones válidas.',
         openports: 'Prueba conectividad básica a puertos comunes. No sustituye un escaneo de seguridad formal.',
+        ping: 'Mide respuesta ICMP (ping) desde el nodo MEDICIONES a hasta 3 direcciones IPv4 públicas del dominio. La ausencia de respuesta NO implica que el sitio o el servicio estén caídos: muchos servidores y firewalls bloquean ICMP deliberadamente como práctica habitual de seguridad — este check es descriptivo, no una prueba de disponibilidad.',
+        pingv6: 'Mide respuesta ICMPv6 (ping) desde el nodo MEDICIONES a hasta 3 direcciones IPv6 públicas del dominio. Requiere conectividad IPv6 real desde el propio nodo de medición — si no la tiene, el resultado se reporta como no concluyente. La ausencia de respuesta tampoco implica indisponibilidad del servicio.',
         redirectchain: 'Muestra la cadena HTTP/HTTPS desde el dominio inicial hasta el destino final.',
         block: 'Compara respuestas de resolvers públicos para detectar posibles bloqueos o diferencias de resolución.',
         dnsrecords: 'Consulta registros DNS principales: A, AAAA, MX, NS, TXT y CNAME.',
@@ -2463,7 +2467,14 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         'MALWARE_AUTH_REQUIRED', 'MALWARE_RATE_LIMITED', 'MALWARE_TIMEOUT',
         'MALWARE_SOURCE_UNAVAILABLE', 'MALWARE_INVALID_RESPONSE'
     ]);
-    const NOT_APPLICABLE_CODES = new Set(['WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS']);
+    // PING_NO_A/PINGV6_NO_AAAA (2026-09-16): el dominio es real (resolvió al
+    // menos una familia, o tiene NS aunque no tenga ninguna dirección) pero
+    // simplemente no tiene registros de la familia que ese check concreto
+    // mide (ej. dominio IPv4-only para pingv6) — no aplica, no es un fallo.
+    const NOT_APPLICABLE_CODES = new Set([
+      'WEBFETCH_NO_ADDRESS_RECORD', 'RDAP_NOT_FOUND', 'NO_MX_RECORDS',
+      'PING_NO_A', 'PINGV6_NO_AAAA'
+    ]);
     // IPMETA_NOT_FOUND: el proveedor SÍ respondió, de forma definitiva, que
     // no tiene metadata para esa IP (ej. rango privado/reservado) — es un
     // dato ausente legítimo, no una medición fallida ni una condición del
@@ -2484,6 +2495,25 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     // comportamiento del proveedor — no se puede afirmar con certeza que
     // sea un rechazo real ni un bug del instrumento.
     const AMBIGUOUS_TRANSPORT_CODES = new Set(['HPE_CLOSED_CONNECTION']);
+    // ping/pingv6 (Fase 4): siempre INFO cuando la medición se completó —
+    // ICMP es descriptivo, nunca normativo (un servidor puede bloquear ICMP
+    // deliberadamente y estar perfectamente bien configurado), así que
+    // "responde"/"no responde" se muestran como hechos, no como PASS/FAIL.
+    function buildPingDetails(data) {
+        const details = [];
+        (data.results || []).forEach(r => {
+            if (r.state === 'blocked') { details.push(`${r.ip}: IP privada/reservada, no evaluada`); return; }
+            if (r.state === 'error') { details.push(`${r.ip}: error de medición (${r.error || r.errorCode || 'desconocido'})`); return; }
+            const label = r.reachable ? 'responde' : 'no responde';
+            const rtt = typeof r.rttAvgMs === 'number' ? ` — RTT medio ${r.rttAvgMs} ms` : '';
+            details.push(`${r.ip}: ${label} (${r.received}/${r.transmitted} paquetes)${rtt}`);
+        });
+        if (typeof data.totalPublicIps === 'number' && data.totalPublicIps > (data.sampledCount || 0)) {
+            details.push(`Muestra: ${data.sampledCount} de ${data.totalPublicIps} IP públicas encontradas.`);
+        }
+        return details.length ? details : ['Sin datos'];
+    }
+
     function classifyDataError(data) {
         if (CERTIFICATE_ERROR_CODES.has(data.error_code)) return 'FAIL';
         if (CONNECTION_REFUSED_CODES.has(data.error_code)) return 'FAIL';
@@ -2567,6 +2597,25 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                         return { label, status: 'FAIL', details };
                     }
                     return { label, status: 'PASS', details: `Puertos estándar: ${open.join(', ')}` };
+                }
+                case 'ping': {
+                    const data = await fetchWithTimeout(`${API_BASE}/ping/${ascii}`);
+                    if (data.error) return { label, status: classifyDataError(data), details: data.error };
+                    return { label, status: 'INFO', details: buildPingDetails(data) };
+                }
+                case 'pingv6': {
+                    const data = await fetchWithTimeout(`${API_BASE}/pingv6/${ascii}`);
+                    if (data.error) {
+                        // El propio nodo de medición carece de conectividad IPv6 real
+                        // (verificado con os.networkInterfaces() en el backend, no
+                        // inferido de la existencia de AAAA) — no es un hallazgo sobre
+                        // el dominio, es una limitación conocida de este nodo.
+                        if (data.error_code === 'PINGV6_NODE_NO_IPV6') {
+                            return { label, status: 'INCONCLUSIVE', details: data.error };
+                        }
+                        return { label, status: classifyDataError(data), details: data.error };
+                    }
+                    return { label, status: 'INFO', details: buildPingDetails(data) };
                 }
                 case 'redirectchain': {
                     const data = await fetchWithTimeout(`${API_BASE}/redirectchain/${ascii}`);

@@ -53,6 +53,13 @@ const net = require('net');
 const https = require('https');
 const http2 = require('http2');
 const tls = require('tls');
+const os = require('os');
+// Se mantiene la referencia al módulo completo (no se desestructura
+// execFile) por el mismo motivo que safeWebFetchAdapter arriba: permite que
+// los tests reemplacen childProcess.execFile con un mock sin tocar ningún
+// binario real (ping no existe siquiera en el contenedor actual — ver
+// IMPLEMENTACION_MEDICIONES_FASE4_PING.md).
+const childProcess = require('child_process');
 const { domainToASCII } = require('url');
 const { URL } = require('url');
 const fs = require('fs');
@@ -1547,6 +1554,201 @@ async function handleW3C(domain, res) {
       lastLine: m.lastLine || null
     }))
   });
+}
+
+// Fase 4 (2026-09-16) — check ICMP ping/pingv6. Auditoría completa en
+// IMPLEMENTACION_MEDICIONES_FASE4_PING.md. Puntos clave que difieren de la
+// implementación de Paraguay/upstream (que ejecuta `ping <dominio>`
+// directamente, dejando que el propio binario resuelva DNS sin ningún
+// guard de IP privada, y que trata cualquier 100% de pérdida — incluida
+// una simple negativa de ICMP por firewall, algo perfectamente normal y
+// seguro — como "fail" del dominio):
+//   - Nunca se ejecuta ping contra el dominio ni contra una cadena de
+//     usuario: se resuelve primero, se filtran las IPs privadas/reservadas
+//     (mismo guard que ya usa rpki en Fase 2) y solo se hace ping contra
+//     direcciones IP ya validadas por net.isIP() vía dns.resolve4/resolve6.
+//   - execFile (nunca exec/shell) con argumentos en un array — sin
+//     concatenación de strings, sin forma de que un "dominio" malicioso se
+//     interprete como flag adicional o metacarácter de shell.
+//   - Ausencia de respuesta ICMP nunca se convierte en FAIL: es un check
+//     puramente descriptivo (ver semántica en el documento de la fase).
+//   - Diagnosticado en vivo contra server1 (host y contenedor Docker,
+//     2026-09-16): el contenedor de MEDICIONES no tiene el binario `ping`
+//     instalado en absoluto (ENOENT) y el host, aunque sí puede pingear,
+//     NO tiene conectividad IPv6 real hacia Internet (solo link-local en
+//     la interfaz física y una ULA de Tailscale) — ping/pingv6 se
+//     implementan completos y correctos, pero quedan deshabilitados por
+//     defecto (mismo patrón que STARTTLS en Fase 1) hasta que el
+//     contenedor incluya iputils-ping, decisión explícitamente fuera de
+//     alcance de esta fase.
+const MAX_PING_IPS = 3;
+const PING_PACKET_COUNT = 3;
+const PING_TIMEOUT_MS = 8000;
+
+function execFileAsync(file, args, options) {
+  return new Promise((resolve, reject) => {
+    childProcess.execFile(file, args, options, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+// Ninguna interfaz no-interna con una dirección IPv6 pública (se filtran
+// link-local/ULA/loopback con el mismo isBlockedIp ya usado para IPs de
+// dominios) implica que este nodo, en sí mismo, no tiene salida IPv6 real
+// — no se infiere de la existencia de registros AAAA de ningún dominio, se
+// verifica la propia configuración de red del proceso Node.
+function hasGlobalIPv6() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      const family = String(iface.family);
+      if (family !== '6' && family !== 'IPv6') continue;
+      if (iface.internal) continue;
+      if (safeWebFetchAdapter.isBlockedIp(iface.address)) continue;
+      return true;
+    }
+  }
+  return false;
+}
+
+function parsePingSummary(stdout) {
+  const lines = String(stdout || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  const summaryLine = lines.find(line => /packet loss|packets transmitted/i.test(line)) || '';
+  const rttLine = lines.find(line => /min\/avg\/max/i.test(line)) || '';
+  const transmitted = Number((summaryLine.match(/(\d+)\s+packets transmitted/i) || [])[1] || 0);
+  const received = Number((summaryLine.match(/(\d+)\s+(?:packets )?received/i) || [])[1] || 0);
+  const loss = Number((summaryLine.match(/(\d+(?:\.\d+)?)%\s*packet loss/i) || [])[1] || 0);
+  const rttParts = (rttLine.match(/=\s*([^ ]+)/) || [])[1] || '';
+  const avg = Number(rttParts.split('/')[1]);
+  return {
+    reachable: received > 0,
+    transmitted,
+    received,
+    lossPercent: loss,
+    rttAvgMs: Number.isFinite(avg) ? avg : null
+  };
+}
+
+// Prueba, en orden, los binarios/flags conocidos para cada familia — misma
+// técnica de "candidatos" que Paraguay (portabilidad real entre distros:
+// BusyBox/Alpine trae ping6 separado, iputils moderno usa `ping -6`), pero
+// SOLO contra una IP ya resuelta y validada, nunca contra un hostname.
+async function pingOneAddress(ip, family) {
+  if (net.isIP(ip) !== family) {
+    throw Object.assign(new Error('IP inesperada para la familia solicitada'), { code: 'PING_EXEC_ERROR' });
+  }
+  const packetArgs = ['-c', String(PING_PACKET_COUNT), '-n', '-W', '2', ip];
+  const candidates = family === 6
+    ? [['ping6', packetArgs], ['ping', ['-6', ...packetArgs]]]
+    : [['ping', packetArgs]];
+
+  let lastError = null;
+  for (const [cmd, args] of candidates) {
+    try {
+      const { stdout } = await execFileAsync(cmd, args, { timeout: PING_TIMEOUT_MS });
+      return parsePingSummary(stdout);
+    } catch (e) {
+      // Salida distinta de 0 con stdout real (típicamente 100% de pérdida)
+      // es una medición completada, no un fallo de ejecución — se acepta
+      // igual que una salida 0, sin reintentar el siguiente candidato.
+      if (e.code !== 'ENOENT' && typeof e.stdout === 'string' && e.stdout.trim()) {
+        return parsePingSummary(e.stdout);
+      }
+      lastError = e;
+    }
+  }
+  const code = lastError && lastError.code === 'ENOENT' ? 'PING_BINARY_NOT_FOUND' : 'PING_EXEC_ERROR';
+  throw Object.assign(new Error('No se pudo ejecutar ping en este nodo'), { code });
+}
+
+async function runIcmpCheck(domain, family, res) {
+  domain = normalizeDomain(domain);
+
+  if (family === 6 && !hasGlobalIPv6()) {
+    return sendJSON(res, 200, {
+      domain,
+      error: 'Este nodo de medición no tiene conectividad IPv6 real hacia Internet',
+      error_code: 'PINGV6_NODE_NO_IPV6'
+    });
+  }
+
+  const { v4, v6 } = await resolveAddresses(domain);
+  const ips = family === 6 ? v6 : v4;
+
+  if (!ips.length) {
+    let code = family === 6 ? 'PINGV6_NO_AAAA' : 'PING_NO_A';
+    if (!v4.length && !v6.length) {
+      // Ninguna familia resolvió — puede ser un dominio que no existe en
+      // absoluto (no es NOT_APPLICABLE, es un fallo de medición real) o una
+      // zona real delegada sin ningún registro de dirección.
+      const realZoneNoAddress = await domainHasNoAddressButIsRealZone(domain);
+      if (!realZoneNoAddress) code = 'ENOTFOUND';
+    }
+    return sendJSON(res, 200, {
+      domain,
+      error: `El dominio no tiene registros ${family === 6 ? 'AAAA' : 'A'}`,
+      error_code: code
+    });
+  }
+
+  const publicIps = [];
+  const blockedIps = [];
+  for (const ip of ips) {
+    if (safeWebFetchAdapter.isBlockedIp(ip)) blockedIps.push(ip);
+    else publicIps.push(ip);
+  }
+  const sampled = publicIps.slice(0, MAX_PING_IPS);
+
+  const results = blockedIps.map(ip => ({ ip, family, state: 'blocked' }));
+  for (const ip of sampled) {
+    try {
+      const summary = await pingOneAddress(ip, family);
+      results.push({ ip, family, state: 'measured', ...summary });
+    } catch (e) {
+      if (e.code === 'PING_BINARY_NOT_FOUND') {
+        return sendJSON(res, 200, {
+          domain,
+          error: 'ping no está disponible en este nodo de medición',
+          error_code: 'PING_BINARY_NOT_FOUND'
+        });
+      }
+      results.push({ ip, family, state: 'error', error: errorMessage(e), errorCode: e.code });
+    }
+  }
+
+  sendJSON(res, 200, {
+    domain,
+    family,
+    sampledCount: sampled.length,
+    totalPublicIps: publicIps.length,
+    results
+  });
+}
+
+async function handlePing(domain, res) {
+  try {
+    await runIcmpCheck(domain, 4, res);
+  } catch (e) {
+    sendJSON(res, 200, { domain: normalizeDomain(domain), error: errorMessage(e), error_code: e && e.code });
+  }
+}
+
+async function handlePingV6(domain, res) {
+  try {
+    await runIcmpCheck(domain, 6, res);
+  } catch (e) {
+    sendJSON(res, 200, { domain: normalizeDomain(domain), error: errorMessage(e), error_code: e && e.code });
+  }
 }
 
 async function handleHeaders(domain, res) {
@@ -4016,6 +4218,8 @@ if (parsed.pathname === "/dnssec-analysis") {
   if (segments[0] === 'rpki' && segments[1]) return handleRpki(segments[1], res);
   if (segments[0] === 'whois' && segments[1]) return handleWhois(segments[1], res);
   if (segments[0] === 'w3c' && segments[1]) return handleW3C(segments[1], res);
+  if (segments[0] === 'ping' && segments[1]) return handlePing(segments[1], res);
+  if (segments[0] === 'pingv6' && segments[1]) return handlePingV6(segments[1], res);
   if (segments[0] === 'headers' && segments[1]) return handleHeaders(segments[1], res);
   if (segments[0] === 'caa' && segments[1]) return handleCaa(segments[1], res);
   if (segments[0] === 'tlsa' && segments[1]) return handleTlsa(segments[1], res);
@@ -4122,8 +4326,9 @@ if (require.main === module) {
 }
 
 // Exports mínimos para tests (2026-09-15/16) — los 3 checks de correo de
-// la fase 1, rpki/routing de la fase 2, y w3c de la fase 3 — para poder
-// probarlos con dns/net/https mockeados sin levantar el servidor completo.
+// la fase 1, rpki/routing de la fase 2, w3c de la fase 3, y ping/pingv6 de
+// la fase 4 — para poder probarlos con dns/net/https/child_process
+// mockeados sin levantar el servidor completo ni ejecutar binarios reales.
 // No cambia ningún comportamiento existente.
 module.exports = {
   handleMailDnssec,
@@ -4134,5 +4339,9 @@ module.exports = {
   rpkiValidity,
   ipToCymruQuery,
   resolveOriginRoutesViaCymru,
-  handleW3C
+  handleW3C,
+  handlePing,
+  handlePingV6,
+  hasGlobalIPv6,
+  MAX_PING_IPS
 };

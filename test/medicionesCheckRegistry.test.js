@@ -3,11 +3,11 @@
 /**
  * Verifica la integridad del registro de checks de MEDICIONES tras varias
  * fases: Fase 1 (maildnssec, mailipv6, starttls), Fase 2 (rpki enriquecido,
- * sin check nuevo) y Fase 3 (w3c, reescrito y ahora sí registrado en
- * groupDefinitions):
+ * sin check nuevo), Fase 3 (w3c) y Fase 4 (ping, pingv6 — deshabilitados
+ * por defecto, ver IMPLEMENTACION_MEDICIONES_FASE4_PING.md):
  *
- *   - groupDefinitions (index.html) contiene exactamente 58 checks (57 +
- *     w3c), sin duplicados.
+ *   - groupDefinitions (index.html) contiene exactamente 60 checks (58 +
+ *     ping + pingv6), sin duplicados.
  *   - Cada clave de groupDefinitions tiene una ruta de despacho
  *     correspondiente en server.js (segments[0] === '<key>').
  *
@@ -82,8 +82,8 @@ function run() {
   }
 
   // ── Conteo exacto ──
-  assert.strictEqual(allKeys.length, 58, `Se esperaban 58 checks, se encontraron ${allKeys.length}`);
-  console.log('PASS conteo_58_checks');
+  assert.strictEqual(allKeys.length, 60, `Se esperaban 60 checks, se encontraron ${allKeys.length}`);
+  console.log('PASS conteo_60_checks');
 
   // ── Sin duplicados ──
   const seen = new Set();
@@ -95,10 +95,10 @@ function run() {
   assert.deepStrictEqual(dupes, [], `Claves duplicadas en groupDefinitions: ${dupes.join(', ')}`);
   console.log('PASS sin_duplicados');
 
-  // ── Los 3 nuevos de Fase 1 + w3c de Fase 3 están presentes ──
+  // ── Los checks nuevos de las fases 1, 3 y 4 están presentes ──
   // (rpki de Fase 2 no está acá porque no es un check nuevo: se enriqueció
   // el existente, ver IMPLEMENTACION_MEDICIONES_FASE2_ROUTING_RPKI.md)
-  for (const key of ['maildnssec', 'mailipv6', 'starttls', 'w3c']) {
+  for (const key of ['maildnssec', 'mailipv6', 'starttls', 'w3c', 'ping', 'pingv6']) {
     assert.ok(seen.has(key), `Falta el check nuevo "${key}" en groupDefinitions`);
   }
   console.log('PASS nuevos_checks_presentes');
@@ -112,12 +112,12 @@ function run() {
   // ── Los checks nuevos, específicamente, sí tienen ruta backend propia
   // (no comparten bundle — a diferencia de otros checks preexistentes) ──
   const serverRoutes = extractServerRouteKeys(serverJs);
-  for (const key of ['maildnssec', 'mailipv6', 'starttls', 'w3c']) {
+  for (const key of ['maildnssec', 'mailipv6', 'starttls', 'w3c', 'ping', 'pingv6']) {
     assert.ok(serverRoutes.has(key), `El check nuevo "${key}" debería tener su propia ruta backend (segments[0] === '${key}')`);
   }
   console.log('PASS nuevos_checks_tienen_ruta_backend_propia');
 
-  console.log('\nOK — registro de checks de MEDICIONES íntegro (58, sin duplicados, todos con handler).');
+  console.log('\nOK — registro de checks de MEDICIONES íntegro (60, sin duplicados, todos con handler).');
 }
 
 run();
