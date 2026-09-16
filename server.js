@@ -77,6 +77,7 @@ const { fetchSafePage, resolveFinalWebTarget } = safeWebFetchAdapter;
 const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
+const routeCache = new Map();
 
 // FASE 2 (2026-09-12): la cuota de PageSpeed es compartida por TODO el
 // proceso (una sola API key), no por dominio — si se agota en el primer
@@ -1215,42 +1216,127 @@ async function fetchWebsite(domain) {
   }
 }
 
-async function rpkiValidity(ip) {
-  try {
-    const info = await fetchJSON(
-      `https://stat.ripe.net/data/network-info/data.json?resource=${ip}`
-    );
-    const prefix =
-      info?.data?.prefix || info?.data?.resources?.[0] || info?.data?.resource;
-    // RIPEstat devuelve el ASN como string (ej. "13335"), no number ni object.
-    const asnEntry = info?.data?.asns?.[0];
-    const asn =
-      typeof asnEntry === 'number'
-        ? asnEntry
-        : typeof asnEntry === 'string'
-        ? parseInt(asnEntry, 10) || null
-        : typeof asnEntry === 'object' && asnEntry
-        ? asnEntry.asn || asnEntry.id || null
-        : null;
+// Team Cymru IP-to-ASN (origin.asn.cymru.com / origin6.asn.cymru.com):
+// servicio DNS público construido sobre los feeds BGP propios de Cymru.
+// Puede exponer MÚLTIPLES pares {asn, prefix} para una misma IP cuando más
+// de un origen anuncia el mismo prefijo (señal de MOAS / posible secuestro
+// de ruta) — visibilidad que RIPEstat network-info no da (entrega un solo
+// ASN "elegido", sin indicar si hay otros orígenes observados). Formato de
+// consulta replicado desde Paraguay/upstream (fase 2, ver auditoría) tras
+// confirmar que es correcto para IPv4 e IPv6 (IPv6 se indexa por /48).
+function ipToCymruQuery(ipIn) {
+  const family = net.isIP(ipIn);
+  if (family === 4) {
+    const octets = String(ipIn).split('.').slice(0, 3).reverse();
+    return `${octets.join('.')}.origin.asn.cymru.com`;
+  }
+  if (family === 6) {
+    const [left, right = ''] = String(ipIn).toLowerCase().split('::');
+    const leftParts = left ? left.split(':').filter(Boolean) : [];
+    const rightParts = right ? right.split(':').filter(Boolean) : [];
+    const fill = Math.max(0, 8 - leftParts.length - rightParts.length);
+    const expanded = [...leftParts, ...Array(fill).fill('0'), ...rightParts]
+      .map(part => part.padStart(4, '0'))
+      .join('');
+    const hex = expanded.padEnd(32, '0').slice(0, 12);
+    return `${hex.split('').reverse().join('.')}.origin6.asn.cymru.com`;
+  }
+  return null;
+}
 
-    let state = 'unknown';
-
-    // La validación real requiere ASN de origen + prefijo; sin ASN no se puede
-    // determinar validity (la API de Cloudflare RPKI usada antes aquí ya no
-    // existe — devuelve 404 en cualquier formato de URL, se retiró).
-    if (asn && prefix) {
-      try {
-        const ripe = await fetchJSON(
-          `https://stat.ripe.net/data/rpki-validation/data.json?resource=${asn}&prefix=${encodeURIComponent(prefix)}`
-        );
-        if (ripe?.data?.status) state = String(ripe.data.status).toLowerCase();
-      } catch (e) {}
+async function resolveOriginRoutesViaCymru(ip) {
+  const cached = cacheGet(routeCache, `cymru:${ip}`, 10 * 60 * 1000);
+  if (cached) return cached;
+  const query = ipToCymruQuery(ip);
+  if (!query) return [];
+  const txt = await dns.resolveTxt(query);
+  const rows = txt.flat().map(String).filter(Boolean);
+  const routes = [];
+  for (const row of rows) {
+    const [left, right] = row.split('|').map(part => part && part.trim());
+    if (!left || !right) continue;
+    for (const asnText of left.split(' ').map(part => part.trim()).filter(Boolean)) {
+      const asn = parseInt(asnText, 10);
+      if (asn) routes.push({ asn, prefix: right });
     }
+  }
+  cacheSet(routeCache, `cymru:${ip}`, routes);
+  return routes;
+}
 
-    if (!['valid', 'invalid'].includes(state)) state = 'unknown';
-    return { state, asn: asn || null, prefix: prefix || null };
+async function rpkiValidity(ip) {
+  // Nunca se envía una IP privada/interna a Cymru/RIPEstat: no existe BGP ni
+  // ROA real para RFC1918/loopback/enlace-local/etc., así que consultarlas
+  // solo desperdicia llamadas y filtra topología interna a un tercero. Se
+  // reporta 'blocked' sin salir a red — distinto de 'error' o 'unknown' para
+  // no esconder la razón de la ausencia de veredicto.
+  if (safeWebFetchAdapter.isBlockedIp(ip)) {
+    return { state: 'blocked', asn: null, prefix: null, routes: [] };
+  }
+
+  let routes = [];
+  try {
+    routes = await resolveOriginRoutesViaCymru(ip);
   } catch (e) {
-    return { state: 'error', asn: null };
+    routes = [];
+  }
+
+  let asn = null;
+  let prefix = null;
+  let originLookupFailed = false;
+
+  if (routes.length) {
+    ({ asn, prefix } = routes[0]);
+  } else {
+    // La validación real requiere ASN de origen + prefijo; sin ruta vía Cymru
+    // se recurre a RIPEstat network-info (la API de Cloudflare RPKI usada
+    // antes aquí ya no existe — devuelve 404 en cualquier formato de URL).
+    try {
+      const info = await fetchJSON(
+        `https://stat.ripe.net/data/network-info/data.json?resource=${ip}`
+      );
+      prefix = info?.data?.prefix || info?.data?.resources?.[0] || info?.data?.resource || null;
+      // RIPEstat devuelve el ASN como string (ej. "13335"), no number ni object.
+      const asnEntry = info?.data?.asns?.[0];
+      asn =
+        typeof asnEntry === 'number'
+          ? asnEntry
+          : typeof asnEntry === 'string'
+          ? parseInt(asnEntry, 10) || null
+          : typeof asnEntry === 'object' && asnEntry
+          ? asnEntry.asn || asnEntry.id || null
+          : null;
+    } catch (e) {
+      originLookupFailed = true;
+    }
+  }
+
+  if (!asn || !prefix) {
+    // Sin ASN/prefijo de origen no hay par que validar contra ROAs. Si ambas
+    // fuentes (Cymru y RIPEstat network-info) fallaron por completo, es un
+    // error de medición real — no lo mismo que "no se observó ninguna ruta".
+    return { state: originLookupFailed ? 'error' : 'unknown', asn: null, prefix: null, routes };
+  }
+
+  try {
+    const ripe = await fetchJSON(
+      `https://stat.ripe.net/data/rpki-validation/data.json?resource=${asn}&prefix=${encodeURIComponent(prefix)}`
+    );
+    const rawStatus = String(ripe?.data?.status || '').toLowerCase();
+    // Vocabulario real de RIPEstat/routinator (verificado en vivo contra la
+    // API, 2026-09-15): 'valid' | 'invalid_asn' | 'invalid_length' | 'unknown'
+    // — nunca el literal "invalid". El check anterior de Ecuador solo
+    // reconocía 'invalid' exacto, así que un resultado realmente inválido
+    // caía siempre a 'unknown' y jamás producía FAIL. Se preserva el estado
+    // específico (invalid_asn / invalid_length) en vez de colapsarlo.
+    const state = ['valid', 'invalid_asn', 'invalid_length', 'unknown'].includes(rawStatus)
+      ? rawStatus
+      : 'unknown';
+    return { state, asn, prefix, routes };
+  } catch (e) {
+    // La validación ROA en sí falló (red/timeout/formato): se conoce el par
+    // ASN/prefijo pero no su estado — error de medición, no "sin ROA".
+    return { state: 'error', asn, prefix, routes };
   }
 }
 
@@ -1270,10 +1356,14 @@ async function handleRpki(domain, res) {
     }
     const results = [];
     for (const ip of ips) {
-      const { state, asn, prefix } = await rpkiValidity(ip);
-      results.push({ ip, state, asn, prefix });
+      const { state, asn, prefix, routes } = await rpkiValidity(ip);
+      results.push({ ip, family: v4.includes(ip) ? 4 : 6, state, asn, prefix, routes: routes || [] });
     }
-    const overall = results.length && results.every(r => r.state === 'valid');
+    // 'blocked' (IP privada, nunca consultada a terceros) no cuenta ni a
+    // favor ni en contra de la validez global — solo los IPs efectivamente
+    // evaluados determinan `valid`.
+    const evaluated = results.filter(r => r.state !== 'blocked');
+    const overall = evaluated.length > 0 && evaluated.every(r => r.state === 'valid');
     sendJSON(res, 200, { domain, results, valid: Boolean(overall) });
   } catch (e) {
     sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
@@ -3952,7 +4042,18 @@ if (require.main === module) {
   server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-// Exports mínimos para tests (2026-09-15) — únicamente los 3 checks nuevos
-// de correo de esta fase, para poder probarlos con dns/net mockeados sin
-// levantar el servidor completo. No cambia ningún comportamiento existente.
-module.exports = { handleMailDnssec, handleMailIpv6, handleStarttls, MAX_MX_PROBED };
+// Exports mínimos para tests (2026-09-15) — los 3 checks de correo de la
+// fase 1 más rpki/routing de la fase 2 (esta última reutiliza rpkiValidity,
+// no crea un check nuevo — ver IMPLEMENTACION_MEDICIONES_FASE2_ROUTING_RPKI.md),
+// para poder probarlos con dns/net/https mockeados sin levantar el servidor
+// completo. No cambia ningún comportamiento existente.
+module.exports = {
+  handleMailDnssec,
+  handleMailIpv6,
+  handleStarttls,
+  MAX_MX_PROBED,
+  handleRpki,
+  rpkiValidity,
+  ipToCymruQuery,
+  resolveOriginRoutesViaCymru
+};

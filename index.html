@@ -1945,7 +1945,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         dnsrecords: 'Consulta registros DNS principales: A, AAAA, MX, NS, TXT y CNAME.',
         txtrecords: 'Lista registros TXT publicados en el dominio, usados para políticas y verificaciones.',
         dnsserver: 'Lista los servidores NS autoritativos declarados para el dominio.',
-        rpki: 'Valida si la IP observada tiene cobertura RPKI válida para el prefijo y ASN de origen.',
+        rpki: 'Para cada IP (v4/v6) del dominio, identifica el ASN/prefijo de origen (Team Cymru, con respaldo en RIPEstat) y valida ese par contra los ROA vigentes (RIPEstat rpki-validation): válido, inválido (ASN o longitud no autorizados) o sin ROA publicado. Muestra también otros orígenes observados para el mismo prefijo cuando existen (posible anuncio múltiple).',
         caa: 'Busca registros CAA, que indican qué autoridades certificadoras pueden emitir certificados para el dominio.',
         tlsa: 'Busca registros TLSA/DANE para vincular certificados TLS con DNSSEC.',
         mx: 'Comprueba si el dominio tiene registros MX para recibir correo.',
@@ -2968,15 +2968,43 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
                     const data = await fetchWithTimeout(`${API_BASE}/rpki/${ascii}`);
                     if (data.error) return { label, status: classifyDataError(data), details: data.error };
                     if (!data.results?.length) return { label, status: 'MEASUREMENT_ERROR', details: 'Sin datos' };
+                    // Vocabulario real de RIPEstat/routinator: valid / invalid_asn /
+                    // invalid_length / unknown (ausencia de ROA — nunca se trata como
+                    // FAIL) — más 'blocked' (IP privada, no consultada a terceros) y
+                    // 'error' (falló la medición en sí, distinto de "sin ROA").
+                    const RPKI_STATE_LABEL = {
+                        valid: 'válido',
+                        invalid_asn: 'inválido (ASN no autorizado por ningún ROA)',
+                        invalid_length: 'inválido (excede la longitud de prefijo autorizada por el ROA)',
+                        unknown: 'sin ROA / no encontrado',
+                        error: 'error de medición',
+                        blocked: 'IP privada, no evaluada'
+                    };
                     const details = data.results.map(r => {
-                        const state = r.state === 'valid' ? 'válido' : r.state === 'invalid' ? 'inválido' : 'desconocido';
+                        const stateText = RPKI_STATE_LABEL[r.state] || 'desconocido';
                         const asn = r.asn ? ` AS${r.asn}` : '';
                         const prefix = r.prefix ? ` (${r.prefix})` : '';
-                        return `${r.ip}: ${state}${asn}${prefix}`;
+                        const family = r.family ? ` [IPv${r.family}]` : '';
+                        const moas = Array.isArray(r.routes) && r.routes.length > 1
+                            ? ` — orígenes observados: ${r.routes.map(rt => `AS${rt.asn} ${rt.prefix}`).join(', ')}`
+                            : '';
+                        return `${r.ip}${family}: ${stateText}${asn}${prefix}${moas}`;
                     });
-                    let status = 'INFO';
-                    if (data.results.some(r => r.state === 'invalid')) status = 'FAIL';
-                    else if (data.results.some(r => r.state === 'valid')) status = data.valid ? 'PASS' : 'INFO';
+                    // 'blocked' no participa del veredicto (nunca se evaluó contra
+                    // terceros); si son todos los IPs, el check no aplica de verdad.
+                    const evaluated = data.results.filter(r => r.state !== 'blocked');
+                    let status;
+                    if (data.results.some(r => r.state === 'invalid_asn' || r.state === 'invalid_length')) {
+                        status = 'FAIL';
+                    } else if (!evaluated.length) {
+                        status = 'NOT_APPLICABLE';
+                    } else if (evaluated.every(r => r.state === 'error')) {
+                        status = 'MEASUREMENT_ERROR';
+                    } else if (evaluated.every(r => r.state === 'valid')) {
+                        status = 'PASS';
+                    } else {
+                        status = 'INFO';
+                    }
                     return { label, status, details };
                 }
                 case 'domaininfo': {
