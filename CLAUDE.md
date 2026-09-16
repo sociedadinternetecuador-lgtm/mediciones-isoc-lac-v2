@@ -91,19 +91,22 @@ node test/dnsValidation.live.pythonCompare.js <domains.txt> <validacion_dns.csv 
 PORT=3500 node server.js
 
 # Desplegar a server1 (.env NUNCA va en este tar — vive solo en server1)
-# 2026-09-16: la lista de directorios estaba incompleta desde que se agregó
-# el módulo DNSSEC — faltaban aggregate/, config/ y services/ (los 3 son
-# dependencias reales de server.js vía require(), no opcionales). Encontrado
-# al desplegar y correr `npm test` *dentro* del contenedor de producción
-# después de un deploy (paso que antes no se hacía de forma sistemática):
-# config/dnssec.constants.js seguía con "READY" (ya eliminado localmente) y
-# services/dnssec.service.js seguía con la rama BROKEN ya eliminada — ambos
-# quedaron desincronizados en silencio durante varias fases porque el tar
-# nunca los tocaba. aggregate/ no había drifteado todavía (por suerte, no
-# por diseño) pero tiene el mismo problema estructural. Verificar SIEMPRE
-# con `npm test` dentro del contenedor tras desplegar, no solo localmente.
-tar -cf - -C "/c/PROJECTS/MEDICIONES" index.html admin.html server.js logic routes services config aggregate test package.json package-lock.json scripts .env.example \
-  | ssh server1 "tar -xf - -C ~/projects/MEDICIONES"
+# 2026-09-16: la lista de directorios a mano (index.html admin.html
+# server.js logic routes test ...) llevaba tiempo incompleta — faltaban
+# aggregate/, config/, services/ (los tres son dependencias reales de
+# server.js vía require(), no opcionales) y, por separado, public/ entero
+# (incluye public/i18n.js). Cada gap se coló en silencio: config/services
+# quedaron con código DNSSEC ya eliminado localmente (sin fallar ningún
+# test — el código muerto no cambia comportamiento observable), y
+# public/i18n.js quedó sin las claves del rediseño de Inicio del
+# 2026-09-13 — eso sí rompió la UI en vivo (claves crudas en pantalla,
+# ej. "inicio.hero.lead"), detectado por el usuario en producción, no por
+# ningún test. Cambiado a `git ls-files`: despliega exactamente los
+# archivos trackeados en git, así que agregar un directorio nuevo nunca
+# vuelve a exigir acordarse de tocar este comando. Requiere que TODO
+# archivo de producción esté con `git add` (si algo nuevo no aparece tras
+# desplegar, lo primero a revisar es si quedó sin trackear).
+git ls-files -z | tar --null -T - -cf - | ssh server1 "tar -xf - -C ~/projects/MEDICIONES"
 ssh server1 "cd ~/projects/MEDICIONES && docker compose up -d --build"
 ssh server1 "docker exec mediciones npm test"
 ```

@@ -8,6 +8,13 @@ data/measurements/
 # reproducible ejecutando la medición de nuevo, no se versiona.
 data/baseline/
 
+# Caché de la Public Suffix List (descargada en runtime, se regenera sola)
+# — quedó trackeada por error. En producción la recrea el propio proceso
+# como root (bind mount de data/), lo que hace que un usuario no-root no
+# pueda sobreescribirla al desplegar (2026-09-16: esto rompió un deploy a
+# mitad de camino con "Cannot open: File exists").
+data/psl_cache/
+
 # Bytecode de Python (validador/), se regenera solo.
 __pycache__/
 *.pyc
