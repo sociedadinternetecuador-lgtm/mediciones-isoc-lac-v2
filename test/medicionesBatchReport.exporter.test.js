@@ -19,6 +19,21 @@ function assertFrontmatter(markdown) {
   assert.ok(/subtitle:\s*"/.test(block), 'frontmatter debe incluir subtitle');
   assert.ok(/author:\s*"/.test(block), 'frontmatter debe incluir author');
   assert.ok(/contact:\s*".*mediciones\.isoc\.org\.ec.*info@isoc\.org\.ec/.test(block), 'la carátula debe incluir sitio web y correo de contacto');
+  assert.ok(/eyebrow:\s*".*Mediciones de Internet/.test(block), 'la carátula debe incluir el eyebrow del Grupo de Trabajo');
+  assert.ok(/description:\s*".*Internet Society/.test(block), 'la carátula debe incluir la descripción institucional');
+  assert.ok(/coordinated_by:\s*"Coordinado por:.*ISOC/.test(block), 'la carátula debe incluir los capítulos ISOC coordinadores');
+  assert.ok(/logo:\s*"data:image\/png;base64,/.test(block), 'la carátula debe incluir el logo embebido como data URI');
+}
+
+// El frontmatter YAML (título/subtítulo/autor/contacto/carátula, incluido
+// el logo institucional embebido como base64) es metadata fija de la
+// plantilla, no narrativa del reporte — y una cadena base64 es texto
+// pseudoaleatorio que puede coincidir por azar con cualquier palabra corta
+// (ej. "rojo" dentro de la codificación del logo). El escaneo de lenguaje
+// evaluativo debe correr solo sobre el cuerpo del documento.
+function stripFrontmatter(markdown) {
+  const closeIdx = markdown.indexOf('\n---\n', 4);
+  return closeIdx > 0 ? markdown.slice(closeIdx + 5) : markdown;
 }
 
 // A pedido explícito: el reporte NUNCA calcula ni compara nada sobre el
@@ -31,9 +46,10 @@ function assertNoDatasetAnalysis(markdown) {
   assert.ok(!markdown.includes('Validación DNS'), 'no debe reportar un resumen de Validación DNS del lote');
   assert.ok(!markdown.includes('DNSSEC agregado'), 'no debe reportar un DNSSEC agregado del lote');
   assert.ok(!markdown.includes('Resumen acumulado por check'), 'no debe reportar conteos Sí/No por check del lote');
+  const body = stripFrontmatter(markdown);
   assert.ok(
-    !/verde|amarill|rojo|semáforo|adopción|brecha|débil|sólid|crític|indicativo|confiable|muestra insuficiente/i.test(markdown),
-    'no debe usar lenguaje evaluativo/estadístico sobre el dataset en ninguna parte del reporte'
+    !/verde|amarill|rojo|semáforo|adopción|brecha|débil|sólid|crític|indicativo|confiable|muestra insuficiente/i.test(body),
+    'no debe usar lenguaje evaluativo/estadístico sobre el dataset en ninguna parte del cuerpo del reporte'
   );
   // La línea de DNSSEC por dominio debía reportar solo el estado técnico
   // crudo (final_status) — "riesgo"/"acción requerida" (executive_summary)
@@ -41,8 +57,8 @@ function assertNoDatasetAnalysis(markdown) {
   // medición, aunque el mapeo sea fijo por estado. Se quitaron (ver
   // AUDITORIA_MEDICIONES_TRACEROUTE.md § principios del reporte / pedido
   // explícito de "sin análisis ni narrativa").
-  assert.ok(!/riesgo:/i.test(markdown), 'no debe reportar "riesgo" (executive_summary.risk_level) en el detalle por dominio');
-  assert.ok(!/acción requerida/i.test(markdown), 'no debe reportar "acción requerida" (executive_summary.action_required) en el detalle por dominio');
+  assert.ok(!/riesgo:/i.test(body), 'no debe reportar "riesgo" (executive_summary.risk_level) en el detalle por dominio');
+  assert.ok(!/acción requerida/i.test(body), 'no debe reportar "acción requerida" (executive_summary.action_required) en el detalle por dominio');
 }
 
 // La sección "Cómo leer este reporte" es la ÚNICA narrativa permitida:

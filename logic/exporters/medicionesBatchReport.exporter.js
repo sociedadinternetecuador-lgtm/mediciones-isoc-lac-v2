@@ -1,5 +1,8 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 /**
  * Exportadores del reporte descargable de Mediciones (index.html,
  * medicionesBatchStart — flujo único desde 2026-09-11, antes había un
@@ -175,9 +178,29 @@ function truncate(value, maxLen) {
   return s.slice(0, maxLen - 1) + '…';
 }
 
-// Línea de contacto de la carátula (mismo texto para todo reporte de
-// Mediciones ISOC LAC generado por este exportador).
+// Campos fijos de la carátula (mismo texto/imagen para todo reporte de
+// Mediciones ISOC LAC generado por este exportador — no dependen del
+// dataset analizado, igual criterio que SYSTEM_LIMITATIONS más abajo).
 const REPORT_CONTACT = 'https://mediciones.isoc.org.ec  ·  info@isoc.org.ec';
+const REPORT_EYEBROW = 'Grupo de Trabajo de Mediciones de Internet';
+// Texto reutilizado de docs/GUIA_MEDICIONES_ISOC_LAC.md § "1. Introducción"
+// (condensado para caber en la carátula) — no se redactó contenido nuevo.
+const REPORT_DESCRIPTION = 'MEDICIONES ISOC LAC es una iniciativa de Internet Society en América Latina y el Caribe que genera información técnica abierta sobre el estado de la infraestructura de Internet en la región.';
+const REPORT_COORDINATED_BY = 'Coordinado por: ISOC Argentina, ISOC Ecuador, ISOC Panamá, ISOC Paraguay, ISOC Uruguay';
+
+// Logo institucional embebido como data URI: mdtopdf corre en un
+// contenedor aparte (server1:8600) sin acceso al filesystem de MEDICIONES
+// ni a su red — un <img src="/public/..."> no resolvería. Se lee una sola
+// vez al cargar el módulo, no en cada reporte. Si el archivo no está
+// disponible por algún motivo, se degrada a "sin logo" (el template lo
+// omite con $if(logo)$) en vez de romper la generación del reporte.
+const LOGO_PATH = path.join(__dirname, '..', '..', 'public', 'assets', 'ISOC_Logo_Dark-RGB.png');
+let REPORT_LOGO_DATA_URI = '';
+try {
+  REPORT_LOGO_DATA_URI = `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`;
+} catch (e) {
+  REPORT_LOGO_DATA_URI = '';
+}
 
 function frontmatter({ title, subtitle, author }) {
   const escYaml = (v) => String(v || '').replace(/"/g, '\\"');
@@ -187,6 +210,10 @@ function frontmatter({ title, subtitle, author }) {
     `subtitle: "${escYaml(subtitle)}"`,
     `author: "${escYaml(author)}"`,
     `contact: "${escYaml(REPORT_CONTACT)}"`,
+    `eyebrow: "${escYaml(REPORT_EYEBROW)}"`,
+    `description: "${escYaml(REPORT_DESCRIPTION)}"`,
+    `coordinated_by: "${escYaml(REPORT_COORDINATED_BY)}"`,
+    ...(REPORT_LOGO_DATA_URI ? [`logo: "${REPORT_LOGO_DATA_URI}"`] : []),
     '---',
     '',
   ].join('\n');
