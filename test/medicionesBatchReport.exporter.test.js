@@ -35,6 +35,14 @@ function assertNoDatasetAnalysis(markdown) {
     !/verde|amarill|rojo|semáforo|adopción|brecha|débil|sólid|crític|indicativo|confiable|muestra insuficiente/i.test(markdown),
     'no debe usar lenguaje evaluativo/estadístico sobre el dataset en ninguna parte del reporte'
   );
+  // La línea de DNSSEC por dominio debía reportar solo el estado técnico
+  // crudo (final_status) — "riesgo"/"acción requerida" (executive_summary)
+  // son una categorización de severidad y una recomendación, no una
+  // medición, aunque el mapeo sea fijo por estado. Se quitaron (ver
+  // AUDITORIA_MEDICIONES_TRACEROUTE.md § principios del reporte / pedido
+  // explícito de "sin análisis ni narrativa").
+  assert.ok(!/riesgo:/i.test(markdown), 'no debe reportar "riesgo" (executive_summary.risk_level) en el detalle por dominio');
+  assert.ok(!/acción requerida/i.test(markdown), 'no debe reportar "acción requerida" (executive_summary.action_required) en el detalle por dominio');
 }
 
 // La sección "Cómo leer este reporte" es la ÚNICA narrativa permitida:

@@ -218,10 +218,13 @@ function buildDomainSection(domainEntry, selectedChecks, checksMeta) {
     : '**DNS**: sin datos';
   lines.push(dnsLine);
 
+  // Solo el estado técnico crudo (final_status) — "riesgo"/"acción requerida"
+  // (executive_summary.risk_level/action_required) son una categorización de
+  // severidad y una recomendación, no una medición: el mismo criterio de "sin
+  // análisis del dataset" que rige el resto de este módulo (ver nota de
+  // cabecera) aplica también acá, aunque el mapeo sea fijo por estado.
   const dnssecLine = dnssecRaw
     ? `**DNSSEC**: ${dnssecRaw.final_status || 'N/D'}`
-      + ` · riesgo: ${dnssecRaw.executive_summary?.risk_level || 'N/D'}`
-      + ` · acción requerida: ${dnssecRaw.executive_summary?.action_required ? 'sí' : 'no'}`
     : (domainEntry?.dnssec?.error
       ? `**DNSSEC**: error — ${esc(domainEntry.dnssec.error)}`
       : '**DNSSEC**: sin datos');
