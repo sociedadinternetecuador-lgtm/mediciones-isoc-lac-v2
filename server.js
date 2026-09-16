@@ -2272,38 +2272,6 @@ async function handleOpenPorts(domain, res) {
   sendJSON(res, 200, { domain, ports: results });
 }
 
-// Check "Traceroute" retirado de la UI (index.html, 2026-09-09): dependía
-// de api.hackertarget.com/mtr/, que ahora exige API key ("error valid key
-// required") de forma incondicional para cualquier dominio — confirmado
-// repetido y desde dos redes distintas, no es un límite de cuota diario
-// que se recupera solo. No hay alternativa gratuita equivalente (RIPEstat
-// looking-glass necesita un prefijo IP, no un dominio, y mide anuncios
-// BGP, no saltos de red reales; los demás endpoints de HackerTarget piden
-// key también). Ruta dejada sin tocar (mismo patrón que /emailconfig,
-// /httpsecurity, /dnssecurity, /tlsconfig), ahora inalcanzable desde la
-// UI. Ver docs/arquitectura.md.
-async function handleTraceroute(domain, res) {
-  domain = normalizeDomain(domain);
-  try {
-    const text = await fetchText(`https://api.hackertarget.com/mtr/?q=${domain}`);
-    if (!text || /api count exceeded/i.test(text) || /error/i.test(text)) {
-      return sendJSON(res, 200, {
-        domain,
-        error: 'Servicio no disponible (límite alcanzado)'
-      });
-    }
-    const hops = text
-      .split('\n')
-      .slice(1)
-      .filter(Boolean)
-      .map(line => line.trim())
-      .filter(line => /^\d+\./.test(line));
-    sendJSON(res, 200, { domain, hops });
-  } catch (e) {
-    sendJSON(res, 200, { domain, error: errorMessage(e), error_code: e && e.code });
-  }
-}
-
 async function handleCarbon(domain, res) {
   domain = normalizeDomain(domain);
   try {
@@ -4242,7 +4210,6 @@ if (parsed.pathname === "/dnssec-analysis") {
   if (segments[0] === 'serverstatus' && segments[1])
     return handleServerStatus(segments[1], res);
   if (segments[0] === 'openports' && segments[1]) return handleOpenPorts(segments[1], res);
-  if (segments[0] === 'traceroute' && segments[1]) return handleTraceroute(segments[1], res);
   if (segments[0] === 'carbon' && segments[1]) return handleCarbon(segments[1], res);
   if (segments[0] === 'serverinfo' && segments[1]) return handleServerInfo(segments[1], res);
   if (segments[0] === 'domaininfo' && segments[1]) return handleDomainInfo(segments[1], res);
