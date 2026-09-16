@@ -1,6 +1,10 @@
+// (2026-09-16) — "READY" se eliminó: computeDnssecConclusion() (logic/rules/
+// dnssec.rules.js) nunca lo producía (los 7 estados realmente alcanzables
+// son los que quedan abajo) — confirmado por grep antes de borrar, no
+// asumido. Ver AUDITORIA_DNSSEC_ECUADOR_METODOLOGIA_MOTOR.md e
+// IMPLEMENTACION_DNSSEC_AUDITORIA_CORE.md.
 const DNSSEC_FINAL_STATUS = {
   OK: "ok",
-  READY: "ready",
   NOT_IMPLEMENTED: "not_implemented",
   BLOCKED_AT_TLD: "blocked_at_tld",
   BLOCKED_AT_PARENT: "blocked_at_parent",

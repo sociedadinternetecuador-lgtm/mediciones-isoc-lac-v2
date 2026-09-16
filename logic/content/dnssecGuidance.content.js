@@ -44,29 +44,6 @@ function getDnssecGuidance(status) {
         call_to_action: "ISOC LAC recomienda identificar claramente a la capa responsable para orientar mejor la acción correctiva."
       };
 
-    case "ready":
-      return {
-        title: "Dominio listo para implementar DNSSEC",
-        diagnosis: "Las capas superiores permiten el despliegue de DNSSEC, pero el dominio aún no lo ha activado.",
-        why_it_matters: "El dominio puede mejorar su nivel de seguridad y confianza con una acción directa bajo control del operador.",
-        impact: "La ausencia de DNSSEC en este caso no se debe a bloqueo estructural, sino a una oportunidad pendiente de implementación.",
-        policy_angle: "Este tipo de hallazgo refleja una brecha de adopción y puede abordarse con lineamientos técnicos, incentivos o requisitos institucionales.",
-        standards: [
-          "NIST SP 800-81r3",
-          "RFC 9364",
-          "RFC 4033",
-          "RFC 4034",
-          "RFC 4035"
-        ],
-        recommendations: [
-          "Firmar la zona DNS del dominio.",
-          "Publicar DNSKEY y firmas correspondientes.",
-          "Registrar el DS en la zona padre.",
-          "Verificar la cadena completa de confianza."
-        ],
-        call_to_action: "ISOC LAC recomienda activar DNSSEC como medida prioritaria de fortalecimiento de confianza digital."
-      };
-
     case "misconfigured":
       return {
         title: "DNSSEC presente pero mal configurado",

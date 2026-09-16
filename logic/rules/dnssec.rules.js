@@ -50,6 +50,37 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
     parentZone
   };
 
+  // Zonas/delegaciones "ancestro": todo lo que está ESTRICTAMENTE entre el
+  // TLD y el padre inmediato del dominio (ambos excluidos), más la
+  // delegación entre el TLD y el padre inmediato (que antes tampoco se
+  // examinaba — solo se miraba la ÚLTIMA delegación, padre->dominio).
+  // Antes de esta corrección (2026-09-16), el motor solo examinaba
+  // tldZone y parentZone: una ruptura en cualquier zona/delegación
+  // intermedia de una cadena de 4+ niveles (ej. a.b.gob.ec, donde
+  // "gob.ec" está sin firmar pero "b.gob.ec" luce firmado) era
+  // completamente invisible — el dominio podía clasificarse "ok" aunque
+  // la cadena real, vista desde el TLD, nunca pudiera validar. Ver
+  // AUDITORIA_DNSSEC_ECUADOR_METODOLOGIA_MOTOR.md e
+  // IMPLEMENTACION_DNSSEC_AUDITORIA_CORE.md para el hallazgo original.
+  const ancestorZones = zoneList.slice(1, Math.max(1, zoneList.length - 2));
+  const ancestorDelegations = delegationList.slice(0, Math.max(0, delegationList.length - 1));
+  // .find() recorre en el mismo orden que zoneList/delegationList (TLD ->
+  // dominio), así que devuelve la zona/delegación más cercana al TLD — la
+  // causa raíz más útil de comunicar (arreglarla primero desbloquea todo
+  // lo que depende de ella).
+  const brokenAncestorZone = ancestorZones.find((z) => hasStatus(z?.status, ["unsigned"]));
+  const brokenAncestorDelegation = ancestorDelegations.find((d) => hasStatus(d?.status, ["insecure", "broken"]));
+  // "Ambiguo" = ni claramente firmado/seguro ni claramente roto (status
+  // "unknown") por un motivo que YA no cayó en hasHardErrors (evitar
+  // duplicar esa clasificación) — nunca se debe forzar un veredicto "ok"
+  // ignorando esta incertidumbre.
+  const ambiguousAncestorZone = ancestorZones.find(
+    (z) => hasStatus(z?.status, ["unknown"]) && !isHardQueryError(z?.query_status)
+  );
+  const ambiguousAncestorDelegation = ancestorDelegations.find(
+    (d) => hasStatus(d?.status, ["unknown"]) && !isHardQueryError(d?.query_status)
+  );
+
   const allQueryStatuses = [
     ...zoneList.map((z) => z?.query_status),
     ...delegationList.map((d) => d?.query_status),
@@ -136,6 +167,44 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
     };
   }
 
+  // 3.5) NUEVO (2026-09-16) — Bloqueo en una zona ancestro intermedia (ni
+  // el TLD ni el padre inmediato, sino algo entre ambos). Mismo
+  // significado estructural que "bloqueo en la zona padre": un enlace
+  // externo al propio dominio, fuera del control de su operador, impide
+  // completar la cadena — por eso se reutiliza el MISMO estado existente
+  // blocked_at_parent en vez de crear uno nuevo. Se reporta la zona más
+  // cercana al TLD (la causa raíz más útil de comunicar: arreglarla
+  // primero desbloquea todo lo que depende de ella).
+  if (brokenAncestorZone) {
+    const final_status = DNSSEC_FINAL_STATUS.BLOCKED_AT_PARENT;
+    return {
+      final_status,
+      readiness: DNSSEC_READINESS.BLOCKED_BY_PARENT,
+      blocking_level: "parent",
+      summary: `La zona ${brokenAncestorZone.zone}, en un nivel intermedio de la cadena hacia ${domainZone.zone}, no está firmada, bloqueando la cadena de confianza.`,
+      technical_summary: `La zona intermedia ${brokenAncestorZone.zone} no está firmada. El dominio no puede completar la cadena DNSSEC sin acción de esa capa.`,
+    };
+  }
+
+  // 3.6) NUEVO (2026-09-16) — Misma idea que 3.5, pero la ruptura está en
+  // la DELEGACIÓN entre dos zonas ancestro (una zona intermedia publica
+  // DNSKEY, pero el DS que la vincula con SU propia zona padre no es
+  // válido) — un patrón estructuralmente análogo a "DS sin DNSKEY"/"DNSKEY
+  // sin DS" a nivel del propio dominio (regla 6/8 más abajo), pero
+  // ocurriendo un nivel arriba. También se reporta como blocked_at_parent:
+  // desde la perspectiva del dominio analizado, es un problema externo,
+  // no de su propia configuración.
+  if (brokenAncestorDelegation) {
+    const final_status = DNSSEC_FINAL_STATUS.BLOCKED_AT_PARENT;
+    return {
+      final_status,
+      readiness: DNSSEC_READINESS.BLOCKED_BY_PARENT,
+      blocking_level: "parent",
+      summary: `La delegación de ${brokenAncestorDelegation.from} hacia ${brokenAncestorDelegation.to}, en un nivel intermedio de la cadena hacia ${domainZone.zone}, no es segura, bloqueando la cadena de confianza.`,
+      technical_summary: `Delegación intermedia ${brokenAncestorDelegation.from} -> ${brokenAncestorDelegation.to} sin DS válido. El dominio no puede completar la cadena DNSSEC sin acción de esa capa.`,
+    };
+  }
+
   // 4) Bloqueo en parent
   if (
     parentZone &&
@@ -149,6 +218,26 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
       blocking_level: "parent",
       summary: `La zona padre ${parentZone.zone} no está firmada, bloqueando la cadena de confianza hacia este dominio.`,
       technical_summary: `La zona padre ${parentZone.zone} no está firmada. El dominio no puede completar la cadena DNSSEC sin acción de esa capa.`,
+    };
+  }
+
+  // 4.5) NUEVO (2026-09-16) — Evidencia ambigua en una zona/delegación
+  // ancestro intermedia (status "unknown" no explicado por un error duro
+  // ya capturado arriba): nunca se fuerza un veredicto "ok" ignorando
+  // esta incertidumbre — cae en indeterminate, igual que cualquier otra
+  // evidencia insuficiente del motor (sección 6 del alcance de esta
+  // fase: "error de medición intermedio nunca debe transformarse
+  // falsamente en un veredicto técnico").
+  if (ambiguousAncestorZone || ambiguousAncestorDelegation) {
+    const final_status = DNSSEC_FINAL_STATUS.INDETERMINATE;
+    return {
+      final_status,
+      readiness: DNSSEC_READINESS.UNKNOWN,
+      blocking_level: "unknown",
+      summary: "No fue posible clasificar el estado DNSSEC de forma concluyente: hay evidencia insuficiente en un nivel intermedio de la cadena.",
+      technical_summary: ambiguousAncestorZone
+        ? `Estado no determinante en la zona intermedia ${ambiguousAncestorZone.zone} — no se puede confirmar si está firmada.`
+        : `Estado no determinante en la delegación intermedia ${ambiguousAncestorDelegation.from} -> ${ambiguousAncestorDelegation.to} — no se puede confirmar si es segura.`,
     };
   }
 
