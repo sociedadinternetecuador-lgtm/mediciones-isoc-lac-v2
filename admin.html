@@ -156,6 +156,10 @@
 
       <form onsubmit="return ged2026Import(event)" class="border border-gray-200 rounded-xl p-4 mb-6">
         <label class="field-label">Importar CSV (columnas: domain,category,source,notes)</label>
+        <div class="flex items-center gap-2 mb-2">
+          <input type="file" id="ged2026CsvFile" accept=".csv,text/csv" onchange="ged2026LoadFileIntoTextarea(this, 'ged2026CsvInput')" class="text-sm" />
+          <span class="text-xs text-gray-500">o pega el texto abajo</span>
+        </div>
         <textarea id="ged2026CsvInput" rows="4" class="field-input" placeholder="domain,category,source,notes&#10;ejemplo.gob.ec,gobierno,manual,"></textarea>
         <div class="flex items-center gap-3 mt-2">
           <button type="submit" class="btn-primary">Importar</button>
@@ -167,6 +171,10 @@
 
       <form onsubmit="return ged2026BulkUpdate(event)" class="border border-gray-200 rounded-xl p-4 mb-6">
         <label class="field-label">Actualización masiva (encabezado obligatorio; columnas reconocidas: domain, estado_seleccion, exclusion_reason, tipo_institucion, categoria, notas, fuente, institutional_relevance, critical_service, transactionality_level, traffic_source, traffic_rank, traffic_score, user_reach)</label>
+        <div class="flex items-center gap-2 mb-2">
+          <input type="file" id="ged2026BulkUpdateFile" accept=".csv,text/csv" onchange="ged2026LoadFileIntoTextarea(this, 'ged2026BulkUpdateInput')" class="text-sm" />
+          <span class="text-xs text-gray-500">o pega el texto abajo</span>
+        </div>
         <textarea id="ged2026BulkUpdateInput" rows="4" class="field-input" placeholder="domain,estado_seleccion,institutional_relevance,notas&#10;iess.gob.ec,shortlisted,alta,Institución nacional verificada"></textarea>
         <div class="flex items-center gap-3 mt-2">
           <button type="submit" class="btn-primary" style="background:#534AB7;">Actualizar en bloque</button>
@@ -469,6 +477,15 @@ async function ged2026SetEstadoSeleccion(id, estado_seleccion) {
   ged2026LoadDashboard();
 }
 
+function ged2026LoadFileIntoTextarea(fileInput, textareaId) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById(textareaId).value = reader.result; };
+  reader.onerror = () => alert('No se pudo leer el archivo.');
+  reader.readAsText(file, 'utf-8');
+}
+
 async function ged2026Import(event) {
   event.preventDefault();
   const csv = document.getElementById('ged2026CsvInput').value;
@@ -478,6 +495,7 @@ async function ged2026Import(event) {
   if (!ok) { reportEl.textContent = 'No se pudo importar: ' + (data.error || 'error desconocido'); return false; }
   reportEl.textContent = `Importados: ${data.importados} · Duplicados: ${data.duplicados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
   document.getElementById('ged2026CsvInput').value = '';
+  document.getElementById('ged2026CsvFile').value = '';
   ged2026LoadDomains();
   ged2026LoadDashboard();
   return false;
@@ -492,6 +510,7 @@ async function ged2026BulkUpdate(event) {
   if (!ok) { reportEl.textContent = 'No se pudo actualizar: ' + (data.error || 'error desconocido'); return false; }
   reportEl.textContent = `Actualizados: ${data.actualizados} · Creados: ${data.creados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
   document.getElementById('ged2026BulkUpdateInput').value = '';
+  document.getElementById('ged2026BulkUpdateFile').value = '';
   ged2026LoadDomains();
   ged2026LoadDashboard();
   return false;
