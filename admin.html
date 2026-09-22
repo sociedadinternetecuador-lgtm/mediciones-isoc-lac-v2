@@ -165,6 +165,16 @@
         <div id="ged2026LivenessStatus" class="text-xs text-gray-600 mt-1"></div>
       </form>
 
+      <form onsubmit="return ged2026BulkUpdate(event)" class="border border-gray-200 rounded-xl p-4 mb-6">
+        <label class="field-label">Actualización masiva (encabezado obligatorio; columnas reconocidas: domain, estado_seleccion, exclusion_reason, tipo_institucion, categoria, notas, fuente, institutional_relevance, critical_service, transactionality_level, traffic_source, traffic_rank, traffic_score, user_reach)</label>
+        <textarea id="ged2026BulkUpdateInput" rows="4" class="field-input" placeholder="domain,estado_seleccion,institutional_relevance,notas&#10;iess.gob.ec,shortlisted,alta,Institución nacional verificada"></textarea>
+        <div class="flex items-center gap-3 mt-2">
+          <button type="submit" class="btn-primary" style="background:#534AB7;">Actualizar en bloque</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Si el dominio ya existe, se actualiza con las columnas presentes; si no existe, se crea.</p>
+        <div id="ged2026BulkUpdateReport" class="text-xs text-gray-600 mt-2"></div>
+      </form>
+
       <div id="ged2026DomainList" class="space-y-2"></div>
     </div>
 
@@ -468,6 +478,20 @@ async function ged2026Import(event) {
   if (!ok) { reportEl.textContent = 'No se pudo importar: ' + (data.error || 'error desconocido'); return false; }
   reportEl.textContent = `Importados: ${data.importados} · Duplicados: ${data.duplicados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
   document.getElementById('ged2026CsvInput').value = '';
+  ged2026LoadDomains();
+  ged2026LoadDashboard();
+  return false;
+}
+
+async function ged2026BulkUpdate(event) {
+  event.preventDefault();
+  const csv = document.getElementById('ged2026BulkUpdateInput').value;
+  const reportEl = document.getElementById('ged2026BulkUpdateReport');
+  reportEl.textContent = 'Actualizando…';
+  const { ok, data } = await api('/admin/api/ged2026/domains/bulk-update', { method: 'POST', body: JSON.stringify({ csv }) });
+  if (!ok) { reportEl.textContent = 'No se pudo actualizar: ' + (data.error || 'error desconocido'); return false; }
+  reportEl.textContent = `Actualizados: ${data.actualizados} · Creados: ${data.creados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
+  document.getElementById('ged2026BulkUpdateInput').value = '';
   ged2026LoadDomains();
   ged2026LoadDashboard();
   return false;

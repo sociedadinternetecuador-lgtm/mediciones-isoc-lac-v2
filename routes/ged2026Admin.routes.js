@@ -13,6 +13,7 @@
  *  POST  /admin/api/ged2026/domains                    alta manual de un dominio
  *  PUT   /admin/api/ged2026/domains/:id
  *  POST  /admin/api/ged2026/domains/import             { csv } (texto CSV en el body JSON)
+ *  POST  /admin/api/ged2026/domains/bulk-update        { csv } (CSV con encabezado: domain + columnas a tocar)
  *  POST  /admin/api/ged2026/domains/validate-liveness  { ids?: string[] }
  *  GET   /admin/api/ged2026/domains/validate-liveness/:jobId
  */
@@ -21,8 +22,10 @@ const store = require('../logic/adapters/ged2026Store.adapter');
 const { normalizeCandidateDomain } = require('../logic/validators/ged2026Domains.validator');
 const { validateGed2026DomainCreate, validateGed2026DomainUpdate } = require('../logic/validators/ged2026DomainInput.validator');
 const { parseGed2026Csv } = require('../logic/processors/ged2026CsvImport.processor');
+const { parseGed2026BulkUpdateCsv } = require('../logic/processors/ged2026BulkUpdate.processor');
 const { startLivenessJob, getLivenessJob } = require('../logic/orchestrators/ged2026LivenessJob.orchestrator');
 const { getPublicSuffixList } = require('../logic/adapters/publicSuffixList.adapter');
+const { ATRIBUTOS_RELEVANCIA_FIELDS } = require('../config/ged2026.constants');
 
 // El CSV de importación puede pesar más que un post de blog — límite propio,
 // no el de admin.routes.js (cada módulo de rutas define el suyo, mismo
@@ -199,6 +202,93 @@ async function handleImport(req, res) {
   return sendJson(res, 200, report);
 }
 
+// ─── Actualización masiva (upsert por lote) ────────────────────────────────
+//
+// Complementa a /import (que solo CREA y rechaza duplicados): aquí, si el
+// dominio ya existe en el universo, se ACTUALIZA con las columnas
+// presentes en el CSV; si no existe, se crea (con los mismos datos que
+// vengan). Pensado para curación por lote — priorizar instituciones
+// nacionales conocidas, marcar exclusiones, anotar fuente del criterio —
+// sin tener que editar dominio por dominio en el panel.
+//
+// Encabezado obligatorio (a diferencia de /import): columnas reconocidas
+// — domain (única obligatoria), estado_seleccion, exclusion_reason,
+// tipo_institucion, categoria, notas, fuente (solo aplica al crear), y
+// cualquiera de los 7 campos de atributos_relevancia (traffic_source,
+// traffic_rank, traffic_score, transactionality_level,
+// institutional_relevance, user_reach, critical_service) — cada uno se
+// guarda como { value, method: 'clasificado_manual' }. Columnas no
+// reconocidas o vacías se ignoran fila por fila.
+
+function buildBulkUpdatePatch(row) {
+  const patch = {};
+  if (row.estado_seleccion) patch.estado_seleccion = row.estado_seleccion;
+  if (row.exclusion_reason) patch.exclusion_reason = row.exclusion_reason;
+  if (row.tipo_institucion) patch.tipo_institucion = row.tipo_institucion;
+  if (row.categoria) patch.categoria = row.categoria;
+  if (row.notas) patch.notas = row.notas;
+
+  const atributos_relevancia = {};
+  for (const field of ATRIBUTOS_RELEVANCIA_FIELDS) {
+    if (row[field]) atributos_relevancia[field] = { value: row[field], method: 'clasificado_manual' };
+  }
+  if (Object.keys(atributos_relevancia).length) patch.atributos_relevancia = atributos_relevancia;
+
+  return patch;
+}
+
+async function handleBulkUpdate(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+
+  let body;
+  try { body = await readJsonBody(req); } catch { return sendJson(res, 400, { error: 'invalid_body' }); }
+
+  const { rows, skippedBlankLines } = parseGed2026BulkUpdateCsv(body.csv || '');
+  const report = { actualizados: 0, creados: 0, invalidos: 0, omitidos: skippedBlankLines, details: [] };
+
+  for (const row of rows) {
+    if (!row.domain) { report.omitidos += 1; continue; }
+
+    const normalization = await normalizeCandidateDomain(row.domain);
+    if (!normalization.ok) {
+      report.invalidos += 1;
+      report.details.push({ domain: row.domain, status: 'invalido', reason: normalization.reason });
+      continue;
+    }
+
+    const patch = buildBulkUpdatePatch(row);
+    const existing = store.findByNormalizedDomain(normalization.normalized_domain);
+
+    if (existing) {
+      const { errors, data } = validateGed2026DomainUpdate(existing, patch);
+      if (errors.length) {
+        report.invalidos += 1;
+        report.details.push({ domain: row.domain, status: 'invalido', fields: errors });
+        continue;
+      }
+      store.updateDomain(existing.id, data);
+      report.actualizados += 1;
+    } else {
+      const { errors, data } = validateGed2026DomainCreate(patch);
+      if (errors.length) {
+        report.invalidos += 1;
+        report.details.push({ domain: row.domain, status: 'invalido', fields: errors });
+        continue;
+      }
+      store.createDomain({
+        ...data,
+        domain: row.domain.trim(),
+        normalized_domain: normalization.normalized_domain,
+        categoria: data.categoria || normalization.suffix,
+        fuente: row.fuente || 'actualizacion_masiva',
+      });
+      report.creados += 1;
+    }
+  }
+
+  return sendJson(res, 200, report);
+}
+
 // ─── Validación de actividad (liveness) ────────────────────────────────────
 
 async function handleValidateLiveness(req, res) {
@@ -240,6 +330,7 @@ async function handleGed2026AdminRequest(req, res, parsed) {
 
   if (rest[0] === 'domains') {
     if (rest[1] === 'import') return handleImport(req, res);
+    if (rest[1] === 'bulk-update') return handleBulkUpdate(req, res);
     if (rest[1] === 'validate-liveness') {
       if (rest[2]) return handleLivenessJobStatus(req, res, rest[2]);
       return handleValidateLiveness(req, res);

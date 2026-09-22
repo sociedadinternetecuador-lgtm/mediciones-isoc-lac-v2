@@ -105,6 +105,8 @@ async function run() {
     assert.strictEqual(noAuthGet.status, 401);
     const noAuthImport = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/import', { body: { csv: 'x.ec' } });
     assert.strictEqual(noAuthImport.status, 401, 'importar sin sesión debe rechazar aunque el payload sea válido');
+    const noAuthBulkUpdate = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/bulk-update', { body: { csv: 'domain\nx.ec' } });
+    assert.strictEqual(noAuthBulkUpdate.status, 401, 'actualizar en bloque sin sesión debe rechazar');
 
     // ─── Login ────────────────────────────────────────────────────
     const login = await request(baseUrl, 'POST', '/admin/api/login', { body: { username: 'root', password: 'ClaveSuperAdmin123' } });
@@ -192,6 +194,46 @@ async function run() {
     assert.strictEqual(dashboard.body.total_domains, 2);
     assert.strictEqual(dashboard.body.by_tld.ec, 1, 'universidad.edu.ec cuenta bajo su propio sufijo, no bajo "ec"');
     assert.ok('edu.ec' in dashboard.body.by_tld);
+
+    // ─── Actualización masiva: UPDATE de un dominio ya existente ─────
+    // banco.ec (banco) quedó 'excluded' más arriba; el lote lo reincorpora
+    // y anota institutional_relevance — columnas en cualquier orden.
+    const bulkUpdateExisting = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/bulk-update', {
+      cookie,
+      body: { csv: 'notas,domain,estado_seleccion,institutional_relevance\nInstitución verificada,banco.ec,shortlisted,alta' },
+    });
+    assert.strictEqual(bulkUpdateExisting.status, 200);
+    assert.strictEqual(bulkUpdateExisting.body.actualizados, 1);
+    assert.strictEqual(bulkUpdateExisting.body.creados, 0);
+
+    const domainsAfterBulk = await request(baseUrl, 'GET', '/admin/api/ged2026/domains', { cookie });
+    const bancoUpdated = domainsAfterBulk.body.items.find((d) => d.normalized_domain === 'banco.ec');
+    assert.strictEqual(bancoUpdated.estado_seleccion, 'shortlisted');
+    assert.strictEqual(bancoUpdated.notas, 'Institución verificada');
+    assert.deepStrictEqual(bancoUpdated.atributos_relevancia.institutional_relevance, { value: 'alta', method: 'clasificado_manual' });
+    assert.strictEqual(bancoUpdated.atributos_relevancia.traffic_rank, null, 'un campo de relevancia no tocado en el lote no debe alterarse');
+
+    // ─── Actualización masiva: CREATE (upsert) de un dominio que no existía ──
+    const bulkUpdateNew = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/bulk-update', {
+      cookie,
+      body: { csv: 'domain,estado_seleccion,institutional_relevance\niess.gob.ec,shortlisted,alta' },
+    });
+    assert.strictEqual(bulkUpdateNew.status, 200);
+    assert.strictEqual(bulkUpdateNew.body.creados, 1);
+    assert.strictEqual(bulkUpdateNew.body.actualizados, 0);
+
+    const summaryAfterBulk = await request(baseUrl, 'GET', '/ged2026/api/v1/summary');
+    assert.strictEqual(summaryAfterBulk.body.total_domains, 3, 'iess.gob.ec debe sumarse al universo total');
+    assert.strictEqual(summaryAfterBulk.body.counts_by_estado_seleccion.shortlisted, 2);
+
+    // ─── Actualización masiva: fila con dominio inválido no rompe el lote ──
+    const bulkUpdateMixed = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/bulk-update', {
+      cookie,
+      body: { csv: 'domain,notas\nno es un dominio,x\nuniversidad.edu.ec,Nota agregada por lote' },
+    });
+    assert.strictEqual(bulkUpdateMixed.status, 200);
+    assert.strictEqual(bulkUpdateMixed.body.invalidos, 1);
+    assert.strictEqual(bulkUpdateMixed.body.actualizados, 1);
 
     console.log('✅ ged2026.routes.test.js — todos los casos OK');
   } finally {
