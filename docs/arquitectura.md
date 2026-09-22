@@ -3126,3 +3126,34 @@ Cambio mínimo en `routes/ged2026.routes.js`: `sendJson()` agrega
 wildcard `*` en producción, regla de seguridad del proyecto). No se tocó
 el contrato JSON ni ninguna otra ruta. Cubierto por una aserción nueva en
 `test/ged2026.routes.test.js`.
+
+## GED2026 — CORS: falta el subdominio "www" (2026-09-22, tras despliegue real)
+
+Tras desplegar y verificar en producción (`curl` contra
+`https://mediciones.isoc.org.ec` y `https://www.isoc.org.ec`), se
+descubrió que `https://isoc.org.ec` responde **301** hacia
+`https://www.isoc.org.ec` — es decir, el portal real siempre se sirve
+desde "www", así que el `Origin` que envía el navegador al hacer
+`fetch()` desde cualquier página del portal es `https://www.isoc.org.ec`,
+no `https://isoc.org.ec`. El valor fijo agregado un rato antes
+(`GED2026_PORTAL_ORIGIN` por defecto sin "www") habría dejado el
+`fetch()` bloqueado en el navegador real a pesar de que `curl` mostraba
+200 — un `curl -H "Origin: ..."` no reproduce la política CORS del
+navegador, solo confirma que la cabecera existe con ALGÚN valor.
+
+Cambio en `routes/ged2026.routes.js`: en vez de una cadena fija, ahora hay
+una lista de orígenes permitidos (por defecto `https://isoc.org.ec` y
+`https://www.isoc.org.ec`, configurable por `GED2026_PORTAL_ORIGIN`
+separada por comas). `sendJson()` recibe también `req` y solo hace eco del
+`Origin` de la petición si coincide EXACTAMENTE con uno de la lista —
+nunca se refleja un origen arbitrario no listado — más `Vary: Origin` para
+que un proxy/CDN no sirva una respuesta cacheada de un origen a otro
+distinto. Contrato JSON sin cambios. `test/ged2026.routes.test.js` ahora
+cubre los 3 casos: origen sin "www", origen con "www", y un origen no
+permitido (no debe reflejarse).
+
+**Lección para la próxima verificación de CORS de cualquier endpoint
+nuevo**: probar con `curl -H "Origin: ..."` usando el dominio EXACTO tal
+como lo entrega el navegador después de cualquier redirección (revisar
+primero si el dominio raíz redirige a "www" o viceversa), no solo el
+dominio "obvio" a partir del pedido original.

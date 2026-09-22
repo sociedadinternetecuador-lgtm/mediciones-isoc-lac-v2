@@ -69,11 +69,18 @@ existen todavía como rutas.
 
 Este es el único endpoint del proyecto pensado para ser consumido desde un
 origen distinto (el portal informativo en `isoc.org.ec`). La respuesta
-incluye `Access-Control-Allow-Origin: https://isoc.org.ec` (configurable
-vía `GED2026_PORTAL_ORIGIN`, nunca wildcard `*` en producción). Sin esta
-cabecera el navegador bloquea el `fetch()` del portal aunque el servidor
-responda 200 — verificado empíricamente con `curl -H "Origin:
-https://isoc.org.ec"` antes de agregarla.
+incluye `Access-Control-Allow-Origin: <origen de la petición>` únicamente
+cuando ese origen coincide EXACTAMENTE con uno de los permitidos —lista
+fija configurable vía `GED2026_PORTAL_ORIGIN` (separada por comas), nunca
+wildcard `*` en producción— más `Vary: Origin`. Por defecto se permiten
+`https://isoc.org.ec` y `https://www.isoc.org.ec`: el dominio raíz
+redirige (301) a "www" en producción, así que el `Origin` real que envía
+el navegador al cargar cualquier página del portal es el de "www" —
+verificado en vivo el 2026-09-22 (un valor fijo sin "www" habría dejado el
+`fetch()` bloqueado a pesar de la cabecera, pese a responder 200). Sin
+esta cabecera el navegador bloquea el `fetch()` del portal aunque el
+servidor responda 200 — verificado empíricamente con `curl -H "Origin:
+https://isoc.org.ec"` antes de agregarla por primera vez.
 
 ### Errores
 

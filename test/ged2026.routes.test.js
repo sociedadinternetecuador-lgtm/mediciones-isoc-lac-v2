@@ -57,12 +57,13 @@ function startTestServer() {
   });
 }
 
-function request(baseUrl, method, reqPath, { body, cookie } = {}) {
+function request(baseUrl, method, reqPath, { body, cookie, origin } = {}) {
   return new Promise((resolve, reject) => {
     const data = body !== undefined ? JSON.stringify(body) : null;
     const headers = { 'Content-Type': 'application/json' };
     if (data) headers['Content-Length'] = Buffer.byteLength(data);
     if (cookie) headers['Cookie'] = cookie;
+    if (origin) headers['Origin'] = origin;
 
     const req = http.request(`${baseUrl}${reqPath}`, { method, headers }, (res) => {
       let out = '';
@@ -112,12 +113,22 @@ async function run() {
     assert.ok(cookie);
 
     // ─── Antes de importar: resumen público en cero ─────────────────
-    const summaryBefore = await request(baseUrl, 'GET', '/ged2026/api/v1/summary');
+    const summaryBefore = await request(baseUrl, 'GET', '/ged2026/api/v1/summary', { origin: 'https://isoc.org.ec' });
     assert.strictEqual(summaryBefore.status, 200);
     assert.strictEqual(summaryBefore.body.total_domains, 0);
     assert.strictEqual(summaryBefore.body.updated_at, null);
     assert.strictEqual(summaryBefore.headers['access-control-allow-origin'], 'https://isoc.org.ec',
       'el portal (otro origen) necesita esta cabecera para poder leer la respuesta desde el navegador');
+
+    // ─── CORS: el dominio raíz redirige a "www" en producción — el Origen
+    // real que envía el navegador es el de "www", debe reflejarse igual ──
+    const summaryWww = await request(baseUrl, 'GET', '/ged2026/api/v1/summary', { origin: 'https://www.isoc.org.ec' });
+    assert.strictEqual(summaryWww.headers['access-control-allow-origin'], 'https://www.isoc.org.ec');
+
+    // ─── CORS: un origen no listado nunca se refleja ─────────────────
+    const summaryUnknownOrigin = await request(baseUrl, 'GET', '/ged2026/api/v1/summary', { origin: 'https://evil.test' });
+    assert.strictEqual(summaryUnknownOrigin.headers['access-control-allow-origin'], undefined,
+      'un origen fuera de la lista permitida nunca debe reflejarse en la cabecera CORS');
 
     // ─── Importación CSV ──────────────────────────────────────────
     const imported = await request(baseUrl, 'POST', '/admin/api/ged2026/domains/import', { cookie, body: { csv: IMPORT_CSV } });
