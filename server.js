@@ -75,6 +75,7 @@ const { handleDatasetRequest } = require('./routes/datasetPreparation.routes');
 const { handleContentRequest } = require('./routes/content.routes');
 const { handleAdminRequest } = require('./routes/admin.routes');
 const { handleMedicionesBatchReportRequest } = require('./routes/medicionesBatchReport.routes');
+const { handleGed2026Request } = require('./routes/ged2026.routes');
 // Se mantiene la referencia al módulo completo (no se desestructura
 // resolvePublicAddresses) para que los tests puedan reemplazarla con un
 // mock (safeWebFetchAdapter.resolvePublicAddresses = fn) — mismo patrón que
@@ -4278,6 +4279,11 @@ if (parsed.pathname === "/dnssec-analysis") {
   // Análisis comparativo — sub-tab de Mediciones (reporte final + export PDF/JSON)
   if (parsed.pathname.startsWith('/mediciones-batch')) {
     return handleMedicionesBatchReportRequest(req, res, parsed);
+  }
+
+  // GED2026 — API pública de indicadores (Global Encryption Day Ecuador 2026)
+  if (parsed.pathname.startsWith('/ged2026')) {
+    return handleGed2026Request(req, res, parsed);
   }
 
     sendJSON(res, 404, { error: 'Not found' });

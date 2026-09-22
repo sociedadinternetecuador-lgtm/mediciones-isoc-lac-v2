@@ -17,6 +17,9 @@
  *    CRUD completo (incluye borradores). Requiere sesión válida (admin o
  *    super_admin).
  *
+ *  /admin/api/ged2026/...   Ver routes/ged2026Admin.routes.js (mismo nivel
+ *    de acceso que /admin/api/content: cualquier sesión válida).
+ *
  *  GET/POST      /admin/api/users     POST: { username, email } — la
  *    contraseña la genera el sistema y se envía por correo al email dado,
  *    nunca se recibe ni se muestra en el panel.
@@ -38,6 +41,7 @@ const {
 const { createRateLimiter } = require('../logic/auth/rateLimiter');
 const { validateContentInput } = require('../logic/validators/contentInput.validator');
 const contentStore = require('../logic/adapters/contentStore.adapter');
+const { handleGed2026AdminRequest } = require('./ged2026Admin.routes');
 // Se usa como objeto (no desestructurado) a propósito: permite a los tests
 // reemplazar emailAdapter.sendMail por un stub sin tocar este módulo.
 const emailAdapter = require('../logic/adapters/email.adapter');
@@ -331,6 +335,13 @@ async function handleAdminRequest(req, res, parsed) {
     if (!CONTENT_TYPES.has(type)) return sendJson(res, 404, { error: 'not_found' });
     if (id) return handleContentItem(req, res, type, id);
     return handleContentCollection(req, res, type);
+  }
+
+  // /admin/api/ged2026/... — GED2026 (cualquier admin con sesión, igual que Blog/Eventos/Materiales)
+  if (segments[2] === 'ged2026') {
+    const session = requireSession(req, res);
+    if (!session) return;
+    return handleGed2026AdminRequest(req, res, parsed);
   }
 
   // /admin/api/users[/:id] — solo super_admin

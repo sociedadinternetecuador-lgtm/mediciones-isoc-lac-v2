@@ -2966,3 +2966,163 @@ la responsividad se verificó por revisión manual de las clases usadas
 (grid con breakpoints `sm:`, sin anchos fijos ni `min-width`, mismo
 patrón que otras secciones ya shippeadas de `index.html`), no por
 captura real de viewport.
+
+## GED2026 — primera implementación (2026-09-22)
+
+Nuevo módulo separado para gestionar el proyecto **GED Ecuador 2026**
+(subproyecto técnico: Encryption Deployment Snapshot Ecuador 2026) dentro
+de este mismo portal, sin mezclarse con las mediciones/DNSSEC existentes.
+Documentación completa en `docs/ged2026.md` (arquitectura, dataset,
+estados, importación, liveness, panel admin) y `docs/ged2026-api.md`
+(contrato de la API pública) — aquí solo un resumen de las decisiones de
+arquitectura y por qué, para quien navegue este changelog.
+
+**Alcance de esta primera fase** (sección 35 del pedido original: A-K):
+módulo + modelo de datos + dataset candidato + importación CSV +
+normalización + estados + validación inicial de dominios (liveness) +
+dashboard interno + endpoint público de resumen + documentación.
+Deliberadamente **no** incluido todavía: fórmula de puntuación final,
+checks técnicos GED específicos (TLS/HSTS/STARTTLS/MTA-STS), piloto,
+mediciones de producción, exportación más allá del reporte de importación.
+
+**Archivos nuevos**: `config/ged2026.constants.js`,
+`logic/adapters/ged2026Store.adapter.js`,
+`logic/adapters/ged2026Liveness.adapter.js`,
+`logic/validators/ged2026Domains.validator.js`,
+`logic/validators/ged2026DomainInput.validator.js`,
+`logic/processors/ged2026CsvImport.processor.js`,
+`logic/orchestrators/ged2026LivenessJob.orchestrator.js`,
+`routes/ged2026.routes.js`, `routes/ged2026Admin.routes.js`, 5 archivos de
+test (`test/ged2026*.test.js`), `docs/ged2026.md`, `docs/ged2026-api.md`.
+**Archivos modificados**: `server.js` (require + dispatch de `/ged2026`),
+`routes/admin.routes.js` (require + dispatch de
+`/admin/api/ged2026/...`), `package.json` (cadena de `npm test`),
+`admin.html` (pestaña GED2026), `CLAUDE.md` (nota breve).
+
+**Persistencia: dos archivos JSON, no uno.** `data/ged2026/domains.json`
+(array, el universo/muestra de dominios) y `data/ged2026/project.json`
+(objeto único con `current_phase`/`phase_started_at`/`last_updated`).
+Forzar el registro de fase al mismo molde de array que `domains.json` no
+aportaba nada y complicaba "leer el único registro" en "listar y tomar
+`[0]`". Mismo patrón sin base de datos que `contentStore.adapter.js`
+(JSON en disco, `DATA_DIR` configurable) — dato de negocio persistente,
+no estado de job efímero (CLAUDE.md regla 5), igual que Blog/Eventos/
+Materiales, así que **no** está en `.gitignore`.
+
+**Nombres de campo en snake_case, a propósito distinto de
+`createdAt`/`updatedAt` de `contentStore.adapter.js`.** Los campos del
+dominio (`domain`, `normalized_domain`, `estado_seleccion`, `created_at`,
+`updated_at`, ...) son exactamente los que pidió el proyecto en su
+especificación de datos, incluyendo la forma del contrato público
+(`/ged2026/api/v1/summary` también usa snake_case) — se respetó esa
+convención de negocio en vez de forzarla a la convención técnica interna
+de otro módulo que no comparte ese contrato externo.
+
+**Normalización: se reutiliza, no se reimplementa, la metodología cerrada
+de `datasetDomains.validator.js`** (CLAUDE.md reglas 1-2). Como GED2026
+mezcla TLDs (`.gob.ec`, `.com.ec`, `.edu.ec`, `.org.ec`, ...) y
+`staticValid(domain, tld)` fue diseñado para un único `tld` fijo por
+corrida, `logic/validators/ged2026Domains.validator.js` deriva primero el
+sufijo propio de cada dominio con `publicSuffixList.adapter.js` (el mismo
+adaptador ya usado por Preparación de datasets) y se lo pasa tal cual a
+`staticValid()` — el algoritmo que corre es exactamente el mismo. Además
+se añadió un paso previo, propio de este módulo y fuera de la metodología
+cerrada: si el admin pega una URL completa, se extrae el hostname
+(protocolo/ruta/query/puerto fuera) antes de normalizar; `www.` se
+preserva tal cual venga, no se recorta — fusionar `www.x.ec` con `x.ec`
+es una decisión de curación editorial explícita, no algo para asumir en
+silencio.
+
+**Importación CSV: parser propio, sin dependencia nueva.** El
+`line.split(',')[0]` que ya usa `datasetDomains.validator.js` no alcanza
+porque `notas` es texto libre y con frecuencia lleva comas — se escribió
+un splitter RFC 4180 recortado (comillas dobles, `""` como escape) en
+`logic/processors/ged2026CsvImport.processor.js`, consistente con el
+apetito ya existente del proyecto por parsers hechos a mano en vez de
+dependencias nuevas (CLAUDE.md regla 3; ver también `logic/exporters/
+zip.writer.js`, que arma framing ZIP a mano).
+
+**Validación de actividad (liveness): vocabulario y código nuevos,
+deliberadamente separados de VALID/NXDOMAIN/REVIEW.** Son preguntas
+distintas — "¿existe en el censo .ec?" (Preparación de datasets, cerrado)
+vs. "¿responde ahora mismo?" (GED2026, nuevo). Usa siempre
+`safeWebFetch.adapter.js` (protección SSRF ya existente) para DNS y
+HTTP(S), nunca `http.request` directo. Job en memoria con `Map` (mismo
+patrón, sin persistencia, que `dnsValidationJob.orchestrator.js`), pero
+**sin SSE**: ese patrón se justifica para decenas de miles de dominios;
+GED2026 opera sobre ~250-300, donde un simple polling del estado del job
+cada pocos segundos alcanza. Antes de correr `validate-liveness` sobre el
+universo completo, la recomendación documentada en `docs/ged2026.md` es
+primero correrlo sobre un subconjunto pequeño y estratificado (`ids`) para
+medir el costo/tiempo real por dominio en la red del entorno — regla
+general del usuario para cualquier pipeline masivo, no específica de este
+módulo.
+
+**Ruta pública versionada (`/ged2026/api/v1/summary`), a diferencia de
+`/content/:type` (sin `/api/`).** Decisión deliberada: `/content/:type`
+solo lo consume el propio frontend de este servidor; `/ged2026/api/v1/...`
+tiene un consumidor externo real (el futuro portal informativo, otro
+repositorio) que necesita la garantía de estabilidad que da versionar la
+ruta. El endpoint calcula sus indicadores en el momento de la petición a
+partir de `domains.json`/`project.json` — nunca expone dominios
+individuales, notas ni `exclusion_reason` (contrato completo en
+`docs/ged2026-api.md`).
+
+**Acceso administrativo: nivel "cualquier admin con sesión", no
+`super_admin`.** `/admin/api/ged2026/...` se gestiona igual que Blog/
+Eventos/Materiales (curación editorial), no como gestión de cuentas —
+`routes/admin.routes.js` aplica `requireSession()` antes de delegar en
+`routes/ged2026Admin.routes.js`, siguiendo el mismo despacho por
+`segments[2]` ya usado para `content`/`users`.
+
+**Única regla de negocio impuesta en esta fase**: si `estado_seleccion`
+queda en `'excluded'`, exige `exclusion_reason` no vacío (400 si falta).
+El resto de las transiciones de estado (`candidate → validated → eligible
+→ shortlisted → selected/excluded`) se deja sin forzar en orden — la
+fórmula de selección está fuera de alcance todavía (sección 11 del pedido:
+"no fijar todavía una fórmula definitiva"), así que imponer un orden
+ahora bloquearía al admin sobre reglas que nadie pidió.
+
+**Verificación**: 5 archivos de test nuevos (`assert` plano, sin
+framework, agregados a la cadena de `npm test`) — CRUD del store,
+normalización de dominios (incluye extracción de hostname desde URL
+completa y reutilización empírica de `staticValid()` real, no asumida),
+parser CSV (campos entrecomillados con comas, encabezado, líneas en
+blanco, columnas faltantes), clasificación de liveness (los 9 estados,
+mockeando `lookup`/`requestImpl` igual que `safeWebFetch.adapter.test.js`,
+sin red real) y extremo a extremo de las rutas (401 sin sesión, reporte de
+importación, regla de `exclusion_reason`, resumen público sin datos
+internos). `npm test` completo corrido tras el cambio: sin regresiones en
+ninguno de los tests preexistentes. Además, servidor real levantado en
+local (`PORT=3599 node server.js`) y verificado con `curl`: `GET
+/ged2026/api/v1/summary` responde 200 con el estado real (vacío, recién
+inicializado); `GET /admin/api/ged2026/domains` sin sesión responde 401;
+`POST /ged2026/api/v1/summary` responde 405 — confirma que el wiring en
+`server.js`/`admin.routes.js` funciona en el servidor real, no solo en los
+tests con servidor aislado.
+
+**Confirmación de desacoplamiento** (para el futuro portal informativo):
+no hay ninguna ruta que exponga `data/ged2026/*.json` directamente: el
+único punto de contacto público es `GET /ged2026/api/v1/summary`, y todo
+lo que calcula viene de `logic/adapters/ged2026Store.adapter.js` en el
+momento de la petición. El portal puede consumir ese endpoint sin acceder
+nunca a este repositorio ni a su almacenamiento interno.
+
+## GED2026 — CORS para el portal externo (2026-09-22)
+
+Al preparar la integración con el portal informativo (`isoc.org.ec`,
+repositorio distinto) se verificó con `curl -H "Origin:
+https://isoc.org.ec"` que `GET /ged2026/api/v1/summary` no traía ninguna
+cabecera `Access-Control-Allow-Origin` — el navegador habría bloqueado el
+`fetch()` del portal aunque el servidor respondiera 200. Es el único
+endpoint de todo el proyecto con un consumidor real en otro origen (el
+resto, `/content/:type` incluido, solo lo consume el propio frontend
+servido por este mismo proceso), así que es el único que necesita esta
+cabecera.
+
+Cambio mínimo en `routes/ged2026.routes.js`: `sendJson()` agrega
+`Access-Control-Allow-Origin: <origen fijo>` (por defecto
+`https://isoc.org.ec`, configurable vía `GED2026_PORTAL_ORIGIN` — nunca
+wildcard `*` en producción, regla de seguridad del proyecto). No se tocó
+el contrato JSON ni ninguna otra ruta. Cubierto por una aserción nueva en
+`test/ged2026.routes.test.js`.

@@ -149,6 +149,17 @@ cero errores de consola. Los scripts de prueba usados durante el
 desarrollo quedaron en el scratchpad de sesión, no en el repo — si hace
 falta reproducir el patrón, ver `docs/arquitectura.md`.
 
+9. **Módulo GED2026** (proyecto Global Encryption Day Ecuador 2026) —
+   `docs/ged2026.md` (arquitectura, dataset, estados) y
+   `docs/ged2026-api.md` (contrato de la API pública, único endpoint
+   pensado para un consumidor externo). `data/ged2026/domains.json` y
+   `project.json` son dato de negocio persistente (como Blog/Eventos/
+   Materiales), no estado de job efímero — no están en `.gitignore`. La
+   normalización de dominios reutiliza `datasetDomains.validator.js`
+   (regla 1-2 de arriba) sin modificarlo; el chequeo de actividad
+   (liveness) es código nuevo, con vocabulario propio, y no toca esa
+   metodología cerrada.
+
 ## Archivos que NO están conectados (código muerto conocido)
 
 `routes/dnssec.routes.js` usa Express y no lo requiere nadie — `server.js`
