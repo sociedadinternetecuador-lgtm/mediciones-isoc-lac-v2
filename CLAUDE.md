@@ -149,16 +149,15 @@ cero errores de consola. Los scripts de prueba usados durante el
 desarrollo quedaron en el scratchpad de sesión, no en el repo — si hace
 falta reproducir el patrón, ver `docs/arquitectura.md`.
 
-9. **Módulo GED2026** (proyecto Global Encryption Day Ecuador 2026) —
-   `docs/ged2026.md` (arquitectura, dataset, estados) y
-   `docs/ged2026-api.md` (contrato de la API pública, único endpoint
-   pensado para un consumidor externo). `data/ged2026/domains.json` y
-   `project.json` son dato de negocio persistente (como Blog/Eventos/
-   Materiales), no estado de job efímero — no están en `.gitignore`. La
-   normalización de dominios reutiliza `datasetDomains.validator.js`
-   (regla 1-2 de arriba) sin modificarlo; el chequeo de actividad
-   (liveness) es código nuevo, con vocabulario propio, y no toca esa
-   metodología cerrada.
+9. **GED2026 ya no vive acá.** El módulo del Global Encryption Day
+   Ecuador 2026 (universo de dominios candidatos, liveness, panel admin,
+   API pública) se separó a su propio proyecto/repo el 2026-09-23 —
+   `C:\PROJECTS\MEDICIONES-ged2026`, desplegado en `server1:8601`, con su
+   propia autenticación (no comparte sesión con MEDICIONES). Los 354
+   dominios reales se migraron ahí (verificado conteo por conteo contra
+   `GET /ged2026/api/v1/summary` antes/después). No queda código ni ruta
+   de GED2026 en este repositorio — si algo lo referencia, es una
+   mención histórica de una fase anterior, no algo para editar acá.
 
 ## Archivos que NO están conectados (código muerto conocido)
 

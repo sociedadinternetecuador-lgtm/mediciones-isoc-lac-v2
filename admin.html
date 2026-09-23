@@ -98,7 +98,6 @@
       <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="blog" onclick="switchAdminTab('blog')">Blog</button>
       <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="events" onclick="switchAdminTab('events')">Eventos</button>
       <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="materials" onclick="switchAdminTab('materials')">Material de capacitación</button>
-      <button class="admin-tab-btn px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="ged2026" onclick="switchAdminTab('ged2026')">GED2026</button>
       <button id="usersTabBtn" class="admin-tab-btn hidden px-4 py-2 rounded-lg text-sm font-semibold transition" data-tab="users" onclick="switchAdminTab('users')">Usuarios</button>
     </div>
 
@@ -139,52 +138,6 @@
       <div id="adminList-materials" class="space-y-3"></div>
     </div>
 
-    <!-- GED2026 -->
-    <div id="adminPanel-ged2026" class="admin-panel hidden">
-      <div id="ged2026Dashboard" class="border border-gray-200 rounded-xl p-4 mb-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
-        Cargando resumen…
-      </div>
-
-      <form onsubmit="return ged2026CreateDomain(event)" class="border border-gray-200 rounded-xl p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="md:col-span-2"><label class="field-label">Dominio *</label><input name="domain" required class="field-input" placeholder="ejemplo.gob.ec" /></div>
-        <div><label class="field-label">Categoría</label><input name="categoria" maxlength="120" class="field-input" placeholder="gob.ec, financiero…" /></div>
-        <div><label class="field-label">Tipo de institución</label><input name="tipo_institucion" maxlength="120" class="field-input" placeholder="gobierno, universidad…" /></div>
-        <div><label class="field-label">Fuente</label><input name="fuente" maxlength="120" class="field-input" placeholder="manual" /></div>
-        <div class="md:col-span-2"><label class="field-label">Notas</label><textarea name="notas" maxlength="2000" rows="2" class="field-input"></textarea></div>
-        <div class="md:col-span-2"><button type="submit" class="btn-primary">Agregar dominio</button></div>
-      </form>
-
-      <form onsubmit="return ged2026Import(event)" class="border border-gray-200 rounded-xl p-4 mb-6">
-        <label class="field-label">Importar CSV (columnas: domain,category,source,notes)</label>
-        <div class="flex items-center gap-2 mb-2">
-          <input type="file" id="ged2026CsvFile" accept=".csv,text/csv" onchange="ged2026LoadFileIntoTextarea(this, 'ged2026CsvInput')" class="text-sm" />
-          <span class="text-xs text-gray-500">o pega el texto abajo</span>
-        </div>
-        <textarea id="ged2026CsvInput" rows="4" class="field-input" placeholder="domain,category,source,notes&#10;ejemplo.gob.ec,gobierno,manual,"></textarea>
-        <div class="flex items-center gap-3 mt-2">
-          <button type="submit" class="btn-primary">Importar</button>
-          <button type="button" onclick="ged2026ValidateLiveness()" class="btn-primary" style="background:#0C447C;">Validar en vivo</button>
-        </div>
-        <div id="ged2026ImportReport" class="text-xs text-gray-600 mt-2"></div>
-        <div id="ged2026LivenessStatus" class="text-xs text-gray-600 mt-1"></div>
-      </form>
-
-      <form onsubmit="return ged2026BulkUpdate(event)" class="border border-gray-200 rounded-xl p-4 mb-6">
-        <label class="field-label">Actualización masiva (encabezado obligatorio; columnas reconocidas: domain, estado_seleccion, exclusion_reason, tipo_institucion, categoria, notas, fuente, institutional_relevance, critical_service, transactionality_level, traffic_source, traffic_rank, traffic_score, user_reach)</label>
-        <div class="flex items-center gap-2 mb-2">
-          <input type="file" id="ged2026BulkUpdateFile" accept=".csv,text/csv" onchange="ged2026LoadFileIntoTextarea(this, 'ged2026BulkUpdateInput')" class="text-sm" />
-          <span class="text-xs text-gray-500">o pega el texto abajo</span>
-        </div>
-        <textarea id="ged2026BulkUpdateInput" rows="4" class="field-input" placeholder="domain,estado_seleccion,institutional_relevance,notas&#10;iess.gob.ec,shortlisted,alta,Institución nacional verificada"></textarea>
-        <div class="flex items-center gap-3 mt-2">
-          <button type="submit" class="btn-primary" style="background:#534AB7;">Actualizar en bloque</button>
-        </div>
-        <p class="text-xs text-gray-500 mt-1">Si el dominio ya existe, se actualiza con las columnas presentes; si no existe, se crea.</p>
-        <div id="ged2026BulkUpdateReport" class="text-xs text-gray-600 mt-2"></div>
-      </form>
-
-      <div id="ged2026DomainList" class="space-y-2"></div>
-    </div>
 
     <!-- Usuarios (solo super_admin) -->
     <div id="adminPanel-users" class="admin-panel hidden">
@@ -304,7 +257,6 @@ function switchAdminTab(tab) {
   document.getElementById(`adminPanel-${tab}`).classList.remove('hidden');
 
   if (tab === 'users') loadUsers();
-  else if (tab === 'ged2026') { ged2026LoadDashboard(); ged2026LoadDomains(); }
   else loadContentList(tab);
 }
 
@@ -403,141 +355,6 @@ async function deleteUser(id) {
   if (!confirm('¿Eliminar este administrador? Perderá acceso de inmediato.')) return;
   await api(`/admin/api/users/${id}`, { method: 'DELETE' });
   loadUsers();
-}
-
-// ─── GED2026 ────────────────────────────────────────────────────────────
-
-async function ged2026LoadDashboard() {
-  const el = document.getElementById('ged2026Dashboard');
-  el.textContent = 'Cargando resumen…';
-  const { ok, data } = await api('/admin/api/ged2026/dashboard');
-  if (!ok) { el.textContent = 'No se pudo cargar el resumen.'; return; }
-
-  const tldList = Object.entries(data.by_tld).map(([k, v]) => `${escapeHtml(k)}: ${v}`).join(' · ') || '—';
-  el.innerHTML = `
-    <div><div class="text-2xl font-bold text-gray-900">${data.total_domains}</div><div class="text-xs text-gray-500">Dominios totales</div></div>
-    <div><div class="text-2xl font-bold text-gray-900">${data.by_estado_seleccion.selected || 0}</div><div class="text-xs text-gray-500">Seleccionados</div></div>
-    <div><div class="text-2xl font-bold text-gray-900">${data.current_phase}</div><div class="text-xs text-gray-500">Fase actual</div></div>
-    <div><div class="text-2xl font-bold text-gray-900">${data.last_updated ? new Date(data.last_updated).toLocaleString('es-EC') : 'Sin datos'}</div><div class="text-xs text-gray-500">Última actualización</div></div>
-    <div class="col-span-2 md:col-span-4 text-xs text-gray-500 mt-1">Por TLD: ${tldList}</div>
-  `;
-}
-
-async function ged2026LoadDomains() {
-  const container = document.getElementById('ged2026DomainList');
-  container.innerHTML = '<p class="text-sm text-gray-400">Cargando…</p>';
-  const { ok, data } = await api('/admin/api/ged2026/domains');
-  if (!ok) { container.innerHTML = '<p class="text-sm text-red-600">No se pudo cargar el listado.</p>'; return; }
-
-  const items = data.items || [];
-  if (!items.length) { container.innerHTML = '<p class="text-sm text-gray-400 italic">Aún no hay dominios en el universo GED2026.</p>'; return; }
-
-  container.innerHTML = items.map((d) => `
-    <div class="border border-gray-200 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap">
-      <div class="flex-1 min-w-0">
-        <span class="font-semibold text-gray-900">${escapeHtml(d.normalized_domain)}</span>
-        <span class="text-xs text-gray-500 ml-2">${escapeHtml(d.categoria || '')}</span>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 ml-2">${escapeHtml(d.estado_validacion)}</span>
-      </div>
-      <select onchange="ged2026SetEstadoSeleccion('${d.id}', this.value)" class="field-input text-xs" style="width:auto;">
-        ${['candidate', 'validated', 'eligible', 'shortlisted', 'selected', 'excluded'].map((s) =>
-          `<option value="${s}" ${d.estado_seleccion === s ? 'selected' : ''}>${s}</option>`).join('')}
-      </select>
-    </div>
-  `).join('');
-}
-
-async function ged2026CreateDomain(event) {
-  event.preventDefault();
-  const form = event.target;
-  const body = Object.fromEntries(new FormData(form).entries());
-  const { ok, data } = await api('/admin/api/ged2026/domains', { method: 'POST', body: JSON.stringify(body) });
-  if (!ok) {
-    alert('No se pudo agregar el dominio: ' + (data.reason || data.fields?.join(', ') || data.error || 'error desconocido'));
-    return false;
-  }
-  form.reset();
-  ged2026LoadDomains();
-  ged2026LoadDashboard();
-  return false;
-}
-
-async function ged2026SetEstadoSeleccion(id, estado_seleccion) {
-  let exclusion_reason;
-  if (estado_seleccion === 'excluded') {
-    exclusion_reason = prompt('Motivo de exclusión (inactive, duplicate, not_relevant, insufficient_information, sampling_balance, technical_issue, other):');
-    if (!exclusion_reason) { ged2026LoadDomains(); return; }
-  }
-  const { ok, data } = await api(`/admin/api/ged2026/domains/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({ estado_seleccion, ...(exclusion_reason ? { exclusion_reason } : {}) }),
-  });
-  if (!ok) alert('No se pudo actualizar: ' + (data.fields?.join(', ') || data.error || 'error desconocido'));
-  ged2026LoadDomains();
-  ged2026LoadDashboard();
-}
-
-function ged2026LoadFileIntoTextarea(fileInput, textareaId) {
-  const file = fileInput.files && fileInput.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => { document.getElementById(textareaId).value = reader.result; };
-  reader.onerror = () => alert('No se pudo leer el archivo.');
-  reader.readAsText(file, 'utf-8');
-}
-
-async function ged2026Import(event) {
-  event.preventDefault();
-  const csv = document.getElementById('ged2026CsvInput').value;
-  const reportEl = document.getElementById('ged2026ImportReport');
-  reportEl.textContent = 'Importando…';
-  const { ok, data } = await api('/admin/api/ged2026/domains/import', { method: 'POST', body: JSON.stringify({ csv }) });
-  if (!ok) { reportEl.textContent = 'No se pudo importar: ' + (data.error || 'error desconocido'); return false; }
-  reportEl.textContent = `Importados: ${data.importados} · Duplicados: ${data.duplicados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
-  document.getElementById('ged2026CsvInput').value = '';
-  document.getElementById('ged2026CsvFile').value = '';
-  ged2026LoadDomains();
-  ged2026LoadDashboard();
-  return false;
-}
-
-async function ged2026BulkUpdate(event) {
-  event.preventDefault();
-  const csv = document.getElementById('ged2026BulkUpdateInput').value;
-  const reportEl = document.getElementById('ged2026BulkUpdateReport');
-  reportEl.textContent = 'Actualizando…';
-  const { ok, data } = await api('/admin/api/ged2026/domains/bulk-update', { method: 'POST', body: JSON.stringify({ csv }) });
-  if (!ok) { reportEl.textContent = 'No se pudo actualizar: ' + (data.error || 'error desconocido'); return false; }
-  reportEl.textContent = `Actualizados: ${data.actualizados} · Creados: ${data.creados} · Inválidos: ${data.invalidos} · Omitidos: ${data.omitidos}`;
-  document.getElementById('ged2026BulkUpdateInput').value = '';
-  document.getElementById('ged2026BulkUpdateFile').value = '';
-  ged2026LoadDomains();
-  ged2026LoadDashboard();
-  return false;
-}
-
-async function ged2026ValidateLiveness() {
-  const statusEl = document.getElementById('ged2026LivenessStatus');
-  const { ok, data } = await api('/admin/api/ged2026/domains/validate-liveness', { method: 'POST', body: JSON.stringify({}) });
-  if (!ok) { statusEl.textContent = 'No se pudo iniciar la validación: ' + (data.error || 'error desconocido'); return; }
-  statusEl.textContent = `Validando ${data.total} dominios…`;
-  ged2026PollLivenessJob(data.jobId);
-}
-
-async function ged2026PollLivenessJob(jobId) {
-  const statusEl = document.getElementById('ged2026LivenessStatus');
-  const { ok, data } = await api(`/admin/api/ged2026/domains/validate-liveness/${jobId}`);
-  if (!ok) { statusEl.textContent = 'No se pudo consultar el estado del job.'; return; }
-  if (data.status === 'running') {
-    statusEl.textContent = `Validando… ${data.done}/${data.total}`;
-    setTimeout(() => ged2026PollLivenessJob(jobId), 2000);
-    return;
-  }
-  statusEl.textContent = data.status === 'completed'
-    ? `Validación completa: ${data.done}/${data.total} dominios.`
-    : `La validación terminó con error: ${data.error || 'desconocido'}`;
-  ged2026LoadDomains();
-  ged2026LoadDashboard();
 }
 
 checkSession();
