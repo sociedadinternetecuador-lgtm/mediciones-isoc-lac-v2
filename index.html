@@ -23,6 +23,7 @@
          durante días, aunque el archivo en el servidor ya estuviera
          corregido. -->
     <script src="/i18n.js?v=11"></script>
+    <link rel="stylesheet" href="/dnssecKb.css">
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         * { box-sizing: border-box; }
@@ -915,6 +916,20 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
 </div>   
   </div>
 
+  <!-- Sub-pestañas de nivel superior: Analizar dominio / Aprender DNSSEC -->
+  <div class="bg-gray-100 p-1.5 rounded-xl inline-flex flex-wrap justify-center gap-2 shadow-inner mb-5">
+    <button id="dnssec-top-tab-analizar" onclick="DnssecKb.switchTopTab('analizar')"
+      class="dnssec-top-subtab px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-blue-700 shadow-sm">
+      Analizar dominio
+    </button>
+    <button id="dnssec-top-tab-aprender" onclick="DnssecKb.switchTopTab('aprender')"
+      class="dnssec-top-subtab px-4 py-2 rounded-lg text-sm font-semibold transition text-gray-600 hover:text-blue-600">
+      Aprender DNSSEC
+    </button>
+  </div>
+
+  <div id="dnssec-panel-analizar">
+
   <!-- Sub-pestañas modo individual / batch -->
   <div class="flex gap-2 mb-5 border-b border-blue-200 pb-0">
     <button id="dnssec-tab-single" onclick="dnssecSwitchTab('single')"
@@ -1133,6 +1148,102 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       </div>
 
     </div>
+
+  </div><!-- /dnssec-panel-analizar -->
+
+  <!-- Panel: Aprender DNSSEC (Base de Conocimiento) -->
+  <div id="dnssec-panel-aprender" class="hidden">
+
+    <div id="dnssec-kb-landing">
+      <h3 class="text-lg font-semibold text-gray-800 mb-1">Aprende DNSSEC</h3>
+      <p class="text-sm text-gray-600 mb-4">
+        Guías y conceptos para comprender cómo funciona DNSSEC, interpretar los
+        resultados de nuestras mediciones y reconocer problemas de configuración.
+      </p>
+
+      <div class="mb-5 relative">
+        <label for="dnssec-kb-search" class="sr-only">Buscar en la Base de Conocimiento</label>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+        </svg>
+        <input id="dnssec-kb-search" type="text"
+          placeholder="Buscar en la Base de Conocimiento: DS, DNSKEY, RRSIG, NSEC3, cadena de confianza…"
+          autocomplete="off" spellcheck="false"
+          class="w-full p-3 pl-11 border-2 border-gray-300 rounded-lg bg-white text-gray-900 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+      </div>
+
+      <div id="dnssec-kb-level-filters" class="flex flex-wrap gap-2 mb-5" role="group" aria-label="Filtrar por nivel">
+        <button type="button" data-level="todos" onclick="DnssecKb.setLevel('todos')"
+          class="dnssec-kb-level-btn px-3 py-1.5 rounded-full text-xs font-semibold border transition" aria-pressed="true">
+          Todos
+        </button>
+        <button type="button" data-level="basico" onclick="DnssecKb.setLevel('basico')"
+          class="dnssec-kb-level-btn px-3 py-1.5 rounded-full text-xs font-semibold border transition" aria-pressed="false">
+          Básico
+        </button>
+        <button type="button" data-level="intermedio" onclick="DnssecKb.setLevel('intermedio')"
+          class="dnssec-kb-level-btn px-3 py-1.5 rounded-full text-xs font-semibold border transition" aria-pressed="false">
+          Intermedio
+        </button>
+        <button type="button" data-level="avanzado" onclick="DnssecKb.setLevel('avanzado')"
+          class="dnssec-kb-level-btn px-3 py-1.5 rounded-full text-xs font-semibold border transition" aria-pressed="false">
+          Avanzado
+        </button>
+      </div>
+
+      <div id="dnssec-kb-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div id="dnssec-kb-empty" class="hidden text-sm text-gray-500 py-8 text-center">
+        No se encontraron guías con ese criterio de búsqueda o nivel.
+      </div>
+    </div>
+
+    <!-- Vista de guía individual -->
+    <div id="dnssec-kb-guide-view" class="hidden">
+      <button type="button" onclick="DnssecKb.backToGrid()"
+        class="text-sm text-blue-700 hover:underline mb-4 inline-flex items-center gap-1">
+        ← Volver a Aprende DNSSEC
+      </button>
+
+      <div class="md:flex md:gap-6">
+        <!-- TOC móvil colapsable -->
+        <details class="md:hidden mb-4 border border-gray-200 rounded-lg bg-white">
+          <summary class="cursor-pointer px-3 py-2 text-sm font-semibold text-gray-700">
+            Contenido de la guía
+          </summary>
+          <nav id="dnssec-kb-toc-mobile" class="px-3 pb-3 text-sm space-y-1"></nav>
+        </details>
+
+        <!-- TOC escritorio -->
+        <aside class="dnssec-kb-toc-desktop-wrap md:w-56 flex-shrink-0">
+          <div class="sticky top-4 border border-gray-200 rounded-lg bg-white p-3">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contenido</div>
+            <nav id="dnssec-kb-toc-desktop" class="text-sm space-y-1"></nav>
+          </div>
+        </aside>
+
+        <div class="flex-1 min-w-0">
+          <article id="dnssec-kb-guide-body" class="bg-white border border-gray-200 rounded-lg p-5"></article>
+
+          <div class="flex justify-between items-center mt-5 gap-3 flex-wrap">
+            <button id="dnssec-kb-prev" type="button"
+              class="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              ← Guía anterior
+            </button>
+            <button type="button" onclick="DnssecKb.backToGrid()"
+              class="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+              Volver a Aprende DNSSEC
+            </button>
+            <button id="dnssec-kb-next" type="button"
+              class="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              Siguiente guía →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dnssec-panel-aprender -->
+
   </section>
 <div id="dnssec-inline-result" class="mt-6 hidden">
   <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -3447,7 +3558,7 @@ const badgeMap = {
 const picked = badgeMap[finalStatus] || badgeMap.indeterminate;
 if (badge) {
   badge.className = `inline-block rounded-full px-4 py-2 text-sm font-semibold ${picked.cls}`;
-  badge.textContent = picked.text;
+  badge.innerHTML = `${picked.text}${DnssecKb.infoLink('estados-de-validacion-dnssec', 'Cómo interpretar este resultado')}`;
 }
   document.getElementById("dnssec-inline-status").textContent =
     mapTechnicalStatus(dnssec.final_status || "");
@@ -3526,7 +3637,7 @@ document.getElementById("dnssec-inline-note-special").textContent =
     zonesEl.innerHTML = `
       <table class="w-full text-sm mt-1">
         <thead><tr class="text-left text-gray-400 text-xs">
-          <th class="pb-1 pr-3 font-normal">Zona</th>
+          <th class="pb-1 pr-3 font-normal">Zona${DnssecKb.infoLink('como-funciona-el-dns', 'Cómo funciona el DNS')}</th>
           <th class="pb-1 pr-3 font-normal">Estado</th>
           <th class="pb-1 font-normal">Consulta</th>
         </tr></thead>
@@ -3550,8 +3661,8 @@ document.getElementById("dnssec-inline-note-special").textContent =
         <thead><tr class="text-left text-gray-400 text-xs">
           <th class="pb-1 pr-3 font-normal">Desde</th>
           <th class="pb-1 pr-3 font-normal">Hacia</th>
-          <th class="pb-1 pr-3 font-normal">Estado</th>
-          <th class="pb-1 font-normal">DS</th>
+          <th class="pb-1 pr-3 font-normal">Estado${DnssecKb.infoLink('cadena-de-confianza', 'Cómo funciona la cadena de confianza')}</th>
+          <th class="pb-1 font-normal">DS${DnssecKb.infoLink('dnskey-ds-rrsig', 'Entender DS')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -5656,6 +5767,22 @@ function mbWireComparativeSlider() {
     };
   });
 }
+</script>
+<script src="/dnssecKb.content.js"></script>
+<script src="/dnssecKb.js"></script>
+<script>
+  // Aislamiento de fallos: si dnssecKb.js no cargó (red, CDN, etc.), el
+  // resto del sitio -incluido el analizador DNSSEC- debe seguir funcionando;
+  // solo se pierde el routing de la Base de Conocimiento.
+  function dnssecKbSafeHandleRoute() {
+    if (window.DnssecKb) DnssecKb.handleRoute();
+  }
+  window.addEventListener('hashchange', dnssecKbSafeHandleRoute);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', dnssecKbSafeHandleRoute);
+  } else {
+    dnssecKbSafeHandleRoute();
+  }
 </script>
 </body>
 </html>

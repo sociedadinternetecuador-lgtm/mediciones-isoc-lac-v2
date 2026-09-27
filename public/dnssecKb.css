@@ -1,0 +1,14 @@
+/**
+ * Estilos propios de la Base de Conocimiento DNSSEC ("Aprender DNSSEC").
+ * Todo lo demás en la KB usa clases Tailwind inline; esto es lo único que
+ * necesita una regla CSS dedicada.
+ */
+
+/* El sitio define ".hidden{display:none!important}" (index.html), que le
+   gana en cascada a "hidden md:block" de Tailwind aunque coincida el media
+   query. El TOC de escritorio usa por eso su propia clase, nunca la
+   combinación "hidden md:block". */
+.dnssec-kb-toc-desktop-wrap { display: none; }
+@media (min-width: 768px) {
+  .dnssec-kb-toc-desktop-wrap { display: block; }
+}

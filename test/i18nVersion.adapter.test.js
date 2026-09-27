@@ -50,7 +50,43 @@ function run() {
   }
   console.log('PASS index_y_admin_html_usan_el_patron_esperado');
 
-  console.log('\nOK — cache-busting automático de i18n.js: todos los casos pasaron.');
+  // ── Mismo mecanismo extendido a los 3 assets estáticos de la Base de
+  // Conocimiento DNSSEC (2026-09-27): cada uno recibe su propio hash de
+  // contenido, no el de i18n.js ──
+  const kbAssets = ['dnssecKb.content.js', 'dnssecKb.js', 'dnssecKb.css'];
+  const expectedKbHashes = {};
+  for (const asset of kbAssets) {
+    const assetPath = path.join(__dirname, '..', 'public', asset);
+    expectedKbHashes[asset] = crypto.createHash('md5').update(fs.readFileSync(assetPath)).digest('hex').slice(0, 10);
+    assert.notStrictEqual(expectedKbHashes[asset], expectedHash, `${asset} no debe compartir el hash de i18n.js (deben versionarse de forma independiente, por contenido real)`);
+  }
+
+  for (const asset of kbAssets) {
+    const withoutQuery = `<script src="/${asset}"></script>`;
+    const result = injectI18nVersion(withoutQuery);
+    assert.ok(result.includes(`/${asset}?v=${expectedKbHashes[asset]}`), `debe agregar el hash real de ${asset}`);
+    // No debe filtrarse el hash de otro asset del grupo.
+    for (const other of [...kbAssets, 'i18n.js']) {
+      if (other === asset) continue;
+      assert.ok(!result.includes(`?v=${expectedKbHashes[other] || expectedHash}`) || expectedKbHashes[other] === expectedKbHashes[asset], `el hash inyectado en ${asset} no debe ser el de ${other}`);
+    }
+  }
+  console.log('PASS versiona_los_3_assets_dnssecKb_con_hash_propio');
+
+  // index.html debe cargar los 3 assets DNSSEC en el orden correcto
+  // (contenido antes que lógica), y esta función debe poder versionarlos
+  // tal cual aparecen ahí.
+  const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const contentIdx = indexHtml.indexOf('dnssecKb.content.js');
+  const jsIdx = indexHtml.indexOf('src="/dnssecKb.js"');
+  assert.ok(contentIdx !== -1 && jsIdx !== -1 && contentIdx < jsIdx, 'dnssecKb.content.js debe cargar antes que dnssecKb.js en index.html');
+  const injected = injectI18nVersion(indexHtml);
+  for (const asset of kbAssets) {
+    assert.ok(injected.includes(`${asset}?v=${expectedKbHashes[asset]}`), `index.html servido debe traer ${asset} con su hash real`);
+  }
+  console.log('PASS index_html_referencia_los_3_assets_dnssecKb_versionados_en_orden');
+
+  console.log('\nOK — cache-busting automático de i18n.js y de los assets de la KB DNSSEC: todos los casos pasaron.');
 }
 
 run();

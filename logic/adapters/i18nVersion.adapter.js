@@ -24,21 +24,49 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const I18N_PATH = path.join(__dirname, '..', '..', 'public', 'i18n.js');
+const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+const I18N_PATH = path.join(PUBLIC_DIR, 'i18n.js');
 
-let cachedVersion = 'unversioned';
-try {
-  cachedVersion = crypto.createHash('md5').update(fs.readFileSync(I18N_PATH)).digest('hex').slice(0, 10);
-} catch (e) {
-  // Si el archivo no está disponible por algún motivo, se degrada a un
-  // valor fijo — sigue funcionando (misma URL siempre), solo pierde el
-  // cache-busting automático hasta el próximo reinicio del proceso.
+// 2026-09-27: mismo riesgo de caché vieja tras deploy que ya mordió a
+// i18n.js aplica igual a los assets de la Base de Conocimiento DNSSEC
+// (public/dnssecKb.js, dnssecKb.content.js, dnssecKb.css) — se reutiliza
+// el mismo mecanismo de hash-por-contenido en vez de inventar uno nuevo.
+const VERSIONED_ASSETS = [
+  { file: 'i18n.js', path: I18N_PATH },
+  { file: 'dnssecKb.content.js', path: path.join(PUBLIC_DIR, 'dnssecKb.content.js') },
+  { file: 'dnssecKb.js', path: path.join(PUBLIC_DIR, 'dnssecKb.js') },
+  { file: 'dnssecKb.css', path: path.join(PUBLIC_DIR, 'dnssecKb.css') }
+];
+
+function hashFile(filePath) {
+  try {
+    return crypto.createHash('md5').update(fs.readFileSync(filePath)).digest('hex').slice(0, 10);
+  } catch (e) {
+    // Si el archivo no está disponible por algún motivo, se degrada a un
+    // valor fijo — sigue funcionando (misma URL siempre), solo pierde el
+    // cache-busting automático hasta el próximo reinicio del proceso.
+    return 'unversioned';
+  }
 }
 
-// Reemplaza cualquier `i18n.js?v=<lo que sea>` (el número viejo a mano, o
-// una corrida anterior de esta misma función) por el hash actual.
+let cachedVersion; // compatibilidad: versión de i18n.js, mismo nombre que antes.
+const versions = {};
+for (const asset of VERSIONED_ASSETS) {
+  versions[asset.file] = hashFile(asset.path);
+}
+cachedVersion = versions['i18n.js'];
+
+// Reemplaza cualquier `<archivo>.js?v=<lo que sea>` (el número viejo a
+// mano, o una corrida anterior de esta misma función) por el hash actual
+// de ese archivo — mismo patrón para los 4 assets versionados.
 function injectI18nVersion(html) {
-  return String(html).replace(/i18n\.js(\?v=[^"'\s]*)?/g, `i18n.js?v=${cachedVersion}`);
+  let result = String(html);
+  for (const asset of VERSIONED_ASSETS) {
+    const escaped = asset.file.replace(/\./g, '\\.');
+    const pattern = new RegExp(`${escaped}(\\?v=[^"'\\s]*)?`, 'g');
+    result = result.replace(pattern, `${asset.file}?v=${versions[asset.file]}`);
+  }
+  return result;
 }
 
 module.exports = { injectI18nVersion };
