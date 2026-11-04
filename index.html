@@ -943,17 +943,19 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
 </div>   
   </div>
 
-  <!-- Sub-pestañas de nivel superior: Analizar dominio / Aprender DNSSEC -->
-  <div class="bg-gray-100 p-1.5 rounded-xl inline-flex flex-wrap justify-center gap-2 shadow-inner mb-5">
-    <button id="dnssec-top-tab-analizar" onclick="DnssecKb.switchTopTab('analizar')"
-      class="dnssec-top-subtab px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-blue-700 shadow-sm">
-      Analizar dominio
-    </button>
-    <button id="dnssec-top-tab-aprender" onclick="DnssecKb.switchTopTab('aprender')"
-      class="dnssec-top-subtab px-4 py-2 rounded-lg text-sm font-semibold transition text-gray-600 hover:text-blue-600">
-      Aprender DNSSEC
-    </button>
-  </div>
+  <!-- "Aprender DNSSEC" ahora vive solo como botón de navegación propio
+       (junto a BLOG/INFORMACIÓN/EVENTOS, abre en pestaña nueva) — se quitó
+       de acá por estar duplicado. El botón sigue existiendo en el DOM,
+       oculto, porque dnssecKb.js (switchTopTab) lo referencia sin chequeo
+       de null; borrarlo del todo rompería esa función. -->
+  <h3 id="dnssec-top-tab-analizar" class="text-lg font-bold text-gray-800 mb-5">
+    Analizar dominio
+  </h3>
+  <button id="dnssec-top-tab-aprender" onclick="DnssecKb.switchTopTab('aprender')"
+    style="display:none" aria-hidden="true" tabindex="-1"
+    class="dnssec-top-subtab px-4 py-2 rounded-lg text-sm font-semibold transition text-gray-600 hover:text-blue-600">
+    Aprender DNSSEC
+  </button>
 
   <div id="dnssec-panel-analizar">
 
