@@ -252,7 +252,20 @@
 
   function handleRoute() {
     const hash = window.location.hash || '';
-    const prefix = '#/dnssec/aprender/';
+    const landingOnly = '#/dnssec/aprender';
+    const prefix = landingOnly + '/';
+
+    // Enlace directo sin guía específica (ej. botón "APRENDER DNSSEC" del
+    // nav principal, que abre esta página en una pestaña nueva con este
+    // hash) — muestra el landing de la Base de Conocimiento, no una guía.
+    if (hash === landingOnly) {
+      const dnssecTabBtn = document.querySelector('[data-tab="dnssec"]');
+      if (dnssecTabBtn) dnssecTabBtn.click();
+      switchTopTab('aprender');
+      init();
+      return;
+    }
+
     if (hash.indexOf(prefix) !== 0) return;
     const slug = hash.slice(prefix.length);
     if (!slug) return;
