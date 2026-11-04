@@ -950,20 +950,31 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       <label for="dnssec-domain-input" class="block text-sm font-medium text-gray-700 mb-2">
         Dominio a analizar
       </label>
-      <label class="mb-3 flex items-start gap-2 text-xs text-gray-600">
-        <input type="checkbox" id="dnssec-verify-signature" class="mt-0.5" />
-        <span>
-          <strong>Validar firma DNSSEC real (DNSViz)</strong> — verifica si la firma
-          criptográfica es válida, no solo si los registros DS/DNSKEY están presentes.
-          Tarda 60-90 segundos adicionales por dominio.
-        </span>
-      </label>
+      <div class="mb-4 p-3 rounded-lg border border-gray-200 bg-gray-50">
+        <p class="text-sm font-medium text-gray-700 mb-2">
+          ¿Validar también la firma DNSSEC real (DNSViz)?
+        </p>
+        <p class="text-xs text-gray-500 mb-2">
+          Verifica si la firma criptográfica es válida, no solo si los registros
+          DS/DNSKEY están presentes. Tarda 60-90 segundos adicionales por dominio.
+        </p>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-1.5 text-sm text-gray-700">
+            <input type="radio" name="dnssec-verify-choice" value="yes" id="dnssec-verify-yes" />
+            Sí, validar firma
+          </label>
+          <label class="flex items-center gap-1.5 text-sm text-gray-700">
+            <input type="radio" name="dnssec-verify-choice" value="no" id="dnssec-verify-no" />
+            No, análisis normal
+          </label>
+        </div>
+      </div>
       <div class="flex flex-col md:flex-row gap-3">
         <input id="dnssec-domain-input" type="text" placeholder="Ejemplo: isoc.org"
           autocomplete="off" spellcheck="false"
           class="flex-1 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-        <button type="submit"
-          class="inline-flex items-center justify-center whitespace-nowrap bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition">
+        <button type="submit" id="dnssec-quick-submit" disabled
+          class="inline-flex items-center justify-center whitespace-nowrap bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600">
           Analizar DNSSEC
         </button>
       </div>
@@ -3419,8 +3430,16 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     const form = document.getElementById("dnssec-quick-form");
     const input = document.getElementById("dnssec-domain-input");
     const errorBox = document.getElementById("dnssec-domain-error");
+    const submitBtn = document.getElementById("dnssec-quick-submit");
+    const verifyRadios = document.querySelectorAll('input[name="dnssec-verify-choice"]');
 
     if (!form) return;
+
+    verifyRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        if (submitBtn) submitBtn.disabled = false;
+      });
+    });
 
     function normalizeDomain(value) {
       let domain = value.trim().toLowerCase();
@@ -3466,8 +3485,13 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
         return;
       }
 
-const verifySignature = document.getElementById("dnssec-verify-signature");
-analyzeDnssecInline(domain, verifySignature && verifySignature.checked);
+      const chosen = document.querySelector('input[name="dnssec-verify-choice"]:checked');
+      if (!chosen) {
+        showError("Elegí si querés validar la firma DNSSEC real (Sí/No) antes de analizar.");
+        return;
+      }
+
+      analyzeDnssecInline(domain, chosen.value === "yes");
     });
 
     input.addEventListener("input", clearError);
