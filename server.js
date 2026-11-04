@@ -82,6 +82,7 @@ const { handleMedicionesBatchReportRequest } = require('./routes/medicionesBatch
 const safeWebFetchAdapter = require('./logic/adapters/safeWebFetch.adapter');
 const { fetchSafePage, resolveFinalWebTarget } = safeWebFetchAdapter;
 const { injectI18nVersion } = require('./logic/adapters/i18nVersion.adapter');
+const pulseAdapter = require('./logic/adapters/pulse.adapter');
 const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -4145,6 +4146,55 @@ if (parsed.pathname === "/dnssec-analysis") {
   }
 }
 
+// Contexto país vía ISOC Pulse — pieza independiente del análisis DNSSEC del
+// dominio (nunca lo bloquea ni lo modifica). Sin PULSE_API_KEY configurada,
+// o ante cualquier error/timeout de Pulse, responde { available: false } y
+// 200 — el frontend simplemente no muestra la tarjeta. Ver
+// PLAN_INTEGRACION_PULSE_API.md (data/exercises/2026-10-28_dataset_6paises_cctld/).
+if (parsed.pathname === "/pulse-context") {
+  const domain = String(parsed.searchParams.get("domain") || "").trim().toLowerCase();
+  const labels = domain.split(".");
+  const cc = labels[labels.length - 1] || "";
+
+  if (!pulseAdapter.isConfigured() || !/^[a-z]{2}$/.test(cc)) {
+    return sendJSON(res, 200, { available: false });
+  }
+
+  // Los datos de Pulse llegan con rezago real (confirmado en vivo, 2026-11-04:
+  // el dato más reciente de ROA para Ecuador era del 2026-10-26, 9 días antes)
+  // — una ventana de 2 días a veces no trae ningún punto. 14 días da margen.
+  const end = new Date();
+  const start = new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const toYmd = (d) => d.toISOString().slice(0, 10);
+  const startDate = toYmd(start);
+  const endDate = toYmd(end);
+  const lastOf = (series) => Array.isArray(series) && series.length ? series[0] : null;
+
+  try {
+    const [roa, dnssecAdoption] = await Promise.all([
+      pulseAdapter.getRoaCoverage(cc, { startDate, endDate }).catch(() => null),
+      pulseAdapter.getDnssecAdoption(cc, { startDate, endDate }).catch(() => null)
+    ]);
+
+    const roaLatest = lastOf(roa?.data);
+    const dnssecLatest = lastOf(dnssecAdoption?.data);
+
+    if (!roaLatest && !dnssecLatest) {
+      return sendJSON(res, 200, { available: false });
+    }
+
+    return sendJSON(res, 200, {
+      available: true,
+      country: cc.toUpperCase(),
+      roaCoverage: roaLatest ? roaLatest.value : null,
+      tldSigned: dnssecLatest ? Boolean(dnssecLatest.signed) : null,
+      asOf: (roaLatest && roaLatest.date) || (dnssecLatest && dnssecLatest.date) || null,
+      sourceUrl: `https://pulse.internetsociety.org/en/reports/${cc}/`
+    });
+  } catch (e) {
+    return sendJSON(res, 200, { available: false });
+  }
+}
 
   // 👉 Servir la interfaz web en la raíz
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {

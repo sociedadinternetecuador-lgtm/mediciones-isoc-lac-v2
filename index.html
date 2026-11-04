@@ -744,10 +744,12 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       <h3 class="font-semibold text-gray-900 mb-2">OpenINTEL</h3>
       <ul class="text-sm text-gray-700 space-y-1.5 list-disc pl-5 mb-3" data-i18n-html="prep.source.list">
         <li>La lista ccTLD se descarga <strong>manualmente</strong> desde el sitio de OpenINTEL — este portal no realiza scraping ni descargas automáticas.</li>
-        <li>Las listas se derivan principalmente de nombres observados en <strong>Certificate Transparency (CT)</strong>.</li>
-        <li>Ofrecen una cobertura amplia, pero <strong>no son un archivo oficial de zona ni un censo completo</strong> del ccTLD.</li>
+        <li>Ruta exacta: <a href="https://openintel.nl/data/domain-lists/cctld-names/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">openintel.nl → Data → Domain Lists → ccTLD Names</a>, acepta el acuerdo de datos, y continúa a <a href="https://openintel.nl/download/domain-lists/cctlds/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">openintel.nl/download/domain-lists/cctlds/</a>.</li>
+        <li>Navega <code>tld=&lt;código de país&gt;</code> → <code>year=</code> → <code>month=</code> → <code>day=</code> (se publica una lista nueva aproximadamente cada semana) y descarga el <code>.csv.gz</code> más reciente — ej. para Ecuador: <code>tld=ec/year=2026/month=10/day=26/ccTLD-domain-names-list.ec.2026-10-26.csv.gz</code>.</li>
+        <li>Descomprime el <code>.csv.gz</code>: el resultado es un dominio por línea, el formato que esta herramienta espera en la etapa de Carga.</li>
+        <li>Las listas se derivan principalmente de nombres observados en <strong>Certificate Transparency (CT)</strong> y ofrecen cobertura amplia, pero <strong>no son un archivo oficial de zona ni un censo completo</strong> del ccTLD.</li>
         <li>Que un dominio aparezca en la lista <strong>no garantiza que siga existiendo actualmente en DNS</strong> — por eso Mediciones realiza después una validación DNS independiente.</li>
-        <li>Antes de descargar, revisa y acepta directamente los <strong>términos y licencia</strong> aplicables de OpenINTEL en su propio sitio; este portal no los gestiona ni los reemplaza.</li>
+        <li>Licencia <strong>CC BY-NC-SA 4.0</strong> (uso no comercial, atribución obligatoria) — revisa y acepta los <strong>términos y licencia</strong> completos en el propio sitio de OpenINTEL antes de usar los datos; este portal no los gestiona ni los reemplaza.</li>
       </ul>
       <a href="https://openintel.nl/" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:underline" data-i18n="prep.source.link">
         Ir al sitio oficial de OpenINTEL →
@@ -1339,6 +1341,21 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
   <strong class="text-xs text-gray-400 uppercase tracking-wide">Limitaciones del análisis</strong>
   <ul id="dnssec-inline-limitations" class="mt-1 list-disc pl-5 text-xs text-gray-400 space-y-1"></ul>
 </div>
+
+<!--
+  Contexto país (ISOC Pulse) — pieza independiente del análisis DNSSEC del
+  dominio: se carga aparte, con su propio try/catch, y si falla o no hay
+  PULSE_API_KEY configurada simplemente no se muestra. Nunca bloquea ni
+  afecta el resultado DNSSEC del dominio. Ver PLAN_INTEGRACION_PULSE_API.md.
+-->
+<div id="pulse-context-wrap" class="mt-6 border-t pt-4 hidden">
+  <strong class="text-xs text-gray-400 uppercase tracking-wide">Contexto país (ISOC Pulse)</strong>
+  <div id="pulse-context-content" class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm"></div>
+  <p class="mt-2 text-xs text-gray-400">
+    Datos agregados del país, no del dominio analizado — fuente:
+    <a href="https://pulse.internetsociety.org/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">ISOC Pulse</a>.
+  </p>
+</div>
     </div>
 
   </div>
@@ -1909,6 +1926,14 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
 
 </div>
 </section>
+
+<div id="siteUsageNote" class="mt-10 pt-4 border-t border-gray-200 text-left">
+  <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1" data-i18n="site.usageNote.heading">Condiciones de uso y privacidad</h3>
+  <div class="text-xs text-gray-500 leading-relaxed space-y-1" data-i18n-html="site.usageNote.body">
+    <p><strong>Sistema abierto:</strong> el motor de este portal es de código abierto y está disponible públicamente en <a href="https://github.com/sociedadinternetecuador-lgtm/mediciones-isoc-lac-v2" target="_blank" rel="noopener" class="text-blue-600 hover:underline">GitHub</a> — cualquier persona puede revisarlo, estudiarlo, reutilizarlo o replicarlo sin restricción adicional a la de su propia licencia. Te invitamos a investigarlo.</p>
+    <p><strong>Privacidad:</strong> no se solicita ni se recopila información personal de quien usa este portal (no se pide nombre, correo ni cuenta para medir, y no se registra la IP de origen de las consultas). Para poder detectar fallas y mejorar la confiabilidad del propio sistema, se guarda internamente un registro técnico mínimo por cada medición (dominio consultado, tipo de chequeo, duración y si tuvo éxito o error) — nunca se comparte con terceros ni se usa con fines distintos al diagnóstico interno del portal.</p>
+  </div>
+</div>
 
 </div><!-- /max-w-4xl principal -->
 
@@ -3529,6 +3554,47 @@ async function analyzeDnssecInline(domain) {
   } finally {
     loading.classList.add("hidden");
     wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Independiente del resultado DNSSEC de arriba: si falla, simplemente no
+  // se muestra nada acá — nunca afecta el análisis del dominio.
+  loadPulseContext(domain);
+}
+
+async function loadPulseContext(domain) {
+  const wrap = document.getElementById("pulse-context-wrap");
+  const content = document.getElementById("pulse-context-content");
+  if (!wrap || !content) return;
+  wrap.classList.add("hidden");
+  content.innerHTML = "";
+
+  try {
+    const res = await fetch(`/pulse-context?domain=${encodeURIComponent(domain)}`, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.available) return;
+
+    const tiles = [];
+    if (data.roaCoverage !== null && data.roaCoverage !== undefined) {
+      tiles.push({ label: "Cobertura ROA del país", value: `${(data.roaCoverage * 100).toFixed(1)}%` });
+    }
+    if (data.tldSigned !== null && data.tldSigned !== undefined) {
+      tiles.push({ label: `TLD .${(data.country || "").toLowerCase()} firmado`, value: data.tldSigned ? "Sí" : "No" });
+    }
+    if (!tiles.length) return;
+
+    content.innerHTML = tiles.map(t => `
+      <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+        <div class="text-xs text-gray-500">${t.label}</div>
+        <div class="text-lg font-semibold text-gray-800">${t.value}</div>
+      </div>
+    `).join("") + (data.asOf ? `<div class="col-span-2 sm:col-span-4 text-xs text-gray-400">Dato al ${data.asOf}</div>` : "");
+    wrap.classList.remove("hidden");
+  } catch (e) {
+    // Silencioso a propósito — es contexto adicional, no crítico.
   }
 }
 
