@@ -125,7 +125,7 @@ async function sendAlert(failures) {
   const text = `El chequeo periódico (canario) de MEDICIONES detectó ${failures.length} caso(s) fallando:\n\n${lines.join('\n')}\n\nEjecutado: ${new Date().toISOString()}\nBase: ${BASE_URL}`;
   await emailAdapter.sendMail({
     to,
-    subject: `[MEDICIONES] Alerta canario — ${failures.length} chequeo(s) fallando`,
+    subject: `ALERTA MEDICIONES — ${failures.length} chequeo(s) fallando`,
     text
   });
 }
