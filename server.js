@@ -1080,13 +1080,21 @@ function fetchJSON(target, options = {}) {
   });
 }
 
+// (2026-11-04) — fetchText() era la única fetchX() de este archivo sin
+// DEFAULT_FETCH_USER_AGENT como default, a diferencia de fetchJSON() en la
+// misma función. Mismo patrón de bug ya confirmado y corregido en
+// safeWebFetch.adapter.js (sin User-Agent, Cloudflare bloquea con 429
+// tratándolo como bot) — acá alimenta handleWhois() (whois.com) y
+// handleHostSearch() (api.hackertarget.com). Hoy ninguno de los dos
+// bloquea sin UA (confirmado con curl), pero no hay razón para dejar esta
+// única función inconsistente con el resto.
 function fetchText(target, options = {}) {
   return new Promise((resolve, reject) => {
     const url = typeof target === 'string' ? new URL(target) : target;
     const lib = pickLib(url);
     const req = lib.request(
       url,
-      { method: options.method || 'GET', headers: options.headers || {} },
+      { method: options.method || 'GET', headers: { 'User-Agent': DEFAULT_FETCH_USER_AGENT, ...(options.headers || {}) } },
       r => {
         let data = '';
         r.on('data', chunk => (data += chunk));
@@ -1109,6 +1117,9 @@ function fetchHeaders(target, useHttp = false) {
   }));
 }
 
+// (2026-11-04) — mismo default que fetchText()/fetchJSON(), por
+// consistencia (solo la usa handleMalware()/URLhaus, que ya trata
+// cualquier bloqueo como INCONCLUSIVE, nunca como PASS falso).
 function fetchPage(target, options = {}) {
   return new Promise((resolve, reject) => {
     try {
@@ -1118,7 +1129,7 @@ function fetchPage(target, options = {}) {
         url,
         {
           method: options.method || 'GET',
-          headers: options.headers || {},
+          headers: { 'User-Agent': DEFAULT_FETCH_USER_AGENT, ...(options.headers || {}) },
           timeout: options.timeout || 15000
         },
         res => {
