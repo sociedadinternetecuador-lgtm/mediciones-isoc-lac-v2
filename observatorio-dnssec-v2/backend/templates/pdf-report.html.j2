@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ rt.cover.title|default('Reporte DNSSEC') }} — {{ result.domain }}</title>
+  <style>
+    /* WeasyPrint @page rules: A4, márgenes institucionales, paginación */
+    @page {
+      size: A4;
+      margin: 22mm 18mm 22mm 18mm;
+      @bottom-left  { content: "Observatorio DNSSEC — {{ result.domain }}"; font-size: 8pt; color: #6b7280; font-family: sans-serif; }
+      @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #6b7280; font-family: sans-serif; }
+    }
+    @page:first {
+      margin: 0;
+      @bottom-left  { content: ""; }
+      @bottom-right { content: ""; }
+    }
+
+    /* Solo fuentes del sistema — nada se descarga ni embebe */
+    body {
+      font-family: -apple-system, "Segoe UI", "Helvetica Neue", "Liberation Sans", "DejaVu Sans", Arial, sans-serif;
+      font-size: 10pt;
+      color: #111827;
+      line-height: 1.4;
+      margin: 0;
+    }
+    h1, h2, h3, h4 { color: #111827; margin: 0; font-weight: 600; }
+    h2 {
+      font-size: 13pt;
+      margin: 14pt 0 4pt 0;
+      padding-bottom: 3pt;
+      border-bottom: 1pt solid #e5e7eb;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; margin: 8pt 0 3pt 0; page-break-after: avoid; }
+    p  { margin: 4pt 0; }
+    a  { color: #2563eb; text-decoration: none; word-break: break-all; }
+    .muted { color: #6b7280; }
+    .small { font-size: 8.5pt; }
+
+    /* Portada — controlada en una sola página */
+    .cover {
+      page-break-after: always;
+      box-sizing: border-box;
+      width: 210mm;
+      height: 297mm;
+      padding: 32mm 22mm 22mm 22mm;
+      position: relative;
+      background: #ffffff;
+      color: #111827;
+    }
+    .cover .program-band {
+      font-size: 9pt;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 18mm;
+    }
+    .cover .title {
+      font-size: 30pt;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 6pt;
+    }
+    .cover .subtitle {
+      font-size: 13pt;
+      color: #4b5563;
+      margin-bottom: 18mm;
+    }
+    .cover .domain-block {
+      border: 1pt solid #e5e7eb;
+      border-radius: 3mm;
+      padding: 8mm 10mm;
+      background: #f9fafb;
+      margin-bottom: 14mm;
+    }
+    .cover .domain {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-size: 22pt;
+      font-weight: 700;
+    }
+    .cover .meta {
+      font-size: 9pt;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+    .cover .meta strong { color: #111827; }
+    .cover-footer {
+      position: absolute;
+      left: 22mm; right: 22mm; bottom: 22mm;
+      font-size: 8pt;
+      color: #6b7280;
+      border-top: 1pt solid #e5e7eb;
+      padding-top: 6pt;
+    }
+
+    /* Resumen — tabla con celdas tipo card */
+    .summary {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 4pt 0 6pt 0;
+    }
+    .summary > div {
+      display: table-cell;
+      width: 20%;
+      border: 1pt solid #e5e7eb;
+      padding: 6pt 4pt;
+      text-align: center;
+      vertical-align: middle;
+      background: #f9fafb;
+    }
+    .summary .num {
+      display: block;
+      font-size: 16pt;
+      font-weight: 700;
+      line-height: 1.05;
+      color: #111827;
+    }
+    .summary .lbl {
+      display: block;
+      font-size: 7pt;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-top: 2pt;
+    }
+    .summary .num.errors { color: #b91c1c; }
+    .summary .num.warns  { color: #b45309; }
+
+    /* Tablas genéricas con tipografía contenida y sin desbordes */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 9pt;
+      margin: 4pt 0 8pt 0;
+    }
+    table.data th, table.data td {
+      border-bottom: 0.6pt solid #e5e7eb;
+      padding: 4pt 5pt;
+      text-align: left;
+      vertical-align: top;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    table.data th {
+      background: #f3f4f6;
+      font-size: 7.5pt;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      color: #6b7280;
+      font-weight: 700;
+    }
+    table.data .col-code {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      width: 28%;
+    }
+    table.data .col-rfc { width: 12%; }
+    table.data .col-lvl { width: 10%; }
+
+    /* Pills y status */
+    .pill {
+      display: inline-block;
+      padding: 1pt 4pt;
+      border-radius: 2pt;
+      font-size: 7pt;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-weight: 700;
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .pill.SECURE,  .pill.VALID    { background: #d1fae5; color: #065f46; }
+    .pill.BOGUS,   .pill.ERROR    { background: #fee2e2; color: #991b1b; }
+    .pill.WARNING                 { background: #fef3c7; color: #92400e; }
+    .pill.INSECURE                { background: #fef3c7; color: #78350f; }
+
+    /* Zonas */
+    .zone {
+      border: 0.6pt solid #e5e7eb;
+      border-radius: 2pt;
+      padding: 5pt 7pt;
+      margin: 4pt 0;
+      page-break-inside: avoid;
+      background: #ffffff;
+    }
+    .zone-head {
+      font-size: 9.5pt;
+    }
+    .zone-name {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      font-size: 10.5pt;
+    }
+    .zone-tag {
+      display: inline-block;
+      font-size: 7pt;
+      padding: 1pt 4pt;
+      border-radius: 2pt;
+      background: #dbeafe;
+      color: #1e3a8a;
+      margin-left: 4pt;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .zone-counts { float: right; color: #6b7280; font-size: 8pt; }
+    .zone-rfcs   { font-size: 7.5pt; color: #4b5563; margin-top: 3pt; }
+
+    /* Notices */
+    .notice {
+      border: 0.6pt solid #e5e7eb;
+      border-left-width: 2.5pt;
+      padding: 5pt 7pt;
+      margin: 4pt 0;
+      page-break-inside: avoid;
+      background: #ffffff;
+    }
+    .notice.error   { border-left-color: #dc2626; }
+    .notice.warning { border-left-color: #f59e0b; }
+    .notice .head {
+      display: block;
+      margin-bottom: 2pt;
+      font-size: 9pt;
+    }
+    .notice .code {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      font-size: 9.5pt;
+    }
+    .notice .zone {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-size: 8pt;
+      color: #6b7280;
+      margin-left: 4pt;
+    }
+    .notice .original {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-size: 8pt;
+      background: #f9fafb;
+      border-left: 1pt solid #d1d5db;
+      padding: 3pt 5pt;
+      margin: 3pt 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .notice .explanation { font-size: 9pt; margin: 2pt 0; }
+    .notice .what       { font-size: 9pt; margin: 2pt 0; color: #374151; font-style: italic; }
+    .notice .meta {
+      font-size: 7.5pt;
+      color: #4b5563;
+      margin-top: 3pt;
+      line-height: 1.4;
+    }
+    .notice .meta strong { color: #111827; }
+    .notice .actions { font-size: 8.5pt; margin: 3pt 0 0 0; padding-left: 12pt; }
+    .notice .actions li { margin-bottom: 2pt; }
+    .notice .audience-tag {
+      display: inline-block;
+      font-size: 6.5pt;
+      background: #f3f4f6;
+      border: 0.5pt solid #e5e7eb;
+      padding: 0 3pt;
+      margin-right: 2pt;
+      border-radius: 2pt;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
+    /* Glosario */
+    .glossary {
+      margin: 0;
+      padding: 0;
+    }
+    .glossary .item {
+      page-break-inside: avoid;
+      margin: 3pt 0;
+      padding-left: 5pt;
+      border-left: 1.5pt solid #dbeafe;
+    }
+    .glossary dt {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      font-size: 9.5pt;
+    }
+    .glossary dd {
+      margin: 1pt 0 0 0;
+      font-size: 8.5pt;
+      color: #374151;
+      line-height: 1.45;
+    }
+
+    /* Trazabilidad */
+    .trace {
+      border: 0.4pt dashed #d1d5db;
+      border-radius: 2pt;
+      padding: 4pt 6pt;
+      margin: 3pt 0;
+      font-size: 8.5pt;
+      background: #f9fafb;
+      page-break-inside: avoid;
+    }
+    .trace .code {
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+    }
+    .trace .meta {
+      color: #6b7280;
+      font-size: 7.5pt;
+      margin-top: 2pt;
+    }
+
+    /* Bloque de referencia DNSViz original (sin captura) */
+    .source-block {
+      border: 1pt solid #e5e7eb;
+      border-radius: 2pt;
+      padding: 6pt 8pt;
+      background: #f9fafb;
+      margin: 6pt 0 0 0;
+      font-size: 9pt;
+    }
+    .source-block .source-link {
+      display: block;
+      font-family: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+      font-size: 8.5pt;
+      margin-top: 3pt;
+      color: #1d4ed8;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      margin-top: 12pt;
+      font-size: 8pt;
+      color: #6b7280;
+      border-top: 0.6pt solid #e5e7eb;
+      padding-top: 5pt;
+    }
+
+    /* Sección que evita romper en la mitad */
+    .section { page-break-inside: avoid; }
+
+    .empty {
+      font-size: 9pt;
+      color: #6b7280;
+      padding: 6pt;
+      border: 1pt dashed #e5e7eb;
+      border-radius: 2pt;
+      text-align: center;
+      background: #f9fafb;
+    }
+  </style>
+</head>
+<body>
+
+  {# ──────────────── PORTADA (1 página) ──────────────── #}
+  <section class="cover">
+    <div class="program-band">{{ rt.cover.program|default('Observatorios Técnicos Ecuatorianos') }}</div>
+    <div class="title">{{ rt.cover.title|default('Reporte DNSSEC') }}</div>
+    <div class="subtitle">{{ rt.cover.subtitle|default('Intérprete estructurado de DNSViz') }}</div>
+
+    <div class="domain-block">
+      <div class="domain">{{ result.domain }}</div>
+      <div class="meta">
+        <p><strong>{{ ui.report.analyzed_at|default('Analizado el') }}:</strong> {{ formatted_date }}</p>
+        <p><strong>ID:</strong> {{ result.id }}</p>
+        {% if result.source and result.source.engine %}
+        <p><strong>{{ ui.report.section_summary|default('Fuente') }}:</strong> {{ result.source.engine }}{% if result.source.version %} — {{ result.source.version }}{% endif %}</p>
+        {% endif %}
+        {% if result.source and result.source.zone_chain %}
+        <p><strong>{{ ui.report.section_zones|default('Cadena de zonas') }}:</strong> {{ result.source.zone_chain | join(' → ') }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="meta">
+      {{ rt.intro.what_is_this|default('Este reporte presenta de manera organizada la salida de DNSViz para el dominio analizado. No introduce diagnósticos propios, no calcula puntajes ni niveles de riesgo globales.') }}
+    </p>
+    <p class="meta">
+      {{ rt.intro.how_to_read|default('') }}
+    </p>
+
+    <div class="cover-footer">
+      {{ rt.cover.footer_note|default('Documento generado a partir de la ejecución local de DNSViz. La fuente soberana de los estados técnicos es DNSViz.') }}
+    </div>
+  </section>
+
+  {# ──────────────── 1. Resumen DNSViz ──────────────── #}
+  <section class="section">
+    <h2>1. {{ ui.report.section_summary|default('Resumen DNSViz') }}</h2>
+    <p class="muted small">{{ rt.sections.summary_intro|default('') }}</p>
+    <div class="summary">
+      <div>
+        <span class="num">{{ counts.rrset }}</span>
+        <span class="lbl">{{ ui.report.rrset_status|default('RRset status') }}</span>
+      </div>
+      <div>
+        <span class="num">{{ counts.dnskey }}</span>
+        <span class="lbl">{{ ui.report.dnskey_ds_nsec_status|default('DNSKEY / DS / NSEC') }}</span>
+      </div>
+      <div>
+        <span class="num">{{ counts.delegation }}</span>
+        <span class="lbl">{{ ui.report.delegation_status|default('Delegation status') }}</span>
+      </div>
+      <div>
+        <span class="num errors">{{ counts.errors }}</span>
+        <span class="lbl">{{ ui.report.errors|default('Errors') }}</span>
+      </div>
+      <div>
+        <span class="num warns">{{ counts.warnings }}</span>
+        <span class="lbl">{{ ui.report.warnings|default('Warnings') }}</span>
+      </div>
+    </div>
+  </section>
+
+  {# ──────────────── 2. Zonas analizadas ──────────────── #}
+  <section class="section">
+    <h2>2. {{ ui.report.section_zones|default('Zonas analizadas') }}</h2>
+    <p class="muted small">{{ rt.sections.zones_intro|default('') }}</p>
+    {% set zones = result.structured_view.zones if result.structured_view else [] %}
+    {% if zones %}
+      {% for z in zones %}
+      <div class="zone">
+        <div class="zone-head">
+          <span class="zone-name">{{ z.name }}</span>
+          {% if z.classification.is_root %}<span class="zone-tag">root</span>
+          {% elif z.classification.is_tld %}<span class="zone-tag">TLD</span>
+          {% elif z.classification.is_target %}<span class="zone-tag">target</span>
+          {% elif z.classification.is_intermediate %}<span class="zone-tag">intermediate</span>{% endif %}
+          <span class="zone-counts">
+            ⚠ {{ z.errors|length }} &nbsp;  ▲ {{ z.warnings|length }}
+          </span>
+        </div>
+        {% if z.rfcs and z.rfcs|length > 0 %}
+        <div class="zone-rfcs">RFC: {% for r in z.rfcs %}RFC {{ r }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">{{ ui.report.no_errors|default('Sin zonas analizadas.') }}</div>
+    {% endif %}
+  </section>
+
+  {# ──────────────── 3. Notices principales ──────────────── #}
+  <section>
+    <h2>3. {{ ui.report.section_notices|default('Notices principales') }}</h2>
+    <p class="muted small">{{ rt.sections.notices_intro|default('') }}</p>
+    {% set errors = result.structured_view.sections.notices.errors if result.structured_view else [] %}
+    {% set warnings = result.structured_view.sections.notices.warnings if result.structured_view else [] %}
+    {% set notices = (errors + warnings) %}
+
+    {% if notices|length > 0 %}
+      {% for n in notices %}
+        {% set kind = 'error' if n.type == 'Error' else 'warning' %}
+        {% set expl = n.explanations.get(lang) or n.explanations.get('es') or n.explanations.get('en') or {} %}
+        <div class="notice {{ kind }}">
+          <div class="head">
+            <span class="code">{{ n.code }}</span>
+            <span class="pill {{ (n.semantica.dnsviz_level if n.semantica else n.type)|upper }}">{{ n.semantica.dnsviz_level if n.semantica and n.semantica.dnsviz_level else n.type }}</span>
+            <span class="zone">{{ n.zone }}</span>
+            {% if n.rfcs %}{% for r in n.rfcs[:3] %}<span class="pill" style="margin-left:2pt">RFC {{ r }}</span>{% endfor %}{% endif %}
+          </div>
+          {% if expl.plain_title %}<div style="font-weight:600;font-size:9.5pt;margin-bottom:2pt">{{ expl.plain_title }}</div>{% endif %}
+          <div class="original">{{ n.original_message }}</div>
+          {% if expl.plain_description %}<div class="explanation">{{ expl.plain_description }}</div>{% endif %}
+          {% if expl.what_it_means %}<div class="what">{{ expl.what_it_means }}</div>{% endif %}
+
+          <div class="meta">
+            {% if n.node and n.node.label %}<strong>{{ ui.report.node|default('Nodo') }}:</strong> {{ n.node.label }}{% if n.node.status %} ({{ n.node.status }}){% endif %}<br>{% endif %}
+            {% if n.semantica and n.semantica.dnsviz_section %}<strong>{{ ui.report.section|default('Sección') }}:</strong> {{ n.semantica.dnsviz_section }}{% if n.semantica.dnsviz_group %} · {{ n.semantica.dnsviz_group }}{% endif %}<br>{% endif %}
+            {% if n.semantica and n.semantica.applies_to and n.semantica.applies_to|length > 0 %}<strong>{{ ui.report.applies_to|default('Aplica a') }}:</strong> {{ n.semantica.applies_to|join(', ') }}<br>{% endif %}
+            {% if n.servers and n.servers|length > 0 %}<strong>{{ ui.report.server|default('Servidor') }}:</strong> {{ n.servers|join(', ') }}<br>{% endif %}
+            {% if n.query_options and n.query_options|length > 0 %}<strong>{{ ui.report.query_options|default('Query options') }}:</strong> {{ n.query_options|join(', ') }}<br>{% endif %}
+            {% if n.contexto_normativo %}
+              {% if n.contexto_normativo.nist_reference %}<strong>NIST:</strong> {{ n.contexto_normativo.nist_reference }}<br>{% endif %}
+              {% if n.contexto_normativo.iso27001_reference %}<strong>ISO 27001:</strong> {{ n.contexto_normativo.iso27001_reference }}<br>{% endif %}
+              {% if n.contexto_normativo.possible_operational_area %}<strong>{{ 'Operational area' if lang == 'en' else 'Área operativa' }}:</strong> {{ n.contexto_normativo.possible_operational_area }}{% if n.contexto_normativo.operational_complexity %} · {{ n.contexto_normativo.operational_complexity }}{% endif %}{% if n.contexto_normativo.estimated_effort %} · {{ n.contexto_normativo.estimated_effort }}{% endif %}<br>{% endif %}
+            {% endif %}
+          </div>
+
+          {% if expl.possible_actions and expl.possible_actions|length > 0 %}
+          <ul class="actions">
+            {% for a in expl.possible_actions %}
+              <li><span class="audience-tag">{{ a.audience }}</span>{{ a.text }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+
+          {% if expl.suggested_review %}
+          <div class="meta" style="margin-top:3pt"><strong>{{ 'Suggested review' if lang == 'en' else 'Revisión sugerida' }}:</strong> {{ expl.suggested_review }}</div>
+          {% endif %}
+
+          <div class="meta" style="margin-top:3pt;color:#9ca3af">
+            <strong>{{ ui.report.trace_source|default('Fuente') }}:</strong> {{ n.traceability.source if n.traceability else 'DNSViz CLI' }}
+            {% if n.traceability and n.traceability.layers_used %} · <strong>{{ ui.report.trace_layer|default('Capas') }}:</strong> {{ n.traceability.layers_used|join(' / ') }}{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">{{ ui.report.no_errors|default('DNSViz no reportó errores ni advertencias para este dominio.') }}</div>
+    {% endif %}
+  </section>
+
+  {# ──────────────── 4. Mapeo DNSViz → RFC ──────────────── #}
+  <section>
+    <h2>4. {{ ui.report.section_rfc_map|default('Mapeo DNSViz → RFC') }}</h2>
+    <p class="muted small">{{ rt.sections.rfc_map_intro|default('') }}</p>
+    {% set by_code = result.structured_view.notices_by_code if result.structured_view else [] %}
+    {% if by_code and by_code|length > 0 %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th class="col-code">{{ ui.report.code|default('Código') }}</th>
+          <th class="col-rfc">{{ ui.report.rfc|default('RFC') }}</th>
+          <th class="col-lvl">{{ ui.report.level|default('Nivel') }}</th>
+          <th>{{ ui.report.original_message|default('Mensaje DNSViz') }}</th>
+          <th>{{ ui.report.human_explanation|default('Explicación') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in by_code %}
+        {% set occ = (c.occurrences[0] if c.occurrences and c.occurrences|length > 0 else {}) %}
+        {% set expl_layer = (result.layers.capa3.get(c.code) if result.layers and result.layers.capa3 else None) %}
+        {% set expl_pdf = (expl_layer.get(lang) if expl_layer else None) or (expl_layer.get('es') if expl_layer else None) or (expl_layer.get('en') if expl_layer else None) or {} %}
+        <tr>
+          <td class="col-code">{{ c.code }}</td>
+          <td class="col-rfc">{% if c.rfcs %}{% for r in c.rfcs %}RFC {{ r }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}—{% endif %}</td>
+          <td class="col-lvl"><span class="pill {{ c.level|upper }}">{{ c.level }}</span></td>
+          <td>{{ occ.message }}</td>
+          <td>{{ expl_pdf.plain_title or expl_pdf.plain_description or '' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty">{{ ui.report.no_errors|default('Sin notices para mapear.') }}</div>
+    {% endif %}
+  </section>
+
+  {# ──────────────── 5. Glosario ──────────────── #}
+  <section class="section">
+    <h2>5. {{ ui.report.section_glossary|default('Glosario') }}</h2>
+    <p class="muted small">{{ rt.sections.glossary_intro|default('') }}</p>
+    {% set glossary = rt.glossary if rt and rt.glossary else [] %}
+    {% if glossary and glossary|length > 0 %}
+      <dl class="glossary">
+        {% for g in glossary %}
+          <div class="item">
+            <dt>{{ g.term }}</dt>
+            <dd>{{ g.definition }}</dd>
+          </div>
+        {% endfor %}
+      </dl>
+    {% else %}
+      <div class="empty">Glosario no configurado.</div>
+    {% endif %}
+  </section>
+
+  {# ──────────────── 6. Trazabilidad ──────────────── #}
+  <section>
+    <h2>6. {{ ui.report.section_traceability|default('Trazabilidad') }}</h2>
+    <p class="muted small">{{ rt.sections.traceability_intro|default('') }}</p>
+    {% set notices_for_trace = (errors + warnings) %}
+    {% if notices_for_trace|length > 0 %}
+      {% for n in notices_for_trace %}
+        <div class="trace">
+          <span class="code">{{ n.code }}</span>
+          · {{ ui.report.zone|default('Zona') }}: {{ n.traceability.zone if n.traceability else n.zone }}
+          · {{ ui.report.node|default('Nodo') }}: {{ (n.traceability.node_key if n.traceability else (n.node.key if n.node else '')) or '—' }}
+          <div class="meta">
+            <strong>{{ ui.report.trace_source|default('Fuente') }}:</strong> {{ n.traceability.source if n.traceability else 'DNSViz CLI' }}
+            · <strong>{{ ui.report.trace_layer|default('Capas usadas') }}:</strong> {{ (n.traceability.layers_used|join(' / ')) if n.traceability else '—' }}
+            {% if n.rfcs %} · {% for r in n.rfcs %}RFC {{ r }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Sin elementos para trazar.</div>
+    {% endif %}
+  </section>
+
+  {# ──────────────── Vista original DNSViz (referencia textual) ──────────────── #}
+  <section class="section">
+    <h2>{{ ui.report.panel_left_title|default('DNSViz original (evidencia)') }}</h2>
+    <div class="source-block">
+      <p>{{ 'Original DNSViz view available at:' if lang == 'en' else 'Vista original DNSViz disponible en:' }}</p>
+      <a class="source-link" href="{{ graph_url }}">{{ graph_url }}</a>
+      {% if result.dnsviz_original and result.dnsviz_original.graph_html_url %}
+        <p class="small muted" style="margin-top:4pt">
+          {{ 'This PDF does not embed the DNSViz graph image. The original interactive view is available at the URL above and as a persisted artifact in /analyze/<id>/graph.html.' if lang == 'en' else 'Este PDF no incrusta la imagen del grafo. La vista original interactiva está disponible en la URL anterior y como artefacto persistido en /analyze/<id>/graph.html.' }}
+        </p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ──────────────── Disclaimer + metodología ──────────────── #}
+  <section class="disclaimer">
+    {% if rt.methodology and rt.methodology.body %}
+      <p><strong>{{ rt.methodology.title|default('Metodología') }}:</strong> {{ rt.methodology.body }}</p>
+    {% endif %}
+    {% if rt.disclaimer and rt.disclaimer.body %}
+      <p><strong>{{ rt.disclaimer.title|default('Aviso importante') }}:</strong> {{ rt.disclaimer.body }}</p>
+    {% endif %}
+    <p>{{ ui.report.source_notice|default('Fuente: DNSViz local.') }}</p>
+  </section>
+
+</body>
+</html>

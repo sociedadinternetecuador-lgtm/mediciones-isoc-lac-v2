@@ -1,0 +1,82 @@
+{
+  "es": {
+    "cover": {
+      "title": "Reporte DNSSEC",
+      "subtitle": "Intérprete estructurado de DNSViz",
+      "program": "Observatorios Técnicos Ecuatorianos",
+      "footer_note": "Documento generado a partir de la ejecución local de DNSViz. La fuente soberana de los estados técnicos es DNSViz."
+    },
+    "intro": {
+      "what_is_this": "Este reporte presenta de manera organizada la salida de DNSViz para el dominio analizado. No introduce diagnósticos propios, no calcula puntajes ni niveles de riesgo globales.",
+      "how_to_read": "El panel izquierdo contiene el grafo original de DNSViz como evidencia. El panel derecho organiza el mismo análisis en secciones: estados visuales por zona, errores, advertencias, mapeo a RFC y glosario."
+    },
+    "sections": {
+      "summary_intro": "Resumen extraído directamente de DNSViz: estado de RRset, DNSKEY/DS/NSEC, Delegation y conteo de errores y advertencias.",
+      "zones_intro": "Cada zona en la cadena (raíz, TLD, delegaciones intermedias y dominio final) se presenta con sus elementos visuales propios.",
+      "notices_intro": "Cada notice conserva el código, el mensaje original de DNSViz, la zona o nodo asociado, las RFC y una explicación humana opcional.",
+      "rfc_map_intro": "Mapa entre los códigos DNSViz observados y las RFC referenciadas por el catálogo oficial.",
+      "glossary_intro": "Definiciones breves de términos comunes en DNSSEC que aparecen en el reporte.",
+      "traceability_intro": "Cada explicación se presenta junto con su fuente DNSViz, la capa de datos consultada y la zona o nodo afectado para permitir auditoría."
+    },
+    "glossary": [
+      { "term": "RRset",       "definition": "Conjunto de registros DNS del mismo nombre, clase y tipo. Es la unidad mínima firmable en DNSSEC." },
+      { "term": "DNSKEY",      "definition": "Registro que publica la clave pública usada para verificar firmas RRSIG." },
+      { "term": "DS",          "definition": "Delegation Signer. Hash de una DNSKEY publicado en la zona padre. Ancla la cadena de confianza desde el padre hacia la hija." },
+      { "term": "RRSIG",       "definition": "Firma criptográfica de un RRset. Permite verificar autenticidad e integridad." },
+      { "term": "NSEC / NSEC3","definition": "Registros que prueban criptográficamente la inexistencia de un nombre o tipo." },
+      { "term": "Secure",      "definition": "DNSViz validó la cadena de confianza completa para el nodo." },
+      { "term": "Insecure",    "definition": "El nodo no está cubierto por DNSSEC. No implica error." },
+      { "term": "Bogus",       "definition": "DNSViz detectó una falla criptográfica en la cadena." },
+      { "term": "Delegation",  "definition": "Acto de delegar autoridad sobre una zona a otro conjunto de NS, normalmente con DS para mantener DNSSEC." },
+      { "term": "EDNS",        "definition": "Extensiones DNS necesarias para soporte DNSSEC y respuestas grandes." }
+    ],
+    "disclaimer": {
+      "title": "Aviso importante",
+      "body": "Los resultados son referenciales y reflejan la perspectiva de red, conectividad IPv6 y momento del análisis local. Para decisiones críticas conviene revisar dnsviz.net y consultar con un especialista."
+    },
+    "methodology": {
+      "title": "Metodología",
+      "body": "Se ejecuta DNSViz CLI en el orden probe → grok → graph. La salida del grafo se utiliza como fuente soberana de estados visuales. Los códigos observados se enriquecen con los catálogos en backend/data/dnsviz/. El sistema no recalcula estados DNSSEC ni produce diagnósticos globales propios."
+    }
+  },
+  "en": {
+    "cover": {
+      "title": "DNSSEC Report",
+      "subtitle": "Structured interpreter of DNSViz",
+      "program": "Ecuadorian Technical Observatories",
+      "footer_note": "Document generated from local DNSViz execution. DNSViz remains the sovereign source for technical states."
+    },
+    "intro": {
+      "what_is_this": "This report presents the DNSViz output for the analyzed domain in an organized way. It does not introduce diagnoses, scores or global risk levels of its own.",
+      "how_to_read": "The left panel contains the original DNSViz graph as evidence. The right panel organizes the same analysis into sections: visual states per zone, errors, warnings, RFC mapping and glossary."
+    },
+    "sections": {
+      "summary_intro": "Summary taken directly from DNSViz: RRset, DNSKEY/DS/NSEC, Delegation status and counts of errors and warnings.",
+      "zones_intro": "Each zone in the chain (root, TLD, intermediate delegations and final domain) is shown with its own visual elements.",
+      "notices_intro": "Each notice preserves its code, the original DNSViz message, associated zone or node, RFCs and an optional plain-language explanation.",
+      "rfc_map_intro": "Map between observed DNSViz codes and the RFCs referenced by the official catalog.",
+      "glossary_intro": "Short definitions of common DNSSEC terms used in the report.",
+      "traceability_intro": "Each explanation is shown together with its DNSViz source, the data layer used and the affected zone or node, to support auditing."
+    },
+    "glossary": [
+      { "term": "RRset",       "definition": "Set of DNS records sharing the same name, class and type. The atomic unit signable by DNSSEC." },
+      { "term": "DNSKEY",      "definition": "Record publishing the public key used to verify RRSIG signatures." },
+      { "term": "DS",          "definition": "Delegation Signer. Hash of a DNSKEY published in the parent zone. It anchors the chain of trust from the parent to the child." },
+      { "term": "RRSIG",       "definition": "Cryptographic signature of an RRset. Used to verify authenticity and integrity." },
+      { "term": "NSEC / NSEC3","definition": "Records that cryptographically prove the non-existence of a name or type." },
+      { "term": "Secure",      "definition": "DNSViz validated the full chain of trust for the node." },
+      { "term": "Insecure",    "definition": "The node is not covered by DNSSEC. Not an error by itself." },
+      { "term": "Bogus",       "definition": "DNSViz detected a cryptographic failure in the chain." },
+      { "term": "Delegation",  "definition": "Act of delegating authority over a zone to another set of NS, usually with a DS to maintain DNSSEC." },
+      { "term": "EDNS",        "definition": "DNS extensions required for DNSSEC support and large answers." }
+    ],
+    "disclaimer": {
+      "title": "Important notice",
+      "body": "Results are referential and reflect network perspective, IPv6 connectivity and the time of the local analysis. For critical decisions reviewing dnsviz.net and consulting a specialist is recommended."
+    },
+    "methodology": {
+      "title": "Methodology",
+      "body": "DNSViz CLI is executed in the order probe → grok → graph. The graph output is used as the sovereign source for visual states. Observed codes are enriched with the catalogs in backend/data/dnsviz/. The system does not recompute DNSSEC states or produce its own global diagnostics."
+    }
+  }
+}

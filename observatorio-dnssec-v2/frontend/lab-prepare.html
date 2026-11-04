@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preparar dominios - Laboratorio DNSSEC</title>
+  <link rel="icon" href="/img/ote-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="header-brand">
+        <img src="/img/ote-favicon.svg" alt="OTE" style="height:28px;width:auto">
+        <span class="header-title" data-i18n="home.hero_title">Observatorio DNSSEC</span>
+      </a>
+      <nav class="header-nav">
+        <a href="/" data-i18n="nav.home">Inicio</a>
+        <a href="/about" data-i18n="nav.about">Acerca de</a>
+        <a href="/lab" class="active" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+        <button class="btn-lang" onclick="I18n.toggle()" data-lang-toggle>English</button>
+        <a href="/admin/dashboard" class="btn-login-header" data-i18n="nav.admin">Admin</a>
+      </nav>
+      <button class="header-menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+    </div>
+  </div>
+  <nav class="header-mobile-nav" id="mobile-nav">
+    <a href="/" data-i18n="nav.home">Inicio</a>
+    <a href="/about" data-i18n="nav.about">Acerca de</a>
+    <a href="/lab" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+    <button onclick="I18n.toggle()" data-lang-toggle>English</button>
+    <a href="/admin/dashboard" data-i18n="nav.admin">Admin</a>
+  </nav>
+</header>
+
+<main class="lab-page">
+  <section class="lab-hero lab-hero-compact">
+    <div class="container">
+      <p class="lab-eyebrow" data-i18n="lab.eyebrow">FASE 2</p>
+      <h1 data-i18n="lab.bulk_prepare">Preparar lote de dominios</h1>
+      <p data-i18n="lab.bulk_prepare_help">Pega dominios o URLs, uno por linea. El laboratorio normaliza entradas como www.ejemplo.ec antes de analizarlas.</p>
+      <div id="lab-session" class="lab-session"></div>
+    </div>
+  </section>
+
+  <nav class="lab-topnav">
+    <div class="container lab-topnav-inner">
+      <a href="/lab" data-i18n="lab.nav_dashboard">Tablero</a>
+      <a class="active" href="/lab/prepare" data-i18n="lab.nav_prepare">Preparar dominios</a>
+      <a href="#" aria-disabled="true" data-i18n="lab.nav_campaigns">Campañas</a>
+      <a href="#" aria-disabled="true" data-i18n="lab.nav_reports">Reportes</a>
+    </div>
+  </nav>
+
+  <section class="container lab-workspace">
+    <article class="lab-panel">
+      <div class="lab-panel-head">
+        <h2 data-i18n="lab.prepare_source">Fuente de dominios</h2>
+        <span class="lab-pill">inventario</span>
+      </div>
+      <div class="lab-import">
+        <input id="lab-bulk-file" class="lab-file-input" type="file" accept=".txt,.csv,text/plain,text/csv" onchange="Lab.importDomainFile(event)">
+        <button class="btn" type="button" onclick="document.getElementById('lab-bulk-file').click()" data-i18n="lab.import_file">Importar CSV/TXT</button>
+        <span id="lab-file-status" class="lab-file-status" data-i18n="lab.import_hint">Tambien puedes pegar manualmente.</span>
+      </div>
+      <textarea id="lab-bulk-input" class="lab-textarea" rows="8" spellcheck="false" placeholder="www.corpece.org.ec&#10;https://dnssec.corpece.org.ec/reporte&#10;example.com"></textarea>
+      <div class="lab-actions">
+        <button class="btn btn-primary" type="button" onclick="Lab.normalizeDomains()" data-i18n="lab.prepare">Preparar dominios</button>
+        <button class="btn" type="button" onclick="Lab.clearDomains()" data-i18n="lab.clear">Limpiar</button>
+      </div>
+    </article>
+
+    <article class="lab-panel">
+      <h2 data-i18n="lab.inventory_summary">Resumen del inventario</h2>
+      <div id="lab-bulk-summary" class="lab-summary hidden"></div>
+      <div id="lab-bulk-groups" class="lab-groups hidden"></div>
+    </article>
+
+    <article id="lab-review" class="lab-panel lab-review hidden">
+      <div class="lab-panel-head">
+        <h2 data-i18n="lab.review_title">Revisar antes de procesar</h2>
+        <span id="lab-review-count" class="lab-pill"></span>
+      </div>
+      <p id="lab-review-warning" class="lab-warning"></p>
+      <textarea id="lab-review-list" class="lab-textarea lab-review-textarea" rows="8" spellcheck="false"></textarea>
+      <div class="lab-actions">
+        <button class="btn btn-primary" type="button" onclick="Lab.processReviewList()" data-i18n="lab.process">Procesar</button>
+        <button class="btn" type="button" onclick="Lab.applyReviewEdits()" data-i18n="lab.apply_edits">Aplicar edicion</button>
+        <button class="btn" type="button" onclick="Lab.cancelReview()" data-i18n="lab.cancel">Cancelar</button>
+      </div>
+      <div id="lab-process-status" class="lab-file-status"></div>
+    </article>
+
+    <article class="lab-panel">
+      <div id="lab-selection" class="lab-selection hidden"></div>
+      <div id="lab-bulk-table" class="lab-table-wrap hidden"></div>
+    </article>
+  </section>
+</main>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/lab.js"></script>
+</body>
+</html>

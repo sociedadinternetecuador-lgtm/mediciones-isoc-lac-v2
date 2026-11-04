@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratorio DNSSEC - Observatorio DNSSEC</title>
+  <link rel="icon" href="/img/ote-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="header-brand">
+        <img src="/img/ote-favicon.svg" alt="OTE" style="height:28px;width:auto">
+        <span class="header-title" data-i18n="home.hero_title">Observatorio DNSSEC</span>
+      </a>
+      <nav class="header-nav">
+        <a href="/" data-i18n="nav.home">Inicio</a>
+        <a href="/about" data-i18n="nav.about">Acerca de</a>
+        <a href="/lab" class="active" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+        <button class="btn-lang" onclick="I18n.toggle()" data-lang-toggle>English</button>
+        <a href="/admin/dashboard" class="btn-login-header" data-i18n="nav.admin">Admin</a>
+      </nav>
+      <button class="header-menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+    </div>
+  </div>
+  <nav class="header-mobile-nav" id="mobile-nav">
+    <a href="/" data-i18n="nav.home">Inicio</a>
+    <a href="/about" data-i18n="nav.about">Acerca de</a>
+    <a href="/lab" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+    <button onclick="I18n.toggle()" data-lang-toggle>English</button>
+    <a href="/admin/dashboard" data-i18n="nav.admin">Admin</a>
+  </nav>
+</header>
+
+<main class="lab-page">
+  <section class="lab-hero lab-hero-compact">
+    <div class="container">
+      <p class="lab-eyebrow" data-i18n="lab.eyebrow">FASE 2</p>
+      <h1 data-i18n="lab.title">Laboratorio DNSSEC</h1>
+      <p data-i18n="lab.subtitle">Area privada para analisis bulk, reportes y estudio tecnico estructurado.</p>
+      <div id="lab-session" class="lab-session"></div>
+    </div>
+  </section>
+
+  <nav class="lab-topnav">
+    <div class="container lab-topnav-inner">
+      <a class="active" href="/lab" data-i18n="lab.nav_dashboard">Tablero</a>
+      <a href="/lab/prepare" data-i18n="lab.nav_prepare">Preparar dominios</a>
+      <a href="#" aria-disabled="true" data-i18n="lab.nav_campaigns">Campañas</a>
+      <a href="#" aria-disabled="true" data-i18n="lab.nav_reports">Reportes</a>
+    </div>
+  </nav>
+
+  <section class="container lab-grid">
+    <article class="lab-panel">
+      <h2 data-i18n="lab.system_status">Estado del sistema</h2>
+      <dl class="lab-facts">
+        <div><dt data-i18n="lab.worker">Worker</dt><dd id="lab-worker">-</dd></div>
+        <div><dt data-i18n="lab.database">Base FASE 2</dt><dd id="lab-db">-</dd></div>
+        <div><dt data-i18n="lab.indexed">Analisis indexados</dt><dd id="lab-analyses">-</dd></div>
+        <div><dt data-i18n="lab.phase1_contract">Contrato FASE 1</dt><dd id="lab-phase1">-</dd></div>
+      </dl>
+    </article>
+
+    <article class="lab-panel">
+      <h2 data-i18n="lab.available_now">Disponible ahora</h2>
+      <ul class="lab-checklist">
+        <li data-i18n="lab.now_worker">Worker DNSViz remoto dual-stack en GCP.</li>
+        <li data-i18n="lab.now_phase1">FASE 1 publica con grafico interactivo y descargas PNG/SVG.</li>
+        <li data-i18n="lab.now_db_schema">Esquema PostgreSQL inicial documentado.</li>
+        <li data-i18n="lab.now_admin">Admin local para usuarios y capas existentes.</li>
+      </ul>
+    </article>
+
+    <article class="lab-panel lab-panel-wide">
+      <div class="lab-panel-head">
+        <h2 data-i18n="lab.modules">Modulos del laboratorio</h2>
+        <span class="lab-pill" data-i18n="lab.prototype">Prototipo</span>
+      </div>
+      <div id="lab-modules" class="lab-modules"></div>
+    </article>
+
+    <article class="lab-panel lab-panel-wide">
+      <h2 data-i18n="lab.next_steps">Siguiente construccion</h2>
+      <p data-i18n="lab.next_text">El siguiente bloque sera conectar PostgreSQL real, crear repositorios de datos y luego habilitar el primer flujo bulk controlado.</p>
+      <div class="lab-actions">
+        <a class="btn btn-primary" href="/lab/prepare" data-i18n="lab.go_prepare">Preparar dominios</a>
+        <a class="btn" href="/admin/dashboard" data-i18n="lab.go_admin">Ir a Admin</a>
+        <a class="btn" href="/health" target="_blank" rel="noopener">Health</a>
+      </div>
+    </article>
+  </section>
+</main>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/lab.js"></script>
+</body>
+</html>

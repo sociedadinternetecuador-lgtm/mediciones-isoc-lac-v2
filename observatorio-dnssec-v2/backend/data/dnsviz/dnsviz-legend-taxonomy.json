@@ -1,0 +1,2888 @@
+{
+  "schema_version": "1.1.0",
+  "source": {
+    "name": "DNSViz DNSSEC visualization documentation",
+    "url": "https://dnsviz.net/doc/dnssec/",
+    "retrieved_context_date": "2026-05-15",
+    "derivation_note": "Derived from the DNSViz DNSSEC visualization legend/documentation. DNSViz CLI artifacts remain authoritative."
+  },
+  "principles": {
+    "raw_capture_is_authoritative": true,
+    "do_not_modify_dnsviz_results": true,
+    "interpretation_must_reference_artifact": true,
+    "separate_visual_legend_from_operational_interpretation": true,
+    "canonical_legend_is_not_a_validator": true
+  },
+  "layer_contract": {
+    "canonical_dnsviz_legend": "Terms and visual semantics derived from the DNSViz documentation.",
+    "localization": "Display labels and translated descriptions for UI/reporting.",
+    "operational_interpretation": "Observatory-specific severity, audience, actions, and AI guardrails. This is not official DNSViz output."
+  },
+  "entries": [
+    {
+      "id": "zone_cluster",
+      "category": "zone",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Zones",
+        "canonical_label_en": "Zone cluster",
+        "visual": {
+          "shape": "cluster",
+          "label": "zone origin + analysis timestamp"
+        },
+        "meaning_en": "Groups information that belongs to a specific DNS zone.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Zone cluster",
+          "visual_description": {
+            "shape": "cluster",
+            "label": "zone origin + analysis timestamp"
+          },
+          "technical_meaning": "Groups information that belongs to a specific DNS zone."
+        },
+        "es": {
+          "display_label": "Agrupación de zona",
+          "visual_description": {
+            "shape": "cluster",
+            "label": "origen de zona + fecha/hora de análisis"
+          },
+          "technical_meaning": "Agrupa la información perteneciente a una zona DNS específica."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "segmentar resultados por zona",
+          "asociar hallazgos al padre o hijo correcto",
+          "construir narrativas de delegación"
+        ],
+        "operational_value": "prevents assigning a child-zone problem to the parent zone, or the reverse.",
+        "audience": [
+          "operadores DNS",
+          "ccTLD",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "segmentar resultados por zona",
+            "asociar hallazgos al padre o hijo correcto",
+            "construir narrativas de delegación"
+          ],
+          "operational_value_es": "Evita atribuir un problema de la zona hija a la zona padre, o viceversa.",
+          "audience_es": [
+            "operadores DNS",
+            "ccTLD",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "delegation_insecure",
+      "category": "delegation",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Delegations",
+        "canonical_label_en": "Insecure delegation",
+        "visual": {
+          "edge": "thick solid black line"
+        },
+        "meaning_en": "Standard delegation without DNSSEC trust propagation.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Insecure delegation",
+          "visual_description": {
+            "edge": "thick solid black line"
+          },
+          "technical_meaning": "Standard delegation without DNSSEC trust propagation."
+        },
+        "es": {
+          "display_label": "Delegación insegura",
+          "visual_description": {
+            "edge": "línea gruesa negra continua"
+          },
+          "technical_meaning": "Delegación estándar sin propagación de confianza DNSSEC."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "clasificar dominio como inseguro pero no necesariamente roto",
+          "detectar ausencia de DS"
+        ],
+        "operational_value": "distinguishes unsigned from signed-but-broken.",
+        "audience": [
+          "administradores de dominio",
+          "managers",
+          "ccTLD"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "user_explanation": "The finding should be explained in terms of resolver impact, affected users, and whether the condition is intentional, degraded, or broken.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "clasificar dominio como inseguro pero no necesariamente roto",
+            "detectar ausencia de DS"
+          ],
+          "operational_value_es": "Distingue 'no firmado' de 'firmado pero roto'.",
+          "audience_es": [
+            "administradores de dominio",
+            "managers",
+            "ccTLD"
+          ],
+          "recommended_action_es": "Si se requiere DNSSEC, publicar DS correcto en el padre; si no, registrar como estado intencional/no firmado.",
+          "user_explanation_es": "El dominio puede resolver normalmente, pero no tiene cadena DNSSEC validable desde el padre."
+        }
+      }
+    },
+    {
+      "id": "delegation_lame",
+      "category": "delegation",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Delegations",
+        "canonical_label_en": "Lame delegation",
+        "visual": {
+          "edge": "dashed yellow line"
+        },
+        "meaning_en": "Designated name servers cannot be resolved properly or do not respond correctly.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Lame delegation",
+          "visual_description": {
+            "edge": "dashed yellow line"
+          },
+          "technical_meaning": "Designated name servers cannot be resolved properly or do not respond correctly."
+        },
+        "es": {
+          "display_label": "Delegación lame",
+          "visual_description": {
+            "edge": "línea amarilla discontinua"
+          },
+          "technical_meaning": "Los servidores designados no se resuelven correctamente o no responden adecuadamente a consultas."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "system_use": [
+          "alerta de disponibilidad DNS",
+          "distinguir problema de reachability frente a problema criptográfico"
+        ],
+        "operational_value": "may affect DNS resolution independently of DNSSEC.",
+        "audience": [
+          "operadores DNS",
+          "NOC",
+          "ISPs"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de disponibilidad DNS",
+            "distinguir problema de reachability frente a problema criptográfico"
+          ],
+          "operational_value_es": "Puede afectar resolución incluso sin relación directa con DNSSEC.",
+          "audience_es": [
+            "operadores DNS",
+            "NOC",
+            "ISPs"
+          ],
+          "recommended_action_es": "Verificar glue, NS, reachability UDP/TCP 53, firewall y configuración authoritative."
+        }
+      }
+    },
+    {
+      "id": "delegation_incomplete",
+      "category": "delegation",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Delegations",
+        "canonical_label_en": "Incomplete delegation",
+        "visual": {
+          "edge": "dashed yellow line"
+        },
+        "meaning_en": "NS records exist in the child zone but not in the parent zone.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Incomplete delegation",
+          "visual_description": {
+            "edge": "dashed yellow line"
+          },
+          "technical_meaning": "NS records exist in the child zone but not in the parent zone."
+        },
+        "es": {
+          "display_label": "Delegación incompleta",
+          "visual_description": {
+            "edge": "línea amarilla discontinua"
+          },
+          "technical_meaning": "La zona hija contiene NS pero la zona padre no contiene la delegación correspondiente."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "detectar desalineación padre/hijo",
+          "reporte de consistencia de delegación"
+        ],
+        "operational_value": "detects parent/child publication mismatch.",
+        "audience": [
+          "registrars",
+          "ccTLD",
+          "administradores DNS"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "detectar desalineación padre/hijo",
+            "reporte de consistencia de delegación"
+          ],
+          "operational_value_es": "Identifica incoherencias de publicación que pueden causar resultados diferentes según el resolver.",
+          "audience_es": [
+            "registrars",
+            "ccTLD",
+            "administradores DNS"
+          ],
+          "recommended_action_es": "Alinear NS publicados en padre e hijo según el modelo operativo previsto."
+        }
+      }
+    },
+    {
+      "id": "delegation_secure",
+      "category": "delegation",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Delegations",
+        "canonical_label_en": "Secure delegation",
+        "visual": {
+          "edge": "solid blue line"
+        },
+        "meaning_en": "Secure delegation by DNSSEC standards; trust propagates correctly.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Secure delegation",
+          "visual_description": {
+            "edge": "solid blue line"
+          },
+          "technical_meaning": "Secure delegation by DNSSEC standards; trust propagates correctly."
+        },
+        "es": {
+          "display_label": "Delegación segura",
+          "visual_description": {
+            "edge": "línea azul continua"
+          },
+          "technical_meaning": "Delegación segura según DNSSEC; existe propagación de confianza válida."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "ok",
+        "system_use": [
+          "marcar tramo confiable",
+          "base para cálculo de cadena de confianza"
+        ],
+        "operational_value": "confirms that the child zone participates correctly in DNSSEC.",
+        "audience": [
+          "operadores DNS",
+          "auditores",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "marcar tramo confiable",
+            "base para cálculo de cadena de confianza"
+          ],
+          "operational_value_es": "Confirma que la zona hija participa correctamente en DNSSEC desde el padre.",
+          "audience_es": [
+            "operadores DNS",
+            "auditores",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "delegation_bogus",
+      "category": "delegation",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Delegations",
+        "canonical_label_en": "Bogus delegation",
+        "visual": {
+          "edge": "dashed red line"
+        },
+        "meaning_en": "Broken or invalid DNSSEC delegation; the chain of trust is broken.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Bogus delegation",
+          "visual_description": {
+            "edge": "dashed red line"
+          },
+          "technical_meaning": "Broken or invalid DNSSEC delegation; the chain of trust is broken."
+        },
+        "es": {
+          "display_label": "Delegación bogus",
+          "visual_description": {
+            "edge": "línea roja discontinua"
+          },
+          "technical_meaning": "Delegación DNSSEC rota o inválida; la cadena de confianza queda quebrada."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica DNSSEC",
+          "incidente de validación",
+          "priorización inmediata"
+        ],
+        "operational_value": "may cause SERVFAIL for validating resolvers.",
+        "audience": [
+          "operadores DNS",
+          "ccTLD",
+          "CERT",
+          "administradores de dominio"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "user_explanation": "The finding should be explained in terms of resolver impact, affected users, and whether the condition is intentional, degraded, or broken.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica DNSSEC",
+            "incidente de validación",
+            "priorización inmediata"
+          ],
+          "operational_value_es": "Puede provocar SERVFAIL en resolvers validantes.",
+          "audience_es": [
+            "operadores DNS",
+            "ccTLD",
+            "CERT",
+            "administradores de dominio"
+          ],
+          "recommended_action_es": "Comparar DS del padre con DNSKEY de la zona hija; revisar rollover, algoritmos, digest y firmas.",
+          "user_explanation_es": "El dominio parece tener DNSSEC, pero la validación puede fallar para usuarios que usan resolvers validantes."
+        }
+      }
+    },
+    {
+      "id": "rrset_generic",
+      "category": "rrset",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRsets",
+        "canonical_label_en": "RRset",
+        "visual": {
+          "node": "rounded rectangle"
+        },
+        "meaning_en": "A returned DNS RRset, such as SOA, A, AAAA, MX, or CNAME.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "RRset",
+          "visual_description": {
+            "node": "rounded rectangle"
+          },
+          "technical_meaning": "A returned DNS RRset, such as SOA, A, AAAA, MX, or CNAME."
+        },
+        "es": {
+          "display_label": "RRset",
+          "visual_description": {
+            "node": "rectángulo con esquinas redondeadas"
+          },
+          "technical_meaning": "Conjunto de registros DNS devueltos, por ejemplo SOA, A, AAAA, MX o CNAME."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "inventario técnico",
+          "detectar registros relevantes",
+          "relacionar respuestas con firmas"
+        ],
+        "operational_value": "identifies the exact DNS data that was validated, failed, or remained insecure.",
+        "audience": [
+          "operadores DNS",
+          "desarrolladores",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "inventario técnico",
+            "detectar registros relevantes",
+            "relacionar respuestas con firmas"
+          ],
+          "operational_value_es": "Permite saber qué dato concreto fue validado, falló o quedó inseguro.",
+          "audience_es": [
+            "operadores DNS",
+            "desarrolladores",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "alias_cname",
+      "category": "rrset",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRsets",
+        "canonical_label_en": "CNAME alias",
+        "visual": {
+          "edge": "black edge from alias to canonical name"
+        },
+        "meaning_en": "Alias produced by a CNAME record.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "CNAME alias",
+          "visual_description": {
+            "edge": "black edge from alias to canonical name"
+          },
+          "technical_meaning": "Alias produced by a CNAME record."
+        },
+        "es": {
+          "display_label": "Alias CNAME",
+          "visual_description": {
+            "edge": "línea negra desde alias hacia nombre canónico"
+          },
+          "technical_meaning": "Alias producido por CNAME."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "mapear dependencias indirectas",
+          "detectar cadenas CNAME largas",
+          "relacionar fallas con destino canónico"
+        ],
+        "operational_value": "reveals indirect dependencies that are not visible from the queried domain alone.",
+        "audience": [
+          "operadores",
+          "equipos web",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "mapear dependencias indirectas",
+            "detectar cadenas CNAME largas",
+            "relacionar fallas con destino canónico"
+          ],
+          "operational_value_es": "Ayuda a identificar dependencias externas que no se ven mirando solo el dominio consultado.",
+          "audience_es": [
+            "operadores",
+            "equipos web",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dname_valid",
+      "category": "rrset",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRsets",
+        "canonical_label_en": "Valid DNAME expansion",
+        "visual": {
+          "edge": "solid blue line between DNAME and synthesized CNAME"
+        },
+        "meaning_en": "Valid DNAME expansion.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Valid DNAME expansion",
+          "visual_description": {
+            "edge": "solid blue line between DNAME and synthesized CNAME"
+          },
+          "technical_meaning": "Valid DNAME expansion."
+        },
+        "es": {
+          "display_label": "Expansión DNAME válida",
+          "visual_description": {
+            "edge": "línea azul continua entre DNAME y CNAME sintetizado"
+          },
+          "technical_meaning": "Expansión DNAME válida."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "ok",
+        "system_use": [
+          "validar redirección de namespace",
+          "explicar dependencias por DNAME"
+        ],
+        "operational_value": "confirms that namespace aliasing works cryptographically.",
+        "audience": [
+          "operadores DNS avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "validar redirección de namespace",
+            "explicar dependencias por DNAME"
+          ],
+          "operational_value_es": "Confirma que la delegación lógica de un namespace está funcionando criptográficamente.",
+          "audience_es": [
+            "operadores DNS avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dname_invalid",
+      "category": "rrset",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRsets",
+        "canonical_label_en": "Invalid DNAME expansion",
+        "visual": {
+          "edge": "solid red line between DNAME and CNAME"
+        },
+        "meaning_en": "Invalid DNAME expansion.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Invalid DNAME expansion",
+          "visual_description": {
+            "edge": "solid red line between DNAME and CNAME"
+          },
+          "technical_meaning": "Invalid DNAME expansion."
+        },
+        "es": {
+          "display_label": "Expansión DNAME inválida",
+          "visual_description": {
+            "edge": "línea roja continua entre DNAME y CNAME"
+          },
+          "technical_meaning": "Expansión DNAME inválida."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "system_use": [
+          "alerta de inconsistencia DNAME",
+          "diagnóstico de aliasing roto"
+        ],
+        "operational_value": "may cause incorrect resolution for names depending on the DNAME.",
+        "audience": [
+          "operadores DNS avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de inconsistencia DNAME",
+            "diagnóstico de aliasing roto"
+          ],
+          "operational_value_es": "Puede causar resolución incorrecta en nombres que dependen del DNAME.",
+          "audience_es": [
+            "operadores DNS avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "negative_nxdomain",
+      "category": "negative_response",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Negative Responses",
+        "canonical_label_en": "NXDOMAIN negative response",
+        "visual": {
+          "node": "rectangle with diagonal corners, dashed border, lighter color"
+        },
+        "meaning_en": "Negative NXDOMAIN response: the queried name does not exist.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "NXDOMAIN negative response",
+          "visual_description": {
+            "node": "rectangle with diagonal corners, dashed border, lighter color"
+          },
+          "technical_meaning": "Negative NXDOMAIN response: the queried name does not exist."
+        },
+        "es": {
+          "display_label": "Respuesta negativa NXDOMAIN",
+          "visual_description": {
+            "node": "rectángulo con diagonales en esquinas, borde discontinuo y color claro"
+          },
+          "technical_meaning": "Respuesta negativa NXDOMAIN: el nombre consultado no existe."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "clasificar ausencia de nombre",
+          "validar prueba NSEC/NSEC3 si aplica"
+        ],
+        "operational_value": "distinguishes a non-existent name from a resolution failure.",
+        "audience": [
+          "operadores",
+          "soporte técnico"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "clasificar ausencia de nombre",
+            "validar prueba NSEC/NSEC3 si aplica"
+          ],
+          "operational_value_es": "Distingue nombre inexistente de falla de resolución.",
+          "audience_es": [
+            "operadores",
+            "soporte técnico"
+          ]
+        }
+      }
+    },
+    {
+      "id": "negative_nodata",
+      "category": "negative_response",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Negative Responses",
+        "canonical_label_en": "NO DATA negative response",
+        "visual": {
+          "node": "rounded rectangle with dashed border, lighter color"
+        },
+        "meaning_en": "NOERROR response with no data for the requested type.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "NO DATA negative response",
+          "visual_description": {
+            "node": "rounded rectangle with dashed border, lighter color"
+          },
+          "technical_meaning": "NOERROR response with no data for the requested type."
+        },
+        "es": {
+          "display_label": "Respuesta negativa NO DATA",
+          "visual_description": {
+            "node": "rectángulo redondeado con borde discontinuo y color claro"
+          },
+          "technical_meaning": "Respuesta NOERROR sin datos del tipo solicitado."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "clasificar ausencia de tipo RR",
+          "evitar confundir NO DATA con NXDOMAIN"
+        ],
+        "operational_value": "clarifies that the name exists but not the queried RR type.",
+        "audience": [
+          "operadores",
+          "soporte técnico"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "clasificar ausencia de tipo RR",
+            "evitar confundir NO DATA con NXDOMAIN"
+          ],
+          "operational_value_es": "Aclara que el nombre existe, pero no contiene el tipo de registro consultado.",
+          "audience_es": [
+            "operadores",
+            "soporte técnico"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dnskey_node",
+      "category": "dnskey",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DNSKEY RRs",
+        "canonical_label_en": "DNSKEY RR",
+        "visual": {
+          "node": "ellipse"
+        },
+        "meaning_en": "DNSKEY with algorithm and key tag; enables validation of signatures made by the corresponding private key.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DNSKEY RR",
+          "visual_description": {
+            "node": "ellipse"
+          },
+          "technical_meaning": "DNSKEY with algorithm and key tag; enables validation of signatures made by the corresponding private key."
+        },
+        "es": {
+          "display_label": "DNSKEY RR",
+          "visual_description": {
+            "node": "elipse"
+          },
+          "technical_meaning": "DNSKEY con algoritmo y key tag; habilita validación de firmas hechas con la clave privada correspondiente."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "inventario DNSKEY",
+          "detectar KSK/ZSK",
+          "relacionar firmas y DS"
+        ],
+        "operational_value": "basis for diagnosing rollovers, incorrect DS records, and invalid signatures.",
+        "audience": [
+          "operadores DNSSEC",
+          "auditores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "inventario DNSKEY",
+            "detectar KSK/ZSK",
+            "relacionar firmas y DS"
+          ],
+          "operational_value_es": "Base para diagnosticar rollovers, DS incorrectos y firmas inválidas.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "auditores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dnskey_sep_bit",
+      "category": "dnskey",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DNSKEY RRs",
+        "canonical_label_en": "DNSKEY with SEP bit",
+        "visual": {
+          "node_fill": "gray"
+        },
+        "meaning_en": "SEP bit is set; typically designates a key used as a KSK.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DNSKEY with SEP bit",
+          "visual_description": {
+            "node_fill": "gray"
+          },
+          "technical_meaning": "SEP bit is set; typically designates a key used as a KSK."
+        },
+        "es": {
+          "display_label": "DNSKEY con bit SEP",
+          "visual_description": {
+            "node_fill": "gris"
+          },
+          "technical_meaning": "Bit SEP activado; usualmente designa una clave usada como KSK."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "identificar posible KSK",
+          "diagnóstico de entrada segura a la zona"
+        ],
+        "operational_value": "helps verify whether the parent DS points to the intended key.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "identificar posible KSK",
+            "diagnóstico de entrada segura a la zona"
+          ],
+          "operational_value_es": "Ayuda a revisar si el DS del padre apunta a la clave correcta.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dnskey_revoke_bit",
+      "category": "dnskey",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DNSKEY RRs",
+        "canonical_label_en": "DNSKEY with revoke bit",
+        "visual": {
+          "node_border": "thick"
+        },
+        "meaning_en": "Revoke bit is set; signal for trust-anchor revocation under RFC 5011.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DNSKEY with revoke bit",
+          "visual_description": {
+            "node_border": "thick"
+          },
+          "technical_meaning": "Revoke bit is set; signal for trust-anchor revocation under RFC 5011."
+        },
+        "es": {
+          "display_label": "DNSKEY con bit revoke",
+          "visual_description": {
+            "node_border": "grueso"
+          },
+          "technical_meaning": "Bit revoke activado; señal de retiro de trust anchor según RFC 5011."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "detectar revocación",
+          "analizar rollovers de trust anchor"
+        ],
+        "operational_value": "may explain why a key should no longer be used as a trust anchor.",
+        "audience": [
+          "operadores DNSSEC avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "detectar revocación",
+            "analizar rollovers de trust anchor"
+          ],
+          "operational_value_es": "Puede explicar por qué una clave ya no debe ser usada como ancla de confianza.",
+          "audience_es": [
+            "operadores DNSSEC avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "dnskey_trust_anchor",
+      "category": "dnskey",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DNSKEY RRs",
+        "canonical_label_en": "DNSKEY designated as trust anchor",
+        "visual": {
+          "node_border": "double"
+        },
+        "meaning_en": "DNSKEY designated as a trust anchor.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DNSKEY designated as trust anchor",
+          "visual_description": {
+            "node_border": "double"
+          },
+          "technical_meaning": "DNSKEY designated as a trust anchor."
+        },
+        "es": {
+          "display_label": "DNSKEY designada como trust anchor",
+          "visual_description": {
+            "node_border": "doble"
+          },
+          "technical_meaning": "DNSKEY designada como trust anchor."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "marcar inicio de cadena de confianza",
+          "explicar validación desde ancla"
+        ],
+        "operational_value": "distinguishes locally configured trust from DS-delegated trust.",
+        "audience": [
+          "operadores DNSSEC",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "marcar inicio de cadena de confianza",
+            "explicar validación desde ancla"
+          ],
+          "operational_value_es": "Permite diferenciar confianza configurada localmente de confianza delegada por DS.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ds_valid",
+      "category": "ds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DS RRs",
+        "canonical_label_en": "Valid DS to DNSKEY relationship",
+        "visual": {
+          "edge": "blue arrow from DS to DNSKEY"
+        },
+        "meaning_en": "The DS digest corresponds to an existing DNSKEY.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Valid DS to DNSKEY relationship",
+          "visual_description": {
+            "edge": "blue arrow from DS to DNSKEY"
+          },
+          "technical_meaning": "The DS digest corresponds to an existing DNSKEY."
+        },
+        "es": {
+          "display_label": "Relación DS-DNSKEY válida",
+          "visual_description": {
+            "edge": "flecha azul desde DS hacia DNSKEY"
+          },
+          "technical_meaning": "El digest del DS corresponde a una DNSKEY existente."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "ok",
+        "system_use": [
+          "confirmar enlace padre-hijo",
+          "marcar delegación segura"
+        ],
+        "operational_value": "confirms parent-child linkage.",
+        "audience": [
+          "operadores DNSSEC",
+          "registrars",
+          "ccTLD"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "confirmar enlace padre-hijo",
+            "marcar delegación segura"
+          ],
+          "operational_value_es": "Confirma que el padre publica un DS compatible con una clave de la hija.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "registrars",
+            "ccTLD"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ds_invalid_digest",
+      "category": "ds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DS RRs",
+        "canonical_label_en": "DS with invalid digest",
+        "visual": {
+          "edge": "solid red line DS→DNSKEY"
+        },
+        "meaning_en": "A DNSKEY exists with matching algorithm/key tag, but the DS digest does not match.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DS with invalid digest",
+          "visual_description": {
+            "edge": "solid red line DS→DNSKEY"
+          },
+          "technical_meaning": "A DNSKEY exists with matching algorithm/key tag, but the DS digest does not match."
+        },
+        "es": {
+          "display_label": "DS con digest inválido",
+          "visual_description": {
+            "edge": "línea roja continua DS→DNSKEY"
+          },
+          "technical_meaning": "Existe DNSKEY con algoritmo y key tag coincidentes, pero el digest del DS no coincide."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica de DS incorrecto",
+          "diagnóstico de rollover roto"
+        ],
+        "operational_value": "can break DNSSEC validation.",
+        "audience": [
+          "operadores DNSSEC",
+          "registrar",
+          "ccTLD"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica de DS incorrecto",
+            "diagnóstico de rollover roto"
+          ],
+          "operational_value_es": "Puede romper validación DNSSEC para resolvers validantes.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "registrar",
+            "ccTLD"
+          ],
+          "recommended_action_es": "Recalcular DS desde la DNSKEY actual y actualizarlo en el padre."
+        }
+      }
+    },
+    {
+      "id": "ds_no_matching_dnskey",
+      "category": "ds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DS RRs",
+        "canonical_label_en": "DS with no matching DNSKEY",
+        "visual": {
+          "edge": "dashed gray line to DNSKEY with dashed gray border"
+        },
+        "meaning_en": "No child-zone DNSKEY matches the DS algorithm and key tag.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DS with no matching DNSKEY",
+          "visual_description": {
+            "edge": "dashed gray line to DNSKEY with dashed gray border"
+          },
+          "technical_meaning": "No child-zone DNSKEY matches the DS algorithm and key tag."
+        },
+        "es": {
+          "display_label": "DS sin DNSKEY coincidente",
+          "visual_description": {
+            "edge": "línea gris discontinua hacia DNSKEY con borde gris discontinuo"
+          },
+          "technical_meaning": "No existe DNSKEY en la hija que coincida con algoritmo y key tag del DS."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "needs_context": true,
+        "system_use": [
+          "alerta de DS huérfano",
+          "detectar rollover incompleto"
+        ],
+        "operational_value": "may be legitimate prepublication, but can break validation depending on signing coverage.",
+        "audience": [
+          "operadores DNSSEC",
+          "registrars",
+          "ccTLD"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de DS huérfano",
+            "detectar rollover incompleto"
+          ],
+          "operational_value_es": "Puede ser prepublicación legítima, pero si no hay DNSKEY firmando el DNSKEY RRset por cada algoritmo requerido, puede romper validación.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "registrars",
+            "ccTLD"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ds_unknown_digest_algorithm",
+      "category": "ds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DS RRs",
+        "canonical_label_en": "DS with unknown digest algorithm",
+        "visual": {
+          "edge": "yellow line DS→DNSKEY"
+        },
+        "meaning_en": "The DS digest algorithm is unknown or unsupported.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DS with unknown digest algorithm",
+          "visual_description": {
+            "edge": "yellow line DS→DNSKEY"
+          },
+          "technical_meaning": "The DS digest algorithm is unknown or unsupported."
+        },
+        "es": {
+          "display_label": "DS con algoritmo de digest desconocido",
+          "visual_description": {
+            "edge": "línea amarilla DS→DNSKEY"
+          },
+          "technical_meaning": "El algoritmo de digest del DS es desconocido o no soportado."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "alerta de compatibilidad",
+          "revisión de algoritmo"
+        ],
+        "operational_value": "may affect validators that do not support the algorithm.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de compatibilidad",
+            "revisión de algoritmo"
+          ],
+          "operational_value_es": "Puede afectar validadores que no soportan el algoritmo.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ds_invalid_use",
+      "category": "ds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "DS RRs",
+        "canonical_label_en": "DS with invalid use",
+        "visual": {
+          "edge": "dashed red line DS→DNSKEY"
+        },
+        "meaning_en": "The DS use is invalid regardless of digest correctness, e.g. pointing to a revoked DNSKEY.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "DS with invalid use",
+          "visual_description": {
+            "edge": "dashed red line DS→DNSKEY"
+          },
+          "technical_meaning": "The DS use is invalid regardless of digest correctness, e.g. pointing to a revoked DNSKEY."
+        },
+        "es": {
+          "display_label": "Uso inválido de DS",
+          "visual_description": {
+            "edge": "línea roja discontinua DS→DNSKEY"
+          },
+          "technical_meaning": "El uso del DS es inválido independientemente de que el digest sea correcto, por ejemplo si apunta a DNSKEY revocada."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica de uso inválido de clave",
+          "diagnóstico RFC5011"
+        ],
+        "operational_value": "can break the chain of trust even when values appear to match.",
+        "audience": [
+          "operadores DNSSEC avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica de uso inválido de clave",
+            "diagnóstico RFC5011"
+          ],
+          "operational_value_es": "Puede quebrar la cadena de confianza aunque los valores parezcan coincidir.",
+          "audience_es": [
+            "operadores DNSSEC avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nsec_nsec3_node",
+      "category": "nsec_nsec3",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "NSEC/NSEC3 RRs",
+        "canonical_label_en": "NSEC/NSEC3 proof node",
+        "visual": {
+          "node": "compartmented rectangle labeled NSEC or NSEC3"
+        },
+        "meaning_en": "Authenticated denial-of-existence proof for NXDOMAIN or NO DATA.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "NSEC/NSEC3 proof node",
+          "visual_description": {
+            "node": "compartmented rectangle labeled NSEC or NSEC3"
+          },
+          "technical_meaning": "Authenticated denial-of-existence proof for NXDOMAIN or NO DATA."
+        },
+        "es": {
+          "display_label": "Nodo de prueba NSEC/NSEC3",
+          "visual_description": {
+            "node": "rectángulo compartimentado etiquetado NSEC o NSEC3"
+          },
+          "technical_meaning": "Prueba autenticada de inexistencia para NXDOMAIN o NO DATA."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "validar respuestas negativas",
+          "explicar negación autenticada"
+        ],
+        "operational_value": "distinguishes legitimate absence from failure or tampering.",
+        "audience": [
+          "operadores DNSSEC",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "validar respuestas negativas",
+            "explicar negación autenticada"
+          ],
+          "operational_value_es": "Distingue una ausencia legítima de una falla o manipulación.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nsec_nsec3_ds_absence",
+      "category": "nsec_nsec3",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "NSEC/NSEC3 RRs",
+        "canonical_label_en": "NSEC/NSEC3 proof of DS absence",
+        "visual": {
+          "edge": "NSEC/NSEC3 node to child-zone box"
+        },
+        "meaning_en": "Proof of DS absence; establishes an insecure delegation.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "NSEC/NSEC3 proof of DS absence",
+          "visual_description": {
+            "edge": "NSEC/NSEC3 node to child-zone box"
+          },
+          "technical_meaning": "Proof of DS absence; establishes an insecure delegation."
+        },
+        "es": {
+          "display_label": "Prueba NSEC/NSEC3 de ausencia de DS",
+          "visual_description": {
+            "edge": "NSEC/NSEC3 hacia caja de zona hija"
+          },
+          "technical_meaning": "Prueba de ausencia de DS; establece delegación insegura."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "clasificar delegación insegura demostrada",
+          "no tratar como error DNSSEC"
+        ],
+        "operational_value": "prevents classifying an unsigned zone as a broken signed zone.",
+        "audience": [
+          "operadores",
+          "managers",
+          "auditores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "clasificar delegación insegura demostrada",
+            "no tratar como error DNSSEC"
+          ],
+          "operational_value_es": "Evita confundir una zona no firmada con una zona firmada rota.",
+          "audience_es": [
+            "operadores",
+            "managers",
+            "auditores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nsec3_opt_out",
+      "category": "nsec_nsec3",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "NSEC/NSEC3 RRs",
+        "canonical_label_en": "NSEC3 opt-out",
+        "visual": {
+          "node_fill": "gray"
+        },
+        "meaning_en": "NSEC3 opt-out is set; sufficient for insecure delegations, not necessarily for other NXDOMAIN proofs.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "NSEC3 opt-out",
+          "visual_description": {
+            "node_fill": "gray"
+          },
+          "technical_meaning": "NSEC3 opt-out is set; sufficient for insecure delegations, not necessarily for other NXDOMAIN proofs."
+        },
+        "es": {
+          "display_label": "NSEC3 opt-out",
+          "visual_description": {
+            "node_fill": "gris"
+          },
+          "technical_meaning": "NSEC3 con opt-out; suficiente para probar delegaciones inseguras, no necesariamente otros NXDOMAIN."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "señalar limitaciones de prueba negativa",
+          "contextualizar delegaciones inseguras"
+        ],
+        "operational_value": "important in large delegation-heavy zones, especially TLDs.",
+        "audience": [
+          "ccTLD",
+          "operadores DNSSEC avanzados",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "señalar limitaciones de prueba negativa",
+            "contextualizar delegaciones inseguras"
+          ],
+          "operational_value_es": "Importante en zonas grandes con muchas delegaciones, especialmente TLDs.",
+          "audience_es": [
+            "ccTLD",
+            "operadores DNSSEC avanzados",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nsec_invalid_proof",
+      "category": "nsec_nsec3",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "NSEC/NSEC3 RRs",
+        "canonical_label_en": "Invalid NSEC/NSEC3 proof",
+        "visual": {
+          "edge": "solid red line NSEC/NSEC3→negative response"
+        },
+        "meaning_en": "NSEC/NSEC3 records do not validly prove the negative response.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Invalid NSEC/NSEC3 proof",
+          "visual_description": {
+            "edge": "solid red line NSEC/NSEC3→negative response"
+          },
+          "technical_meaning": "NSEC/NSEC3 records do not validly prove the negative response."
+        },
+        "es": {
+          "display_label": "Prueba NSEC/NSEC3 inválida",
+          "visual_description": {
+            "edge": "línea roja continua NSEC/NSEC3→respuesta negativa"
+          },
+          "technical_meaning": "Los NSEC/NSEC3 incluidos no prueban válidamente la respuesta negativa."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica de negación autenticada inválida"
+        ],
+        "operational_value": "can make negative responses fail validation.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica de negación autenticada inválida"
+          ],
+          "operational_value_es": "Puede hacer fallar la validación de respuestas negativas.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "rrsig_valid",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "Valid RRSIG",
+        "visual": {
+          "edge": "blue edge from DNSKEY to signed RRset"
+        },
+        "meaning_en": "RRSIG correctly validates the RRset using the corresponding DNSKEY.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Valid RRSIG",
+          "visual_description": {
+            "edge": "blue edge from DNSKEY to signed RRset"
+          },
+          "technical_meaning": "RRSIG correctly validates the RRset using the corresponding DNSKEY."
+        },
+        "es": {
+          "display_label": "RRSIG válida",
+          "visual_description": {
+            "edge": "flecha/edge azul desde DNSKEY hacia RRset firmado"
+          },
+          "technical_meaning": "RRSIG valida correctamente el RRset usando la DNSKEY correspondiente."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "ok",
+        "system_use": [
+          "propagar confianza",
+          "confirmar autenticidad de RRset"
+        ],
+        "operational_value": "confirms cryptographic authenticity of DNS data.",
+        "audience": [
+          "operadores DNSSEC",
+          "auditores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "propagar confianza",
+            "confirmar autenticidad de RRset"
+          ],
+          "operational_value_es": "Confirma que el dato DNS puede autenticarse criptográficamente.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "auditores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "rrsig_bogus_signature",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "RRSIG with bogus signature",
+        "visual": {
+          "edge": "solid red line"
+        },
+        "meaning_en": "Cryptographic signature is invalid.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "RRSIG with bogus signature",
+          "visual_description": {
+            "edge": "solid red line"
+          },
+          "technical_meaning": "Cryptographic signature is invalid."
+        },
+        "es": {
+          "display_label": "RRSIG con firma bogus",
+          "visual_description": {
+            "edge": "línea roja continua"
+          },
+          "technical_meaning": "Firma criptográfica inválida."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica de firma inválida",
+          "diagnóstico de zona mal firmada"
+        ],
+        "operational_value": "may cause SERVFAIL for validating resolvers.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica de firma inválida",
+            "diagnóstico de zona mal firmada"
+          ],
+          "operational_value_es": "Puede provocar SERVFAIL en resolvers validantes.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "rrsig_expired_or_premature",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "Expired or premature RRSIG",
+        "visual": {
+          "edge": "solid purple line"
+        },
+        "meaning_en": "RRSIG is outside its validity period: expired or not yet valid.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Expired or premature RRSIG",
+          "visual_description": {
+            "edge": "solid purple line"
+          },
+          "technical_meaning": "RRSIG is outside its validity period: expired or not yet valid."
+        },
+        "es": {
+          "display_label": "RRSIG expirada o prematura",
+          "visual_description": {
+            "edge": "línea púrpura continua"
+          },
+          "technical_meaning": "RRSIG fuera de su periodo de validez: expirada o todavía no válida."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta temporal de firmas",
+          "monitoreo de renovación de firmas"
+        ],
+        "operational_value": "often indicates failed signing automation or clock/publishing issues.",
+        "audience": [
+          "operadores DNSSEC",
+          "NOC"
+        ],
+        "recommended_action": "Review the related DNSViz artifact and fix the parent/child, signature, key, reachability, or timing condition indicated by the entry.",
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta temporal de firmas",
+            "monitoreo de renovación de firmas"
+          ],
+          "operational_value_es": "Suele indicar automatización de firmado fallida o reloj/cron desalineado.",
+          "audience_es": [
+            "operadores DNSSEC",
+            "NOC"
+          ],
+          "recommended_action_es": "Revisar proceso de resigning, reloj del firmador, publicación y TTL."
+        }
+      }
+    },
+    {
+      "id": "rrsig_no_matching_dnskey",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "RRSIG with no matching DNSKEY",
+        "visual": {
+          "edge": "dashed gray line from DNSKEY with dashed gray border"
+        },
+        "meaning_en": "No DNSKEY matches the RRSIG algorithm and key tag.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "RRSIG with no matching DNSKEY",
+          "visual_description": {
+            "edge": "dashed gray line from DNSKEY with dashed gray border"
+          },
+          "technical_meaning": "No DNSKEY matches the RRSIG algorithm and key tag."
+        },
+        "es": {
+          "display_label": "RRSIG sin DNSKEY coincidente",
+          "visual_description": {
+            "edge": "línea gris discontinua desde DNSKEY con borde gris discontinuo"
+          },
+          "technical_meaning": "No se encontró DNSKEY que coincida con algoritmo y key tag de la RRSIG."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "needs_context": true,
+        "system_use": [
+          "detectar firma huérfana",
+          "diagnóstico de rollover incompleto"
+        ],
+        "operational_value": "may be rollover-related, but can break validation if required RRsets are affected.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "detectar firma huérfana",
+            "diagnóstico de rollover incompleto"
+          ],
+          "operational_value_es": "Puede ser prepublicación en rollover, pero requiere contexto; si cubre RRsets necesarios puede romper validación.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "rrsig_unknown_algorithm",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "RRSIG with unknown algorithm",
+        "visual": {
+          "edge": "yellow line from DNSKEY"
+        },
+        "meaning_en": "Cryptographic algorithm is unknown or unsupported.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "RRSIG with unknown algorithm",
+          "visual_description": {
+            "edge": "yellow line from DNSKEY"
+          },
+          "technical_meaning": "Cryptographic algorithm is unknown or unsupported."
+        },
+        "es": {
+          "display_label": "RRSIG con algoritmo desconocido",
+          "visual_description": {
+            "edge": "línea amarilla desde DNSKEY"
+          },
+          "technical_meaning": "Algoritmo criptográfico desconocido o no soportado."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "alerta de compatibilidad de algoritmo"
+        ],
+        "operational_value": "may affect resolvers lacking support for that algorithm.",
+        "audience": [
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de compatibilidad de algoritmo"
+          ],
+          "operational_value_es": "Puede afectar resolvers que no soportan ese algoritmo.",
+          "audience_es": [
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "rrsig_invalid_use",
+      "category": "rrsig",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "RRSIGs",
+        "canonical_label_en": "Invalid RRSIG use",
+        "visual": {
+          "edge": "dashed red line from DNSKEY"
+        },
+        "meaning_en": "RRSIG is invalid for semantic reasons independent of crypto/time, e.g. revoked DNSKEY or wrong signer name.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Invalid RRSIG use",
+          "visual_description": {
+            "edge": "dashed red line from DNSKEY"
+          },
+          "technical_meaning": "RRSIG is invalid for semantic reasons independent of crypto/time, e.g. revoked DNSKEY or wrong signer name."
+        },
+        "es": {
+          "display_label": "Uso inválido de RRSIG",
+          "visual_description": {
+            "edge": "línea roja discontinua desde DNSKEY"
+          },
+          "technical_meaning": "RRSIG inválida por razones independientes de firma/tiempo, por ejemplo DNSKEY revocada o signer name incorrecto."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica de firma inválida por semántica DNSSEC"
+        ],
+        "operational_value": "can break validation even if the signature appears cryptographically correct.",
+        "audience": [
+          "operadores DNSSEC avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica de firma inválida por semántica DNSSEC"
+          ],
+          "operational_value_es": "Puede romper validación aunque la firma parezca criptográficamente correcta.",
+          "audience_es": [
+            "operadores DNSSEC avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cdnskey_cds_rrset",
+      "category": "cdnskey_cds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "CDNSKEY/CDS RRsets",
+        "canonical_label_en": "CDNSKEY/CDS RRset",
+        "visual": {
+          "node": "normal RRset",
+          "edge": "gray line to corresponding DNSKEY"
+        },
+        "meaning_en": "CDNSKEY/CDS signal to the parent which DS records the child wants published.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "CDNSKEY/CDS RRset",
+          "visual_description": {
+            "node": "normal RRset",
+            "edge": "gray line to corresponding DNSKEY"
+          },
+          "technical_meaning": "CDNSKEY/CDS signal to the parent which DS records the child wants published."
+        },
+        "es": {
+          "display_label": "RRset CDNSKEY/CDS",
+          "visual_description": {
+            "node": "RRset normal",
+            "edge": "línea gris hacia DNSKEY correspondiente"
+          },
+          "technical_meaning": "CDNSKEY/CDS señalan al padre los DS que la zona hija desea publicar."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "monitorear automatización de DS",
+          "detectar intención de cambio de DS"
+        ],
+        "operational_value": "helps anticipate delegated DS changes and rollovers.",
+        "audience": [
+          "ccTLD",
+          "registrars",
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "monitorear automatización de DS",
+            "detectar intención de cambio de DS"
+          ],
+          "operational_value_es": "Permite anticipar rollovers y cambios delegados antes de que el padre publique el DS.",
+          "audience_es": [
+            "ccTLD",
+            "registrars",
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cdnskey_cds_nonexistent_dnskey",
+      "category": "cdnskey_cds",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "CDNSKEY/CDS RRsets",
+        "canonical_label_en": "CDNSKEY/CDS referencing non-existent DNSKEY",
+        "visual": {
+          "edge": "gray edge to DNSKEY with dashed gray border"
+        },
+        "meaning_en": "CDNSKEY/CDS references a non-existent DNSKEY.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "CDNSKEY/CDS referencing non-existent DNSKEY",
+          "visual_description": {
+            "edge": "gray edge to DNSKEY with dashed gray border"
+          },
+          "technical_meaning": "CDNSKEY/CDS references a non-existent DNSKEY."
+        },
+        "es": {
+          "display_label": "CDNSKEY/CDS que referencia una DNSKEY inexistente",
+          "visual_description": {
+            "edge": "gris hacia DNSKEY con borde gris discontinuo"
+          },
+          "technical_meaning": "CDNSKEY/CDS referencia una DNSKEY inexistente."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "alerta de señalización parental inválida"
+        ],
+        "operational_value": "may cause incorrect or failed parent-side DS automation.",
+        "audience": [
+          "ccTLD",
+          "registrars",
+          "operadores DNSSEC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de señalización parental inválida"
+          ],
+          "operational_value_es": "Puede causar automatización incorrecta o fallida de DS en el padre.",
+          "audience_es": [
+            "ccTLD",
+            "registrars",
+            "operadores DNSSEC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "wildcard_expansion",
+      "category": "wildcard",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Wildcards",
+        "canonical_label_en": "Wildcard expansion",
+        "visual": {
+          "representation": "wildcard RRset + NSEC/NSEC3 proof"
+        },
+        "meaning_en": "RRset generated by wildcard expansion; requires denial proof for the exact name.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Wildcard expansion",
+          "visual_description": {
+            "representation": "wildcard RRset + NSEC/NSEC3 proof"
+          },
+          "technical_meaning": "RRset generated by wildcard expansion; requires denial proof for the exact name."
+        },
+        "es": {
+          "display_label": "Expansión wildcard",
+          "visual_description": {
+            "representation": "RRset wildcard + prueba NSEC/NSEC3"
+          },
+          "technical_meaning": "RRset generado por expansión wildcard; requiere prueba de inexistencia del nombre exacto."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "explicar respuestas wildcard",
+          "validar negación asociada"
+        ],
+        "operational_value": "prevents confusing a legitimate wildcard answer with an explicit record.",
+        "audience": [
+          "operadores DNS",
+          "soporte técnico"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "explicar respuestas wildcard",
+            "validar negación asociada"
+          ],
+          "operational_value_es": "Evita confundir una respuesta wildcard legítima con un registro explícito.",
+          "audience_es": [
+            "operadores DNS",
+            "soporte técnico"
+          ]
+        }
+      }
+    },
+    {
+      "id": "node_secure",
+      "category": "node_status",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Node Status",
+        "canonical_label_en": "Secure node",
+        "visual": {
+          "node_outline": "blue"
+        },
+        "meaning_en": "Secure node; an unbroken chain of trust exists from trust anchor to RRset.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Secure node",
+          "visual_description": {
+            "node_outline": "blue"
+          },
+          "technical_meaning": "Secure node; an unbroken chain of trust exists from trust anchor to RRset."
+        },
+        "es": {
+          "display_label": "Nodo seguro",
+          "visual_description": {
+            "node_outline": "azul"
+          },
+          "technical_meaning": "Nodo seguro; hay cadena de confianza ininterrumpida desde un trust anchor hasta el RRset."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "ok",
+        "system_use": [
+          "clasificación DNSSEC",
+          "propagación de confianza"
+        ],
+        "operational_value": "the represented data is cryptographically validatable.",
+        "audience": [
+          "todos"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "clasificación DNSSEC",
+            "propagación de confianza"
+          ],
+          "operational_value_es": "El dato representado es validable criptográficamente.",
+          "audience_es": [
+            "todos"
+          ]
+        }
+      }
+    },
+    {
+      "id": "node_bogus",
+      "category": "node_status",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Node Status",
+        "canonical_label_en": "Bogus node",
+        "visual": {
+          "node_outline": "red"
+        },
+        "meaning_en": "Bogus node; the chain of trust from the trust anchor is broken.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Bogus node",
+          "visual_description": {
+            "node_outline": "red"
+          },
+          "technical_meaning": "Bogus node; the chain of trust from the trust anchor is broken."
+        },
+        "es": {
+          "display_label": "Nodo bogus",
+          "visual_description": {
+            "node_outline": "rojo"
+          },
+          "technical_meaning": "Nodo bogus; la cadena de confianza desde el trust anchor está rota."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "critical",
+        "system_use": [
+          "alerta crítica",
+          "impacto en validadores"
+        ],
+        "operational_value": "may cause resolution failure for validating resolvers.",
+        "audience": [
+          "operadores",
+          "managers",
+          "CERT"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta crítica",
+            "impacto en validadores"
+          ],
+          "operational_value_es": "Puede provocar fallo de resolución en resolvers validantes.",
+          "audience_es": [
+            "operadores",
+            "managers",
+            "CERT"
+          ]
+        }
+      }
+    },
+    {
+      "id": "node_partially_bogus_nsec",
+      "category": "node_status",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Node Status",
+        "canonical_label_en": "Partially bogus NSEC/NSEC3 node",
+        "visual": {
+          "compartment_outline": "blue for secure parts, red for invalid parts"
+        },
+        "meaning_en": "Partially bogus NSEC/NSEC3 node; some components are secure and others are invalid.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Partially bogus NSEC/NSEC3 node",
+          "visual_description": {
+            "compartment_outline": "blue for secure parts, red for invalid parts"
+          },
+          "technical_meaning": "Partially bogus NSEC/NSEC3 node; some components are secure and others are invalid."
+        },
+        "es": {
+          "display_label": "Nodo NSEC/NSEC3 parcialmente bogus",
+          "visual_description": {
+            "compartment_outline": "azul para partes seguras, rojo para partes inválidas"
+          },
+          "technical_meaning": "Nodo NSEC/NSEC3 parcialmente bogus; algunos registros del conjunto son válidos y otros no."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "system_use": [
+          "diagnóstico granular de negación autenticada"
+        ],
+        "operational_value": "shows whether only part of a negative proof is affected.",
+        "audience": [
+          "operadores DNSSEC avanzados"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "diagnóstico granular de negación autenticada"
+          ],
+          "operational_value_es": "Permite saber si el problema afecta solo parte de una prueba negativa.",
+          "audience_es": [
+            "operadores DNSSEC avanzados"
+          ]
+        }
+      }
+    },
+    {
+      "id": "node_insecure",
+      "category": "node_status",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Node Status",
+        "canonical_label_en": "Insecure node",
+        "visual": {
+          "node_outline": "black"
+        },
+        "meaning_en": "Insecure node; no chain of trust exists, usually due to a proven insecure delegation.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Insecure node",
+          "visual_description": {
+            "node_outline": "black"
+          },
+          "technical_meaning": "Insecure node; no chain of trust exists, usually due to a proven insecure delegation."
+        },
+        "es": {
+          "display_label": "Nodo inseguro",
+          "visual_description": {
+            "node_outline": "negro"
+          },
+          "technical_meaning": "Nodo inseguro; no existe cadena de confianza, normalmente por delegación insegura demostrada."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "info",
+        "system_use": [
+          "no tratar como error",
+          "clasificar DNS sin DNSSEC"
+        ],
+        "operational_value": "DNS can work, but that part has no DNSSEC authentication.",
+        "audience": [
+          "todos"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "no tratar como error",
+            "clasificar DNS sin DNSSEC"
+          ],
+          "operational_value_es": "El dominio puede funcionar, pero no ofrece autenticación DNSSEC para ese tramo.",
+          "audience_es": [
+            "todos"
+          ]
+        }
+      }
+    },
+    {
+      "id": "warning_node_or_edge",
+      "category": "warning_error",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Warnings and Errors",
+        "canonical_label_en": "Node or edge warning",
+        "visual": {
+          "icon": "warning icon on node or edge"
+        },
+        "meaning_en": "DNSViz detected warnings on the represented node or edge.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Node or edge warning",
+          "visual_description": {
+            "icon": "warning icon on node or edge"
+          },
+          "technical_meaning": "DNSViz detected warnings on the represented node or edge."
+        },
+        "es": {
+          "display_label": "Advertencia en nodo o borde",
+          "visual_description": {
+            "icon": "advertencia en nodo o borde"
+          },
+          "technical_meaning": "DNSViz detectó advertencias sobre el dato representado."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "extraer advertencias",
+          "priorizar según código y contexto"
+        ],
+        "operational_value": "may reveal degradation or suboptimal configuration before a critical failure.",
+        "audience": [
+          "operadores",
+          "NOC"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "extraer advertencias",
+            "priorizar según código y contexto"
+          ],
+          "operational_value_es": "Puede señalar degradaciones o configuraciones no óptimas antes de convertirse en falla crítica.",
+          "audience_es": [
+            "operadores",
+            "NOC"
+          ]
+        }
+      }
+    },
+    {
+      "id": "error_node_or_edge",
+      "category": "warning_error",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Warnings and Errors",
+        "canonical_label_en": "Node or edge error",
+        "visual": {
+          "icon": "error icon on node or edge"
+        },
+        "meaning_en": "DNSViz detected errors more severe than warnings on the represented node or edge.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Node or edge error",
+          "visual_description": {
+            "icon": "error icon on node or edge"
+          },
+          "technical_meaning": "DNSViz detected errors more severe than warnings on the represented node or edge."
+        },
+        "es": {
+          "display_label": "Error en nodo o borde",
+          "visual_description": {
+            "icon": "error en nodo o borde"
+          },
+          "technical_meaning": "DNSViz detectó errores más severos que advertencias."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "system_use": [
+          "alerta prioritaria",
+          "incidente técnico"
+        ],
+        "operational_value": "requires review because validation, availability, or consistency may be affected.",
+        "audience": [
+          "operadores",
+          "NOC",
+          "CERT"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta prioritaria",
+            "incidente técnico"
+          ],
+          "operational_value_es": "Debe revisarse porque puede afectar validación, disponibilidad o coherencia DNS.",
+          "audience_es": [
+            "operadores",
+            "NOC",
+            "CERT"
+          ]
+        }
+      }
+    },
+    {
+      "id": "response_warning",
+      "category": "warning_error",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Warnings and Errors",
+        "canonical_label_en": "Response warning",
+        "visual": {
+          "icon": "warning icon with italic label"
+        },
+        "meaning_en": "Warning about a response not directly represented elsewhere in the graph.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Response warning",
+          "visual_description": {
+            "icon": "warning icon with italic label"
+          },
+          "technical_meaning": "Warning about a response not directly represented elsewhere in the graph."
+        },
+        "es": {
+          "display_label": "Advertencia de respuesta",
+          "visual_description": {
+            "icon": "advertencia con etiqueta en cursiva"
+          },
+          "technical_meaning": "Advertencia sobre una respuesta no representada directamente en el grafo."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "medium",
+        "system_use": [
+          "capturar hallazgos fuera del grafo",
+          "evitar pérdida de señales operativas"
+        ],
+        "operational_value": "captures operational signals that may not appear as graph nodes or edges.",
+        "audience": [
+          "operadores",
+          "investigadores"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "capturar hallazgos fuera del grafo",
+            "evitar pérdida de señales operativas"
+          ],
+          "operational_value_es": "Puede revelar problemas de protocolo/respuesta que no se ven en nodos o bordes.",
+          "audience_es": [
+            "operadores",
+            "investigadores"
+          ]
+        }
+      }
+    },
+    {
+      "id": "response_error",
+      "category": "warning_error",
+      "canonical_dnsviz_legend": {
+        "source": "DNSViz DNSSEC visualization documentation",
+        "source_url": "https://dnsviz.net/doc/dnssec/",
+        "source_section": "Warnings and Errors",
+        "canonical_label_en": "Response error",
+        "visual": {
+          "icon": "error icon with italic label"
+        },
+        "meaning_en": "Response error such as timeout, malformed response, or invalid RCODE.",
+        "scope": "visual legend / DNSSEC visualization semantics",
+        "is_official_validation_result": false
+      },
+      "localization": {
+        "en": {
+          "display_label": "Response error",
+          "visual_description": {
+            "icon": "error icon with italic label"
+          },
+          "technical_meaning": "Response error such as timeout, malformed response, or invalid RCODE."
+        },
+        "es": {
+          "display_label": "Error de respuesta",
+          "visual_description": {
+            "icon": "error con etiqueta en cursiva"
+          },
+          "technical_meaning": "Error de respuesta, por ejemplo timeout, respuesta malformada o RCODE inválido."
+        }
+      },
+      "operational_interpretation": {
+        "severity_default": "high",
+        "system_use": [
+          "alerta de disponibilidad/protocolo",
+          "separar de errores criptográficos"
+        ],
+        "operational_value": "may indicate authoritative service failure, blocking, timeout, defective implementation, or network problem.",
+        "audience": [
+          "operadores",
+          "NOC",
+          "ISPs"
+        ],
+        "ai_allowed": [
+          "summarize",
+          "prioritize",
+          "compare with history",
+          "cite source artifact"
+        ],
+        "ai_forbidden": [
+          "change DNSViz results",
+          "infer root cause without evidence",
+          "declare responsibility without corroboration"
+        ],
+        "translations": {
+          "system_use_es": [
+            "alerta de disponibilidad/protocolo",
+            "separar de errores criptográficos"
+          ],
+          "operational_value_es": "Puede indicar falla de servicio authoritative, bloqueo, timeout, implementación defectuosa o problema de red.",
+          "audience_es": [
+            "operadores",
+            "NOC",
+            "ISPs"
+          ]
+        }
+      }
+    }
+  ],
+  "interpretation_rules": [
+    {
+      "id": "do_not_infer_from_color_only",
+      "rule": "Do not infer root cause from graph shape/color alone; always link the interpretation to grok.json, print.txt, or probe.json."
+    },
+    {
+      "id": "insecure_not_failure",
+      "rule": "Insecure means a proven absence of a chain of trust; it must not automatically be classified as an error."
+    },
+    {
+      "id": "bogus_is_user_impact",
+      "rule": "Bogus must be treated as potential impact for validating resolvers."
+    },
+    {
+      "id": "lame_is_availability",
+      "rule": "Lame delegation is primarily an availability/reachability problem, not a cryptographic DNSSEC problem."
+    },
+    {
+      "id": "needs_context_for_rollover",
+      "rule": "DS/RRSIG without matching DNSKEY may be part of a rollover; compare with history before declaring a definitive incident."
+    },
+    {
+      "id": "separate_ipv6_from_dnssec",
+      "rule": "UDP/TCP/IPv6/PMTU problems affect DNS service health but must not by themselves turn a secure DNSSEC chain into bogus."
+    }
+  ],
+  "outputs": {
+    "machine_tags": [
+      "dnssec",
+      "delegation",
+      "rrsig",
+      "ds",
+      "dnskey",
+      "nsec_nsec3",
+      "reachability",
+      "ipv6",
+      "availability",
+      "rollover"
+    ],
+    "severity_levels": [
+      "ok",
+      "info",
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "audiences": [
+      "operator",
+      "manager",
+      "ccTLD",
+      "registrar",
+      "ISP",
+      "university",
+      "public_sector",
+      "CERT",
+      "researcher"
+    ]
+  }
+}

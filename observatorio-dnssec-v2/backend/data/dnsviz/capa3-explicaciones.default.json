@@ -1,0 +1,365 @@
+[
+  {
+    "code": "MISSING_RRSIG",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta un RRset sin firma RRSIG",
+    "plain_description": "DNSViz no encontró firma RRSIG asociada a uno o más RRsets. En una zona firmada DNSSEC cada RRset debería tener su firma correspondiente.",
+    "what_it_means": "Sin la RRSIG, los resolvers que validan DNSSEC pueden tratar la respuesta como bogus o downgrade a insecure. El estado visual del nodo en DNSViz indica si esto afecta el resultado final del dominio.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Revisar con el proveedor de hosting/DNS por qué el RRset reportado no se firma o no se publica con su RRSIG." },
+      { "audience": "owner",   "text": "Confirmar en el panel de hosting que DNSSEC está activo para la zona." }
+    ],
+    "suggested_review": "Comparar el RRset señalado en DNSViz con la salida de dig +dnssec contra los servidores autoritativos para confirmar la ausencia de RRSIG."
+  },
+  {
+    "code": "MISSING_RRSIG",
+    "language": "en",
+    "audience_level": "both",
+    "plain_title": "DNSViz reports an RRset without an RRSIG",
+    "plain_description": "DNSViz did not find an RRSIG signature for one or more RRsets. In a DNSSEC-signed zone every RRset should have its matching signature.",
+    "what_it_means": "Without the RRSIG, validating resolvers may treat the answer as bogus or downgrade it to insecure. The visual node status in DNSViz indicates whether this affects the final result for the domain.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Ask the DNS/hosting provider why the reported RRset is not being signed or published with its RRSIG." },
+      { "audience": "owner",   "text": "Confirm in the hosting panel that DNSSEC is enabled for the zone." }
+    ],
+    "suggested_review": "Compare the RRset flagged by DNSViz with the output of dig +dnssec against the authoritative servers to confirm the missing RRSIG."
+  },
+  {
+    "code": "EXPIRATION_IN_PAST",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta una RRSIG con expiración en el pasado",
+    "plain_description": "El campo Expiration de la firma indica una fecha anterior al momento del análisis. DNSViz lo señala como Error en Notices.",
+    "what_it_means": "Resolvers que validan DNSSEC pueden rechazar respuestas firmadas con esta RRSIG. El nodo asociado en el grafo suele aparecer como BOGUS.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting/DNS regenerar y republicar las firmas de la zona." },
+      { "audience": "owner",   "text": "Verificar la programación de re-firma automática de la zona." }
+    ],
+    "suggested_review": "Confirmar la hora del firmante y la fecha de expiración con dig +dnssec para descartar reloj desincronizado."
+  },
+  {
+    "code": "EXPIRATION_IN_PAST",
+    "language": "en",
+    "audience_level": "both",
+    "plain_title": "DNSViz reports an RRSIG that has already expired",
+    "plain_description": "The Expiration field of the signature is earlier than the analysis time. DNSViz lists it as an Error under Notices.",
+    "what_it_means": "Validating resolvers may reject answers signed with this RRSIG. The related node in the graph usually appears as BOGUS.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Ask the DNS/hosting provider to re-sign and republish the zone." },
+      { "audience": "owner",   "text": "Check the automatic re-signing schedule of the zone." }
+    ],
+    "suggested_review": "Cross-check the signer clock and expiration with dig +dnssec to rule out clock drift."
+  },
+  {
+    "code": "SIGNATURE_INVALID",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta una firma RRSIG criptográficamente inválida",
+    "plain_description": "DNSViz validó la RRSIG contra la DNSKEY referenciada y el resultado fue inválido.",
+    "what_it_means": "Puede indicar manipulación, corrupción de datos al servir la zona o desalineación entre la clave usada para firmar y la publicada.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting/DNS verificar las claves DNSSEC y volver a firmar la zona." },
+      { "audience": "owner",   "text": "Revisar si hubo cambios recientes de claves o de proveedor que pudieran haber dejado material desincronizado." }
+    ],
+    "suggested_review": "Comparar el keytag de la RRSIG con las DNSKEY publicadas y validar la firma con dnssec-verify o equivalente."
+  },
+  {
+    "code": "INCEPTION_IN_FUTURE",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta una RRSIG con inception aún no vigente",
+    "plain_description": "La fecha de inicio (inception) de la firma se sitúa en el futuro respecto al análisis.",
+    "what_it_means": "Suele indicar reloj desincronizado en el firmante o una firma generada con anticipación incorrecta.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting verificar NTP en el servidor firmante y regenerar las RRSIG si corresponde." }
+    ],
+    "suggested_review": "Validar la hora del firmante y comparar con la inception declarada en la RRSIG."
+  },
+  {
+    "code": "NO_SEP",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta que no hay punto de entrada seguro (SEP)",
+    "plain_description": "Ningún DS publicado por la zona padre coincide con una DNSKEY de la zona hija que firme su DNSKEY RRset.",
+    "what_it_means": "La cadena de confianza desde la zona padre hacia la hija no se cierra. Resolvers validantes verán el dominio como bogus.",
+    "possible_actions": [
+      { "audience": "hosting",   "text": "Compartir con el registrar el DS actualizado correspondiente a la KSK vigente." },
+      { "audience": "registrar", "text": "Actualizar el DS en el registrar con el valor proporcionado por el hosting." },
+      { "audience": "owner",     "text": "Coordinar la sincronización de DS y DNSKEY entre hosting y registrar." }
+    ],
+    "suggested_review": "Comparar el DS publicado por la zona padre con el digest derivado de las DNSKEY del apex."
+  },
+  {
+    "code": "MISSING_SEP_FOR_ALG",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un algoritmo en DS sin DNSKEY equivalente",
+    "plain_description": "El RRset DS publica un algoritmo para el que no hay una DNSKEY apex que firme el DNSKEY RRset.",
+    "what_it_means": "Puede romper la validación DNSSEC para resolvers que tratan cada algoritmo como obligatorio.",
+    "possible_actions": [
+      { "audience": "hosting",   "text": "Revisar con el hosting si falta una KSK para el algoritmo del DS o si el DS sobra." },
+      { "audience": "registrar", "text": "Si el algoritmo del DS no debe estar, eliminarlo del registrar." }
+    ],
+    "suggested_review": "Listar los algoritmos presentes en DS vs DNSKEY apex y verificar correspondencia."
+  },
+  {
+    "code": "DNSKEY_MISSING_FROM_SERVERS",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta una DNSKEY ausente en algún servidor",
+    "plain_description": "Una DNSKEY conocida no es devuelta por uno o más servidores autoritativos consultados.",
+    "what_it_means": "Puede indicar desincronización entre maestro y secundarios o un servidor con vista distinta de la zona.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting verificar la sincronización de la zona entre todos los autoritativos." }
+    ],
+    "suggested_review": "Consultar DNSKEY directamente contra cada NS con dig @ns DNSKEY y comparar las respuestas."
+  },
+  {
+    "code": "DIGEST_INVALID",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta un DS cuyo digest no coincide con la DNSKEY",
+    "plain_description": "El hash declarado en el DS no coincide con el digest de la DNSKEY referenciada en la zona hija.",
+    "what_it_means": "La cadena de confianza queda rota; resolvers validantes pueden considerar el dominio bogus.",
+    "possible_actions": [
+      { "audience": "registrar", "text": "Solicitar al hosting el DS actualizado y publicarlo en el registrar." },
+      { "audience": "hosting",   "text": "Proporcionar el DS correcto correspondiente a la KSK vigente." },
+      { "audience": "owner",     "text": "Coordinar la actualización entre hosting y registrar antes de un cambio de claves." }
+    ],
+    "suggested_review": "Recalcular el digest desde la DNSKEY publicada y compararlo con el DS publicado por el padre."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NODATA",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta una respuesta NODATA sin prueba NSEC/NSEC3",
+    "plain_description": "Para una respuesta donde el tipo no existe, el servidor debería incluir NSEC o NSEC3 que pruebe la inexistencia.",
+    "what_it_means": "Sin esa prueba, los resolvers validantes no pueden confirmar que la ausencia es legítima.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting revisar la configuración de denial-of-existence en la zona DNSSEC." }
+    ],
+    "suggested_review": "Reproducir la consulta con dig +dnssec y verificar que la authority section incluya NSEC/NSEC3 y sus RRSIG."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NXDOMAIN",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta una respuesta NXDOMAIN sin prueba NSEC/NSEC3",
+    "plain_description": "El servidor responde NXDOMAIN sin incluir el NSEC o NSEC3 que pruebe la inexistencia del nombre.",
+    "what_it_means": "Resolvers validantes no pueden confirmar criptográficamente que el nombre no existe.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting revisar la configuración de denial-of-existence en la zona DNSSEC." }
+    ],
+    "suggested_review": "Reproducir la consulta con dig +dnssec y revisar la authority section."
+  },
+  {
+    "code": "NONZERO_NSEC3_ITERATION_COUNT",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta NSEC3 con iteraciones distintas de cero",
+    "plain_description": "RFC 9276 recomienda iteraciones NSEC3 igual a 0. La zona usa un valor mayor.",
+    "what_it_means": "Configuración considerada obsoleta; no implica bogus por sí misma. DNSViz puede ocultar este aviso con --ignore-rfc9276.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting actualizar NSEC3PARAM a 1 0 0 - según RFC 9276." }
+    ],
+    "suggested_review": "Inspeccionar el NSEC3PARAM de la zona y confirmar valores recomendados."
+  },
+  {
+    "code": "NONEMPTY_NSEC3_SALT",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta NSEC3 con salt no vacío",
+    "plain_description": "RFC 9276 recomienda salt vacío en NSEC3.",
+    "what_it_means": "Configuración considerada obsoleta; no implica bogus por sí misma. DNSViz puede ocultar este aviso con --ignore-rfc9276.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting eliminar el salt de NSEC3 según RFC 9276." }
+    ],
+    "suggested_review": "Inspeccionar el NSEC3PARAM de la zona."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta un servidor que no respondió",
+    "plain_description": "Uno o más servidores listados como autoritativos no respondieron a la consulta de DNSViz.",
+    "what_it_means": "Puede aparecer aunque el estado visual final del dominio siga siendo SECURE si otros NS sí respondieron. Conviene revisar para evitar pérdida de redundancia.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting verificar el servicio DNS y reglas de firewall en el servidor reportado." }
+    ],
+    "suggested_review": "Confirmar con dig +short @ns y monitorear desde múltiples perspectivas si el problema es intermitente."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_UDP",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta un servidor sin respuesta vía UDP",
+    "plain_description": "El servidor no respondió consultas UDP en el momento del análisis.",
+    "what_it_means": "Aparece como Error en Notices. Puede coexistir con un estado visual final SECURE si el dominio se sostiene con los demás NS. Conviene revisarlo.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting verificar UDP/53 en firewall y estado del servicio DNS." }
+    ],
+    "suggested_review": "Probar dig +udp @ns desde varias redes para corroborar el comportamiento."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_UDP",
+    "language": "en",
+    "audience_level": "both",
+    "plain_title": "DNSViz reports a server unresponsive over UDP",
+    "plain_description": "The server did not respond to UDP queries at analysis time.",
+    "what_it_means": "Appears as an Error under Notices. Can coexist with a final SECURE visual status if the domain is sustained by the other NS. Worth reviewing.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Ask the hosting provider to verify UDP/53 on the firewall and the DNS service status." }
+    ],
+    "suggested_review": "Run dig +udp @ns from multiple networks to corroborate the behavior."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_TCP",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un servidor sin respuesta vía TCP",
+    "plain_description": "El servidor no aceptó conexiones TCP/53 al momento del análisis.",
+    "what_it_means": "TCP es necesario para respuestas grandes (DNSSEC). Aparece como Error pero puede no afectar el estado visual final.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting verificar TCP/53 en firewall y configuración del servidor DNS." }
+    ],
+    "suggested_review": "Probar dig +tcp @ns y revisar logs del servidor."
+  },
+  {
+    "code": "NOT_AUTHORITATIVE",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un servidor que no responde con flag AA",
+    "plain_description": "Un servidor listado como NS responde pero sin flag Authoritative Answer.",
+    "what_it_means": "Resolvers pueden no confiar en sus respuestas y degradar la confianza global del dominio.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting cargar correctamente la zona en ese servidor." }
+    ],
+    "suggested_review": "Probar dig @ns SOA y verificar la presencia del flag aa en la respuesta."
+  },
+  {
+    "code": "SERVER_NOT_AUTHORITATIVE",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un servidor sin autoridad sobre la zona",
+    "plain_description": "Un servidor declarado como NS no posee la zona cargada correctamente.",
+    "what_it_means": "Reduce la disponibilidad de DNS y puede afectar validación DNSSEC.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting sincronizar la zona en ese servidor o removerlo de los NS." }
+    ],
+    "suggested_review": "Probar dig @ns SOA y verificar AA."
+  },
+  {
+    "code": "DNSSEC_DOWNGRADE_EDNS_DISABLED",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta downgrade de DNSSEC por EDNS deshabilitado",
+    "plain_description": "El servidor falla con EDNS habilitado, forzando reintentos sin EDNS y por tanto sin DNSSEC.",
+    "what_it_means": "Para clientes que consulten ese servidor, DNSSEC puede quedar efectivamente desactivado.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting revisar la configuración EDNS del servidor DNS." }
+    ],
+    "suggested_review": "Probar dig +bufsize=1232 +dnssec @ns y revisar respuesta."
+  },
+  {
+    "code": "UNABLE_TO_RETRIEVE_DNSSEC_RECORDS",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz no pudo obtener los registros DNSSEC esperados",
+    "plain_description": "DNSViz no recibió DNSKEY/RRSIG necesarios desde uno o más servidores.",
+    "what_it_means": "Sin esos registros la validación DNSSEC no es posible para los clientes que consulten ese servidor.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting revisar EDNS, buffer UDP y estado de DNSSEC en el servidor reportado." }
+    ],
+    "suggested_review": "Probar dig +dnssec DNSKEY @ns y revisar tamaño de respuesta y truncado."
+  },
+  {
+    "code": "ALGORITHM_PROHIBITED",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un algoritmo DNSSEC prohibido",
+    "plain_description": "RFC 8624 prohíbe el algoritmo declarado en DNSKEY/RRSIG.",
+    "what_it_means": "Resolvers conformes con RFC 8624 dejarán de validar firmas con este algoritmo.",
+    "possible_actions": [
+      { "audience": "hosting",   "text": "Planificar migración con el hosting a un algoritmo recomendado (ej. 13 ECDSA P-256/SHA-256 u 8 RSA/SHA-256)." },
+      { "audience": "registrar", "text": "Actualizar el DS en el registrar tras la migración." }
+    ],
+    "suggested_review": "Listar los algoritmos en DNSKEY apex y comparar con la lista actual de RFC 8624."
+  },
+  {
+    "code": "ALGORITHM_NOT_RECOMMENDED",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un algoritmo DNSSEC desaconsejado",
+    "plain_description": "RFC 8624 no recomienda el algoritmo declarado.",
+    "what_it_means": "Funciona hoy pero conviene planificar migración antes de su deprecación.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Planificar con el hosting una rotación a un algoritmo recomendado en la próxima renovación de claves." }
+    ],
+    "suggested_review": "Revisar algoritmos en DNSKEY apex y plan de rotación."
+  },
+  {
+    "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta CDNSKEY inconsistente con el DS publicado",
+    "plain_description": "El CDNSKEY publicado en la zona no coincide con el DS actual del padre.",
+    "what_it_means": "Puede indicar un proceso de rollover en curso o un error de configuración.",
+    "possible_actions": [
+      { "audience": "hosting",   "text": "Confirmar si hay rollover en curso." },
+      { "audience": "registrar", "text": "Si el cambio es intencional, actualizar el DS con el valor derivado del CDNSKEY." },
+      { "audience": "owner",     "text": "Coordinar el cambio de claves entre hosting y registrar." }
+    ],
+    "suggested_review": "Comparar CDNSKEY/CDS con el DS actual del padre."
+  },
+  {
+    "code": "CDS_INCONSISTENT_WITH_DS",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta CDS inconsistente con el DS publicado",
+    "plain_description": "El CDS publicado en la zona no coincide con el DS actual del padre.",
+    "what_it_means": "Puede indicar rollover pendiente o error de configuración.",
+    "possible_actions": [
+      { "audience": "hosting",   "text": "Confirmar si hay rollover en curso." },
+      { "audience": "registrar", "text": "Si el cambio es intencional, actualizar el DS con el valor del CDS." }
+    ],
+    "suggested_review": "Comparar CDS con el DS actual del padre."
+  },
+  {
+    "code": "NO_NS_IN_PARENT",
+    "language": "es",
+    "audience_level": "both",
+    "plain_title": "DNSViz reporta que la zona padre no publica NS para el dominio",
+    "plain_description": "La zona padre no responde con registros NS para esta zona hija.",
+    "what_it_means": "El dominio puede no ser resolvible desde partes de internet.",
+    "possible_actions": [
+      { "audience": "registrar", "text": "Solicitar al registrar verificar la delegación NS y publicarla en la zona padre." },
+      { "audience": "registry",  "text": "Si el registrar no resuelve, escalar al registry correspondiente." }
+    ],
+    "suggested_review": "Probar dig +trace dominio y revisar la respuesta del padre."
+  },
+  {
+    "code": "MISSING_GLUE_IPV4",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta falta de glue A para un NS in-bailiwick",
+    "plain_description": "Un NS dentro del dominio carece de glue A en la zona padre.",
+    "what_it_means": "Puede crear dependencias circulares al resolver los NS.",
+    "possible_actions": [
+      { "audience": "registrar", "text": "Solicitar al registrar publicar el glue A correspondiente en la zona padre." }
+    ],
+    "suggested_review": "Probar dig +trace y revisar el referral del padre."
+  },
+  {
+    "code": "EDNS_IGNORED",
+    "language": "es",
+    "audience_level": "technical",
+    "plain_title": "DNSViz reporta un servidor que ignora EDNS",
+    "plain_description": "El servidor no procesa la sección OPT requerida por EDNS0.",
+    "what_it_means": "Puede impedir respuestas grandes y validación DNSSEC.",
+    "possible_actions": [
+      { "audience": "hosting", "text": "Solicitar al hosting actualizar el software DNS para soportar EDNS0 (RFC 6891)." }
+    ],
+    "suggested_review": "Probar dig +bufsize=1232 @ns y revisar la respuesta."
+  }
+]

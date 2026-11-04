@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acerca de — Observatorio DNSSEC</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="index.html" class="header-brand">
+          <div class="header-logos">
+            <img id="logo-isoc"    class="header-logo hidden" alt="ISOC Ecuador">
+            <div id="logo-isoc-ph" class="header-logo-placeholder">ISOC EC</div>
+            <img id="logo-corp"    class="header-logo hidden" alt="CORPECE">
+            <div id="logo-corp-ph" class="header-logo-placeholder">CORPECE</div>
+          </div>
+          <span class="header-title" data-i18n="home.hero_title">Observatorio DNSSEC</span>
+        </a>
+        <nav class="header-nav">
+          <a href="index.html"  data-i18n="nav.home">Inicio</a>
+          <a href="about.html" class="active" data-i18n="nav.about">Acerca de</a>
+          <a href="mailto:observatorio@corpece.org.ec" data-i18n="nav.contact">Contacto</a>
+          <button id="lang-toggle" class="btn-lang" onclick="I18n.toggle()" data-i18n="nav.language">English</button>
+          <a href="admin/login.html" class="btn-login-header" data-i18n="nav.login">Iniciar sesión</a>
+        </nav>
+        <button class="header-menu-toggle" id="menu-toggle" aria-label="Menú">☰</button>
+      </div>
+    </div>
+    <nav class="header-mobile-nav" id="mobile-nav">
+      <a href="index.html"  data-i18n="nav.home">Inicio</a>
+      <a href="about.html"  data-i18n="nav.about">Acerca de</a>
+      <a href="mailto:observatorio@corpece.org.ec" data-i18n="nav.contact">Contacto</a>
+      <button onclick="I18n.toggle()" data-i18n="nav.language">English</button>
+      <a href="admin/login.html" data-i18n="nav.login">Iniciar sesión</a>
+    </nav>
+  </header>
+
+  <!-- ── HERO MINI ──────────────────────────────────────────── -->
+  <section style="background:var(--color-bg-dark);color:#fff;padding:2rem 0 1.75rem">
+    <div class="container">
+      <h1 style="font-size:clamp(1.3rem,4vw,1.9rem);font-weight:700" data-i18n="about.title">Acerca del Observatorio DNSSEC</h1>
+    </div>
+  </section>
+
+  <!-- ── MAIN ───────────────────────────────────────────────── -->
+  <main>
+    <div class="container" style="max-width:800px;padding-top:2rem;padding-bottom:3rem">
+
+      <!-- Misión -->
+      <div class="about-section">
+        <h2 data-i18n="about.mission_title">¿Por qué existe esta herramienta?</h2>
+        <div data-i18n-html="about.mission_text"></div>
+      </div>
+
+      <!-- Crédito DNSViz -->
+      <div class="about-section" id="credit">
+        <h2 data-i18n="about.credit_title">Crédito a DNSViz</h2>
+        <div class="credit-box">
+          <div data-i18n-html="about.credit_text"></div>
+          <div style="margin-top:.75rem">
+            <a href="https://github.com/dnsviz/dnsviz" target="_blank" rel="noopener"
+               data-i18n="about.credit_link">Visitar DNSViz en GitHub</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="about-section" id="disclaimer">
+        <h2 data-i18n="about.disclaimer_title">Aviso importante sobre los resultados</h2>
+        <div class="disclaimer-box">
+          <div data-i18n-html="about.disclaimer_text"></div>
+        </div>
+      </div>
+
+      <!-- Estándares -->
+      <div class="about-section">
+        <h2 data-i18n="about.standards_title">Estándares y referencias</h2>
+        <div data-i18n-html="about.standards_text"></div>
+        <div style="margin-top:1rem" id="rfc-pills"></div>
+      </div>
+
+      <!-- Código abierto -->
+      <div class="about-section">
+        <h2 data-i18n="about.open_source_title">Código abierto</h2>
+        <p data-i18n="about.open_source_text"></p>
+      </div>
+
+      <!-- Organizaciones -->
+      <div class="about-section">
+        <h2 id="orgs-title"></h2>
+        <div id="orgs-list" style="display:flex;flex-direction:column;gap:1rem;margin-top:.75rem"></div>
+      </div>
+
+      <!-- Contacto -->
+      <div class="about-section">
+        <h2 data-i18n="nav.contact">Contacto</h2>
+        <p style="font-size:.9rem">
+          <a href="mailto:observatorio@corpece.org.ec">observatorio@corpece.org.ec</a>
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-orgs">
+          <div class="footer-org">
+            <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="footer.developed_by">Desarrollado por</span>
+            <img id="footer-logo-isoc" class="footer-org-logo hidden" alt="ISOC Ecuador">
+            <div id="footer-logo-isoc-ph" class="footer-org-placeholder">ISOC EC</div>
+            <span style="font-size:.82rem">ISOC Ecuador</span>
+          </div>
+          <div class="footer-org">
+            <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="footer.supported_by">Con apoyo de</span>
+            <img id="footer-logo-corp" class="footer-org-logo hidden" alt="CORPECE">
+            <div id="footer-logo-corp-ph" class="footer-org-placeholder">CORPECE</div>
+            <span style="font-size:.82rem">CORPECE</span>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="index.html"                             data-i18n="nav.home">Inicio</a>
+          <a href="about.html#disclaimer"                  data-i18n="footer.terms">Términos</a>
+          <a href="mailto:observatorio@corpece.org.ec"     data-i18n="nav.contact">Contacto</a>
+          <a href="admin/login.html"                       data-i18n="nav.admin">Administración</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-credit" data-i18n="footer.based_on">Basado en DNSViz open source</span>
+        <span class="footer-notice" data-i18n="footer.no_data_stored">Los datos analizados no son almacenados</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── SCRIPTS ────────────────────────────────────────────── -->
+  <script src="js/i18n.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    await I18n.init();
+    const cfg = I18n.getConfig();
+
+    // Header logos
+    (cfg.organizations || []).forEach(org => {
+      if (org.logo_placeholder) return;
+      const key = org.id === 'isoc-ec' ? 'isoc' : 'corp';
+      ['logo-', 'footer-logo-'].forEach(p => {
+        const img = document.getElementById(p + key);
+        const ph  = document.getElementById(p + key + '-ph');
+        if (img && ph) { img.src = org.logo; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+      });
+    });
+
+    // Mobile menu
+    document.getElementById('menu-toggle')
+      ?.addEventListener('click', () =>
+        document.getElementById('mobile-nav')?.classList.toggle('open'));
+
+    // RFCs pills
+    const rfcs = ['1034','1035','4033','4034','4035','5155','8624','9276'];
+    const rfcEl = document.getElementById('rfc-pills');
+    if (rfcEl) rfcEl.innerHTML = rfcs.map(r => `<span class="ref-tag">RFC ${r}</span>`).join(' ');
+
+    // Organizaciones
+    const orgsTitle = document.getElementById('orgs-title');
+    const orgsList  = document.getElementById('orgs-list');
+    if (orgsTitle) orgsTitle.textContent = I18n.t('footer.developed_by') + ' / ' + I18n.t('footer.supported_by');
+    if (orgsList) {
+      orgsList.innerHTML = (cfg.organizations || []).map(org => `
+        <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem;background:var(--color-bg);border:.5px solid var(--color-border-light);border-radius:var(--radius-md)">
+          <div style="width:56px;height:40px;background:var(--color-bg-surface);border:1px dashed var(--color-border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--color-text-light);flex-shrink:0">logo</div>
+          <div>
+            <div style="font-weight:600;font-size:.9rem">${org.name}</div>
+            <div style="font-size:.8rem;color:var(--color-text-muted)">${org.role_es || ''}</div>
+            <a href="${org.url}" target="_blank" rel="noopener" style="font-size:.78rem">${org.url}</a>
+          </div>
+        </div>`).join('');
+    }
+  });
+  </script>
+
+</body>
+</html>

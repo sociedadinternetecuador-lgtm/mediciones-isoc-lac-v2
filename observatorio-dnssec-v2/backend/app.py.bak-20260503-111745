@@ -1,0 +1,1172 @@
+"""
+Observatorio DNSSEC v2 — backend/app.py
+Flask sirve API + frontend estático desde el mismo puerto 8080.
+Sin CORS. Sin sessionStorage. Token en localStorage via Bearer header.
+"""
+
+import os, json, subprocess, tempfile, logging, hashlib, secrets
+import html as html_lib
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from flask import Flask, request, jsonify, send_from_directory
+
+# ─────────────────────────────────────────────
+# APP — sirve frontend/ como estáticos
+# ─────────────────────────────────────────────
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, '..', 'frontend')
+
+app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+# Sin CORS — todo mismo origen
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+log = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────
+# CONFIGURACIÓN
+# ─────────────────────────────────────────────
+DB_FILE    = os.environ.get('DB_FILE',    os.path.join(BASE_DIR, 'db.json'))
+SECRET_KEY = os.environ.get('SECRET_KEY', 'change-this-secret-in-production')
+DNSVIZ_CMD = os.environ.get('DNSVIZ_CMD', 'dnsviz')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@corpece.org.ec')
+ADMIN_PASS  = os.environ.get('ADMIN_PASS',  'changeme123')
+
+@app.after_request
+def no_cache(response):
+    """Evita que el navegador cachee archivos estáticos durante desarrollo."""
+    if request.path.startswith('/js/') or request.path.startswith('/css/') or request.path.endswith('.html'):
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+# ─────────────────────────────────────────────
+# RUTAS FRONTEND — Flask sirve los HTML
+# ─────────────────────────────────────────────
+@app.route('/')
+def index():
+    return send_from_directory(FRONTEND_DIR, 'index.html')
+
+@app.route('/report')
+def report():
+    return send_from_directory(FRONTEND_DIR, 'report.html')
+
+@app.route('/about')
+def about():
+    return send_from_directory(FRONTEND_DIR, 'about.html')
+
+@app.route('/admin/login')
+def admin_login_page():
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'admin'), 'login.html')
+
+@app.route('/admin/dashboard')
+def admin_dashboard_page():
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'admin'), 'dashboard.html')
+
+# Catch-all para archivos estáticos (css, js, data, etc.)
+@app.route('/<path:path>')
+def static_files(path):
+    return send_from_directory(FRONTEND_DIR, path)
+
+# ─────────────────────────────────────────────
+# BASE DE DATOS (JSON simple)
+# ─────────────────────────────────────────────
+_DB_SCHEMA = {
+    'users':    [],
+    'analyses': [],
+    'domains':  [],
+    'logs':     [],
+    'tokens':   {}
+}
+
+def _db_load():
+    if not os.path.exists(DB_FILE):
+        return dict(_DB_SCHEMA)
+    try:
+        with open(DB_FILE) as f:
+            db = json.load(f)
+        for k, v in _DB_SCHEMA.items():
+            db.setdefault(k, v)
+        return db
+    except Exception as e:
+        log.error(f'db_load error: {e}')
+        return dict(_DB_SCHEMA)
+
+def _db_save(db):
+    try:
+        with open(DB_FILE, 'w') as f:
+            json.dump(db, f, indent=2, default=str)
+    except Exception as e:
+        log.error(f'db_save error: {e}')
+
+def _db_init():
+    """Crea el admin por defecto si la base está vacía."""
+    db = _db_load()
+    if not db['users']:
+        db['users'].append({
+            'id':         _uid(),
+            'email':      ADMIN_EMAIL,
+            'password':   _hash(ADMIN_PASS),
+            'role':       'admin',
+            'active':     True,
+            'last_login': None,
+        })
+        _db_save(db)
+        log.info(f'Admin creado: {ADMIN_EMAIL}')
+
+# ─────────────────────────────────────────────
+# UTILIDADES
+# ─────────────────────────────────────────────
+def _uid():
+    return secrets.token_hex(8)
+
+def _hash(password: str) -> str:
+    return hashlib.sha256((password + SECRET_KEY).encode()).hexdigest()
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+def _now_iso() -> str:
+    return _now().isoformat()
+
+def _log(msg: str):
+    db = _db_load()
+    db['logs'].append({'ts': _now_iso(), 'msg': msg})
+    db['logs'] = db['logs'][-500:]
+    _db_save(db)
+
+def _dnsviz_version() -> str:
+    try:
+        return subprocess.check_output(
+            [DNSVIZ_CMD, '-v'],
+            stderr=subprocess.STDOUT, text=True, timeout=5
+        ).strip()
+    except Exception:
+        return 'unknown'
+
+_LAYER_CACHE = None
+
+def _load_layers() -> dict:
+    global _LAYER_CACHE
+    if _LAYER_CACHE is not None:
+        return _LAYER_CACHE
+
+    layer_files = {
+        'capa1_catalogo_dnsviz': 'capa1-catalogo-dnsviz.json',
+        'capa2_mapeo_normativo': 'capa2-mapeo-normativo.json',
+        'capa3_explicaciones': 'capa3-explicaciones.json',
+    }
+    layers = {}
+    for key, filename in layer_files.items():
+        path = os.path.join(FRONTEND_DIR, 'data', filename)
+        try:
+            with open(path, encoding='utf-8') as f:
+                layers[key] = json.load(f)
+        except Exception as e:
+            log.warning(f'No se pudo cargar {filename}: {e}')
+            layers[key] = []
+
+    by_code = {}
+    for key, rows in layers.items():
+        current = {}
+        for row in rows:
+            code = row.get('code') if isinstance(row, dict) else None
+            if not code:
+                continue
+            if key == 'capa1_catalogo_dnsviz':
+                current.setdefault(code, []).append(row)
+            else:
+                current[code] = row
+        by_code[key] = current
+
+    _LAYER_CACHE = {'raw': layers, 'by_code': by_code}
+    return _LAYER_CACHE
+
+def _enrich_issues_with_layers(issue_list: list) -> list:
+    layers = _load_layers()['by_code']
+    c1 = layers.get('capa1_catalogo_dnsviz', {})
+    c2 = layers.get('capa2_mapeo_normativo', {})
+    c3 = layers.get('capa3_explicaciones', {})
+
+    for issue in issue_list:
+        code = issue.get('code', '')
+        missing = []
+        if code not in c1:
+            missing.append('capa1_catalogo_dnsviz')
+        if code not in c2:
+            missing.append('capa2_mapeo_normativo')
+        if code not in c3:
+            missing.append('capa3_explicaciones')
+        issue['mapping'] = {
+            'capa1_catalogo_dnsviz': c1.get(code, []),
+            'capa2_mapeo_normativo': c2.get(code),
+            'capa3_explicaciones': c3.get(code),
+            'missing_layers': missing,
+        }
+    return issue_list
+
+# ─────────────────────────────────────────────
+# TOKENS
+# ─────────────────────────────────────────────
+def _tokens_clean(db) -> dict:
+    """Devuelve solo tokens válidos (no expirados)."""
+    now = _now_iso()
+    return {k: v for k, v in db.get('tokens', {}).items() if v.get('expires', '') > now}
+
+def _token_create(email: str, role: str) -> str:
+    token = secrets.token_hex(32)
+    db = _db_load()
+    db['tokens'] = _tokens_clean(db)
+    db['tokens'][token] = {
+        'email':   email,
+        'role':    role,
+        'expires': (_now() + timedelta(hours=8)).isoformat()
+    }
+    _db_save(db)
+    return token
+
+def _token_get(token: str) -> dict | None:
+    if not token:
+        return None
+    db  = _db_load()
+    now = _now_iso()
+    entry = db['tokens'].get(token)
+    if entry and entry.get('expires', '') > now:
+        return entry
+    return None
+
+def _token_from_request() -> str:
+    return request.headers.get('Authorization', '').replace('Bearer ', '').strip()
+
+def _current_user() -> str:
+    entry = _token_get(_token_from_request())
+    return entry['email'] if entry else ''
+
+def _current_role() -> str:
+    entry = _token_get(_token_from_request())
+    return entry['role'] if entry else ''
+
+# ─────────────────────────────────────────────
+# DECORADORES DE AUTENTICACIÓN
+# ─────────────────────────────────────────────
+def require_auth(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not _token_get(_token_from_request()):
+            return jsonify({'error': 'unauthorized', 'message': 'Token inválido o expirado'}), 401
+        return f(*args, **kwargs)
+    return wrapper
+
+def require_admin(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        entry = _token_get(_token_from_request())
+        if not entry:
+            return jsonify({'error': 'unauthorized', 'message': 'Token inválido o expirado'}), 401
+        if entry.get('role') != 'admin':
+            return jsonify({'error': 'forbidden', 'message': 'Se requiere rol admin'}), 403
+        return f(*args, **kwargs)
+    return wrapper
+
+# ─────────────────────────────────────────────
+# AUTH ENDPOINTS
+# ─────────────────────────────────────────────
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    data  = request.json or {}
+    email = data.get('user', '').strip().lower()
+    pwd   = data.get('password', '')
+
+    if not email or not pwd:
+        return jsonify({'error': 'missing_fields', 'message': 'Email y contraseña requeridos'}), 400
+
+    db   = _db_load()
+    user = next(
+        (u for u in db['users'] if u['email'].lower() == email and u.get('active', False)),
+        None
+    )
+
+    if not user or user['password'] != _hash(pwd):
+        _log(f'Login fallido: {email}')
+        return jsonify({'error': 'invalid_credentials', 'message': 'Credenciales inválidas'}), 401
+
+    # Actualizar last_login PRIMERO, luego guardar, luego crear token
+    # IMPORTANTE: _token_create() debe ir DESPUÉS de _db_save()
+    # Si va antes, _db_save() sobreescribe db.json borrando el token recién creado
+    for u in db['users']:
+        if u['email'].lower() == email:
+            u['last_login'] = _now_iso()
+    _db_save(db)
+
+    token = _token_create(email, user['role'])
+    _log(f'Login exitoso: {email}')
+
+    return jsonify({'token': token, 'role': user['role'], 'email': email})
+
+@app.route('/auth/recover', methods=['POST'])
+def auth_recover():
+    email = (request.json or {}).get('email', '').strip().lower()
+    db = _db_load()
+    exists = any(u['email'].lower() == email for u in db['users'])
+    if exists:
+        _log(f'Recovery solicitado: {email}')
+    # Siempre responder ok (no revelar si el email existe)
+    return jsonify({'ok': True})
+
+@app.route('/auth/me', methods=['GET'])
+@require_auth
+def auth_me():
+    """Verifica token y devuelve info del usuario actual."""
+    return jsonify({'email': _current_user(), 'role': _current_role()})
+
+# ─────────────────────────────────────────────
+# ANÁLISIS DNSSEC
+# ─────────────────────────────────────────────
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    domain = (request.json or {}).get('domain', '').strip().lower().rstrip('.')
+    if not domain:
+        return jsonify({'error': 'domain_required', 'message': 'Dominio requerido'}), 400
+
+    # Validación básica
+    parts = domain.split('.')
+    if len(parts) < 2 or any(len(p) == 0 for p in parts):
+        return jsonify({'error': 'invalid_domain', 'message': 'Dominio inválido'}), 400
+
+    log.info(f'Analizando: {domain}')
+    _log(f'Analyze: {domain}')
+
+    try:
+        result = _run_dnsviz(domain)
+        db     = _db_load()
+        record = {
+            'id':          _uid(),
+            'domain':      domain,
+            'timestamp':   _now_iso(),
+            'user':        _current_user() or 'public',
+            'status':      result.get('dnssec_status', 'INDETERMINATE'),
+            'error_count': len(result.get('errors', [])),
+            'data':        result
+        }
+        db['analyses'].insert(0, record)
+        db['analyses'] = db['analyses'][:1000]
+        _db_save(db)
+        return jsonify(result)
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode() if e.stderr else ''
+        log.error(f'dnsviz error: {stderr}')
+        return jsonify({'error': 'analysis_failed', 'message': f'Error en dnsviz: {stderr[:200]}'}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'timeout', 'message': 'El análisis tardó demasiado. Intenta nuevamente.'}), 504
+    except Exception as e:
+        log.error(f'analyze exception: {e}')
+        return jsonify({'error': 'analysis_failed', 'message': str(e)}), 500
+
+def _resolve_ns(domain: str):
+    """Resuelve nameservers de un dominio para pasarlos a dnsviz probe con -x."""
+    try:
+        out = subprocess.check_output(['dig', '+short', 'NS', domain], timeout=10, text=True)
+        ns_list = []
+        for ns in out.strip().splitlines():
+            ns = ns.rstrip('.')
+            if not ns:
+                continue
+            ip_out = subprocess.check_output(
+                ['dig', '+short', 'A', ns], timeout=5, text=True
+            ).strip().splitlines()
+            if ip_out:
+                ns_list.append(f'{ns}={ip_out[0]}')
+        return ','.join(ns_list) if ns_list else None
+    except Exception:
+        return None
+
+def _build_zone_chain(domain: str) -> list:
+    """Construye lista de zonas desde raíz hasta dominio.
+    Ejemplo: isoc.org.ec → ['.', 'ec.', 'org.ec.', 'isoc.org.ec.']
+    """
+    parts = domain.rstrip('.').split('.')
+    zones = ['.']
+    for i in range(len(parts) - 1, 0, -1):
+        zones.append('.'.join(parts[i:]) + '.')
+    zones.append(domain.rstrip('.') + '.')
+    seen = set()
+    result = []
+    for z in zones:
+        if z not in seen:
+            seen.add(z)
+            result.append(z)
+    return result
+
+def _extract_graph_node_info(html_path: str) -> tuple[dict, str]:
+    try:
+        with open(html_path, encoding='utf-8') as f:
+            html = f.read()
+    except Exception as e:
+        return {}, f'graph_html_read_failed: {e}'
+
+    marker = 'var node_info = '
+    start = html.find(marker)
+    if start < 0:
+        return {}, 'node_info_not_found'
+    start += len(marker)
+
+    depth = 0
+    in_string = False
+    escaped = False
+    end = None
+    for pos, ch in enumerate(html[start:], start):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == '"':
+                in_string = False
+        else:
+            if ch == '"':
+                in_string = True
+            elif ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    end = pos + 1
+                    break
+
+    if end is None:
+        return {}, 'node_info_json_not_closed'
+
+    try:
+        return json.loads(html[start:end]), ''
+    except Exception as e:
+        return {}, f'node_info_json_invalid: {e}'
+
+def _clean_dns_name(name) -> str:
+    if name is None:
+        return ''
+    value = str(name).strip()
+    if value == '.':
+        return '.'
+    return value.rstrip('.')
+
+def _visual_issue(issue: dict) -> dict:
+    return {
+        'code':          issue.get('code', ''),
+        'description':   html_lib.unescape(issue.get('description', '') or ''),
+        'servers':       issue.get('servers', []),
+        'query_options': issue.get('query_options', []),
+    }
+
+def _visual_label(key: str, node: dict) -> str:
+    desc = html_lib.unescape(node.get('description', '') or '')
+    parts = key.split('|')
+
+    if key.startswith('RRset-'):
+        name = _clean_dns_name(node.get('name'))
+        rtype = node.get('type')
+        if not name and desc.startswith('Response errors for '):
+            return desc.replace('Response errors for ', '', 1)
+        label = f'{name}/{rtype}' if name and rtype else (desc or key)
+        rdata = node.get('rdata') or []
+        if rdata and rdata[0] in ('NODATA', 'NXDOMAIN'):
+            label += f' ({rdata[0]})'
+        return label
+
+    if key.startswith('DNSKEY-') and len(parts) >= 4:
+        zone = _clean_dns_name(parts[1])
+        return f'{zone}/DNSKEY (alg {parts[2]}, id {parts[3]})'
+
+    if key.startswith('DS-') and len(parts) >= 4:
+        zone = _clean_dns_name(parts[1])
+        return f'{zone}/DS (alg {parts[2]}, id {parts[3]})'
+
+    if key.startswith('del-'):
+        child = _clean_dns_name(parts[0].replace('del-', '', 1))
+        parent = _clean_dns_name(parts[1]) if len(parts) > 1 else ''
+        if parent:
+            return f'{parent} to {child}'
+        return desc or key
+
+    if key.startswith('cluster_'):
+        return desc or key
+
+    return desc or key
+
+def _visual_kind(key: str) -> str:
+    if key.startswith('RRset-'):
+        return 'rrset_status'
+    if key.startswith(('DNSKEY-', 'DS-', 'NSEC-', 'NSEC3-', 'NSECC-', 'NSEC3C-')):
+        return 'dnskey_ds_nsec_status'
+    if key.startswith('del-'):
+        return 'delegation_status'
+    return 'other'
+
+def _group_visual_status(entries: list) -> list:
+    order = ['BOGUS', 'ERROR', 'INSECURE', 'WARNING', 'SECURE', 'VALID', 'UNKNOWN']
+    grouped = {}
+    for entry in entries:
+        status = entry.get('status') or 'UNKNOWN'
+        grouped.setdefault(status, []).append(entry)
+    result = []
+    for status in order:
+        items = grouped.pop(status, [])
+        if items:
+            items.sort(key=lambda x: x.get('label', ''))
+            result.append({'status': status, 'count': len(items), 'items': items})
+    for status in sorted(grouped):
+        items = grouped[status]
+        items.sort(key=lambda x: x.get('label', ''))
+        result.append({'status': status, 'count': len(items), 'items': items})
+    return result
+
+def _build_dnsviz_visual(node_info: dict) -> dict:
+    sections = {
+        'rrset_status': [],
+        'dnskey_ds_nsec_status': [],
+        'delegation_status': [],
+        'other': [],
+    }
+    notices_errors = []
+    notices_warnings = []
+
+    for key, values in node_info.items():
+        if not isinstance(values, list):
+            values = [values]
+        for idx, node in enumerate(values):
+            if not isinstance(node, dict):
+                continue
+            label = _visual_label(key, node)
+            errors = [_visual_issue(e) for e in (node.get('errors') or []) if isinstance(e, dict)]
+            warnings = [_visual_issue(w) for w in (node.get('warnings') or []) if isinstance(w, dict)]
+            entry = {
+                'key':         key,
+                'kind':        _visual_kind(key),
+                'index':       idx,
+                'label':       label,
+                'status':      node.get('status') or 'UNKNOWN',
+                'description': html_lib.unescape(node.get('description', '') or ''),
+                'name':        _clean_dns_name(node.get('name')),
+                'type':        node.get('type'),
+                'rdata':       node.get('rdata', []),
+                'errors':      errors,
+                'warnings':    warnings,
+            }
+            sections[entry['kind']].append(entry)
+
+            for issue in errors:
+                notices_errors.append({**issue, 'label': label, 'node_key': key, 'node_status': entry['status']})
+            for issue in warnings:
+                notices_warnings.append({**issue, 'label': label, 'node_key': key, 'node_status': entry['status']})
+
+    _enrich_issues_with_layers(notices_errors)
+    _enrich_issues_with_layers(notices_warnings)
+
+    return {
+        'source': 'dnsviz graph node_info',
+        'node_info_count': len(node_info),
+        'rrset_status': _group_visual_status(sections['rrset_status']),
+        'dnskey_ds_nsec_status': _group_visual_status(sections['dnskey_ds_nsec_status']),
+        'delegation_status': _group_visual_status(sections['delegation_status']),
+        'other_status': _group_visual_status(sections['other']),
+        'notices': {
+            'errors_count': len(notices_errors),
+            'warnings_count': len(notices_warnings),
+            'errors': notices_errors,
+            'warnings': notices_warnings,
+        },
+        'raw_node_info': node_info,
+    }
+
+def _build_dnsviz_default_view(visual: dict, domain: str, zone_chain: list) -> dict:
+    target = _clean_dns_name(domain)
+    chain_names = {_clean_dns_name(z) for z in zone_chain}
+
+    def _flat(groups):
+        items = []
+        for group in groups or []:
+            items.extend(group.get('items') or [])
+        return items
+
+    rrsets = []
+    for entry in _flat(visual.get('rrset_status')):
+        if entry.get('name') != target or not entry.get('type'):
+            continue
+        rdata = entry.get('rdata') or []
+        is_denial = bool(rdata and rdata[0] in ('NODATA', 'NXDOMAIN'))
+        if is_denial and entry.get('status') not in ('BOGUS', 'ERROR'):
+            continue
+        rrsets.append(entry)
+
+    dnskeys = []
+    for entry in _flat(visual.get('dnskey_ds_nsec_status')):
+        key = entry.get('key', '')
+        if not key.startswith(('DNSKEY-', 'DS-')):
+            continue
+        zone = _clean_dns_name((key.split('|') + [''])[1])
+        if zone in chain_names:
+            dnskeys.append(entry)
+
+    delegations = _flat(visual.get('delegation_status'))
+
+    return {
+        'rrset_status': _group_visual_status(rrsets),
+        'dnskey_ds_nsec_status': _group_visual_status(dnskeys),
+        'delegation_status': _group_visual_status(delegations),
+    }
+
+def _run_dnsviz(domain: str) -> dict:
+    """Corre dnsviz probe + grok con cadena completa de zonas y NS resueltos.
+    
+    Combina:
+    - Zonas explícitas (. ec. org.ec. domain.) para recorrer toda la cadena
+    - -x con NS resueltos para acceso directo a servidores autoritativos
+    - -A para completar lo que no se pueda resolver con -x
+    - grok con -l warning para capturar todos los niveles de severidad
+    """
+    # Implementacion vigente: probe autoritativo con -a . y cadena explicita,
+    # sin -x, para diagnosticar la delegacion real de raiz a dominio.
+    zone_chain = _build_zone_chain(domain)
+    log.info(f'Zone chain: {zone_chain}')
+
+    with tempfile.TemporaryDirectory() as tmp:
+        pf = os.path.join(tmp, 'probe.json')
+        gf = os.path.join(tmp, 'grok.json')
+        hf = os.path.join(tmp, 'graph.html')
+
+        # -a . fuerza a dnsviz a caminar la ancestria real desde la raiz.
+        # No forzamos -4: dnsviz.net evalua IPv4 e IPv6 cuando hay conectividad.
+        # No usamos -x aqui: reemplaza los autoritativos descubiertos y puede
+        # alterar la delegacion que queremos diagnosticar.
+        cmd = [DNSVIZ_CMD, 'probe', '-A', '-a', '.', '-o', pf]
+        cmd += zone_chain
+        log.info(f'probe cmd: {" ".join(cmd)}')
+
+        probe_result = subprocess.run(cmd, check=True, timeout=120, capture_output=True)
+        probe_stderr = []
+        if probe_result.stderr:
+            for line in probe_result.stderr.decode(errors='replace').splitlines():
+                if line.strip():
+                    probe_stderr.append(line.strip())
+                    log.info(f'probe: {line}')
+
+        # Pasar la cadena a grok hace que serialice errores de zonas padre.
+        grok_cmd = [DNSVIZ_CMD, 'grok', '-l', 'warning', '-r', pf, '-o', gf] + zone_chain
+        log.info(f'grok cmd: {" ".join(grok_cmd)}')
+
+        grok_result = subprocess.run(grok_cmd, check=True, timeout=30, capture_output=True)
+        grok_stderr = []
+        if grok_result.stderr:
+            for line in grok_result.stderr.decode(errors='replace').splitlines():
+                if line.strip():
+                    grok_stderr.append(line.strip())
+                    log.info(f'grok: {line}')
+
+        with open(gf) as f:
+            grok = json.load(f)
+
+        # DNSViz.net no muestra por defecto los hallazgos de politica NSEC3
+        # de RFC 9276 en la lista principal de Notices. Los ignoramos solo
+        # para la vista visual; raw_grok conserva la evidencia completa.
+        graph_cmd = [DNSVIZ_CMD, 'graph', '--ignore-rfc9276', '-Thtml', '-r', pf, '-o', hf] + zone_chain
+        graph_stderr = []
+        graph_error = ''
+        dnsviz_visual = {
+            'source': 'unavailable',
+            'node_info_count': 0,
+            'rrset_status': [],
+            'dnskey_ds_nsec_status': [],
+            'delegation_status': [],
+            'other_status': [],
+            'notices': {'errors_count': 0, 'warnings_count': 0, 'errors': [], 'warnings': []},
+            'raw_node_info': {},
+        }
+        log.info(f'graph cmd: {" ".join(graph_cmd)}')
+        try:
+            graph_result = subprocess.run(graph_cmd, check=True, timeout=60, capture_output=True)
+            if graph_result.stderr:
+                for line in graph_result.stderr.decode(errors='replace').splitlines():
+                    if line.strip():
+                        graph_stderr.append(line.strip())
+                        log.info(f'graph: {line}')
+            node_info, node_error = _extract_graph_node_info(hf)
+            if node_error:
+                graph_error = node_error
+                dnsviz_visual['source'] = 'graph_html_parse_failed'
+            else:
+                dnsviz_visual = _build_dnsviz_visual(node_info)
+                dnsviz_visual['default_view'] = _build_dnsviz_default_view(dnsviz_visual, domain, zone_chain)
+        except Exception as e:
+            graph_error = str(e)
+            log.warning(f'dnsviz graph unavailable: {graph_error}')
+
+    log.info(f'grok zones found: {list(grok.keys())}')
+    result = _parse_grok(grok, domain)
+    ipv6_available = not any('No global IPv6 connectivity detected' in line for line in probe_stderr)
+    fidelity_notes = []
+    if not ipv6_available:
+        fidelity_notes.append('Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.')
+    fidelity_notes.append('DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.')
+    if dnsviz_visual.get('source') != 'dnsviz graph node_info':
+        fidelity_notes.append('DNSViz visual model could not be extracted; report uses raw grok fallback only.')
+    else:
+        fidelity_notes.append('DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options.')
+    result['dnsviz_visual'] = dnsviz_visual
+    result['fidelity'] = {
+        'dnsviz_graph_model_available': dnsviz_visual.get('source') == 'dnsviz graph node_info',
+        'ipv6_available': ipv6_available,
+        'visual_ignore_rfc9276': True,
+        'source': dnsviz_visual.get('source'),
+        'notes': fidelity_notes,
+    }
+    result['dnsviz'] = {
+        'version':       _dnsviz_version(),
+        'zone_chain':    zone_chain,
+        'grok_zones':    list(grok.keys()),
+        'raw_grok':      grok,
+        'probe_command': ' '.join([DNSVIZ_CMD, 'probe', '-A', '-a', '.', '-o', 'probe.json'] + zone_chain),
+        'grok_command':  ' '.join([DNSVIZ_CMD, 'grok', '-l', 'warning', '-r', 'probe.json', '-o', 'grok.json'] + zone_chain),
+        'graph_command': ' '.join([DNSVIZ_CMD, 'graph', '--ignore-rfc9276', '-Thtml', '-r', 'probe.json', '-o', 'graph.html'] + zone_chain),
+        'probe_stderr':  probe_stderr,
+        'grok_stderr':   grok_stderr,
+        'graph_stderr':  graph_stderr,
+        'graph_error':   graph_error,
+        'ipv6_available': ipv6_available,
+    }
+    return result
+
+def _parse_grok(grok: dict, domain: str) -> dict:
+    """Convierte la salida JSON de dnsviz grok en el formato del Observatorio.
+    
+    Camina TODAS las zonas del grok (no solo el dominio analizado)
+    para capturar errores en zonas padre (., ec., org.ec., etc.)
+    que también afectan la validación DNSSEC del dominio.
+    """
+    dk = domain.rstrip('.') + '.'
+
+    errors      = []
+    warnings    = []
+    all_servers = set()
+
+    # Status DNSSEC: usar el del dominio analizado
+    status_map = {0: 'SECURE', 1: 'INSECURE', 2: 'BOGUS'}
+
+    # Cadena de confianza — todas las zonas presentes en el grok, ordenadas
+    trust_chain = []
+
+    # Recopilar errores y warnings de TODAS las zonas
+    # Cada error lleva su zona de origen para mejor diagnóstico
+    def _walk(obj, zone_name, source_path=''):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if k == 'errors' and isinstance(v, list):
+                    for e in v:
+                        if isinstance(e, dict) and e.get('code'):
+                            errors.append({
+                                'code':          e.get('code', ''),
+                                'description':   e.get('description', ''),
+                                'servers':       e.get('servers', []),
+                                'query_options': e.get('query_options', []),
+                                'zone':          zone_name,
+                                'source_path':   source_path
+                            })
+                            all_servers.update(e.get('servers', []))
+                elif k == 'warnings' and isinstance(v, list):
+                    for w in v:
+                        if isinstance(w, dict) and w.get('code'):
+                            warnings.append({
+                                'code':        w.get('code', ''),
+                                'description': w.get('description', ''),
+                                'servers':     w.get('servers', []),
+                                'zone':        zone_name,
+                                'source_path': source_path
+                            })
+                else:
+                    next_path = f'{source_path}/{k}' if source_path else k
+                    _walk(v, zone_name, next_path)
+        elif isinstance(obj, list):
+            for item in obj:
+                _walk(item, zone_name, source_path)
+
+    for zone_key, zone_data in grok.items():
+        zone_name = zone_key.rstrip('.') or '.'
+        _walk(zone_data, zone_name)
+
+    # Mantener cada ocurrencia: MISSING_RRSIG en 10 RRsets son 10 hallazgos.
+    zone_order = {
+        (z.rstrip('.') or '.'): i
+        for i, z in enumerate(_build_zone_chain(domain))
+    }
+    for i, item in enumerate(errors, 1):
+        item['count'] = 1
+        item['occurrence'] = i
+    for i, item in enumerate(warnings, 1):
+        item['count'] = 1
+        item['occurrence'] = i
+
+    errors.sort(key=lambda x: (zone_order.get(x.get('zone'), 999), x.get('code', ''), x.get('occurrence', 0)))
+    warnings.sort(key=lambda x: (zone_order.get(x.get('zone'), 999), x.get('code', ''), x.get('occurrence', 0)))
+    _enrich_issues_with_layers(errors)
+    _enrich_issues_with_layers(warnings)
+
+    deleg_status = grok.get(dk, {}).get('delegation', {}).get('status')
+    dnssec_status = status_map.get(deleg_status)
+    if dnssec_status is None:
+        domain_zone = domain.rstrip('.')
+        dnssec_status = 'BOGUS' if any(e.get('zone') == domain_zone for e in errors) else 'SECURE'
+
+    for zone in _build_zone_chain(domain):
+        zone_name = zone.rstrip('.') or '.'
+        zone_key = '.' if zone_name == '.' else zone_name + '.'
+        st = grok.get(zone_key, {}).get('delegation', {}).get('status')
+        zone_status = status_map.get(st)
+        if zone_status is None:
+            has_delegation_error = any(
+                e.get('zone') == zone_name and e.get('source_path') == 'delegation'
+                for e in errors
+            )
+            zone_status = 'BOGUS' if has_delegation_error else 'SECURE'
+        trust_chain.append({
+            'name':   zone_name,
+            'secure': zone_status == 'SECURE',
+            'status': zone_status
+        })
+
+    nameservers = []
+    try:
+        out = subprocess.check_output(['dig', '+short', 'NS', domain], timeout=5, text=True)
+        nameservers = [n.rstrip('.') for n in out.strip().splitlines() if n]
+    except Exception:
+        pass
+
+    log.info(f'Grok zones: {list(grok.keys())} | errors: {len(errors)} | warnings: {len(warnings)} | status: {dnssec_status}')
+
+    return {
+        'domain':        domain,
+        'timestamp':     _now_iso(),
+        'dnssec_status': dnssec_status,
+        'nameservers':   nameservers,
+        'trust_chain':   trust_chain,
+        'errors':        errors,
+        'warnings':      warnings,
+        'servers':       list(all_servers)
+    }
+
+    # Agrupar por código — mantener todos, con contador de ocurrencias
+    # NO deduplicar: MISSING_RRSIG en 10 RRsets = 10 problemas reales distintos
+    from collections import defaultdict
+
+    def _group_issues(issue_list):
+        """Agrupa por código manteniendo descripción y zona de la primera ocurrencia.
+        Agrega campo 'count' con total de ocurrencias y 'occurrences' con detalle."""
+        groups = defaultdict(list)
+        for item in issue_list:
+            groups[item['code']].append(item)
+
+        result = []
+        for code, items in groups.items():
+            first = items[0]
+            # Recopilar servidores únicos de todas las ocurrencias
+            all_srv = []
+            for i in items:
+                for s in i.get('servers', []):
+                    if s not in all_srv:
+                        all_srv.append(s)
+            result.append({
+                'code':        code,
+                'description': first.get('description', ''),
+                'zone':        first.get('zone', ''),
+                'servers':     all_srv,
+                'count':       len(items),
+                'query_options': first.get('query_options', []),
+            })
+        # Ordenar: primero los de mayor count, luego alfabético
+        result.sort(key=lambda x: (-x['count'], x['code']))
+        return result
+
+    unique_errors   = _group_issues(errors)
+    unique_warnings = _group_issues(warnings)
+
+    # Nameservers del dominio
+    nameservers = []
+    try:
+        out = subprocess.check_output(['dig', '+short', 'NS', domain], timeout=5, text=True)
+        nameservers = [n.rstrip('.') for n in out.strip().splitlines() if n]
+    except Exception:
+        pass
+
+    log.info(f'Grok zones: {list(grok.keys())} | errors: {len(unique_errors)} | warnings: {len(unique_warnings)} | status: {dnssec_status}')
+
+    return {
+        'domain':        domain,
+        'timestamp':     _now_iso(),
+        'dnssec_status': dnssec_status,
+        'nameservers':   nameservers,
+        'trust_chain':   trust_chain,
+        'errors':        unique_errors,
+        'warnings':      unique_warnings,
+        'servers':       list(all_servers)
+    }
+
+# ─────────────────────────────────────────────
+# ADMIN — ESTADÍSTICAS
+# ─────────────────────────────────────────────
+@app.route('/admin/stats', methods=['GET'])
+@require_auth
+def admin_stats():
+    db = _db_load()
+    return jsonify({
+        'total_analyses': len(db['analyses']),
+        'unique_domains':  len(set(a['domain'] for a in db['analyses'])),
+        'bogus_domains':   sum(1 for a in db['analyses'] if a.get('status') == 'BOGUS'),
+        'secure_domains':  sum(1 for a in db['analyses'] if a.get('status') == 'SECURE'),
+        'insecure_domains':sum(1 for a in db['analyses'] if a.get('status') == 'INSECURE'),
+        'active_users':    sum(1 for u in db['users'] if u.get('active')),
+        'current_user':    _current_user(),
+        'current_role':    _current_role(),
+        'recent': [
+            {k: v for k, v in a.items() if k != 'data'}
+            for a in db['analyses'][:10]
+        ],
+    })
+
+# ─────────────────────────────────────────────
+# ADMIN — HISTORIAL
+# ─────────────────────────────────────────────
+@app.route('/admin/history', methods=['GET'])
+@require_auth
+def admin_history():
+    db   = _db_load()
+    page = max(1, int(request.args.get('page', 1)))
+    per  = 20
+    q    = request.args.get('q', '').strip().lower()
+    items = [a for a in db['analyses'] if not q or q in a['domain']]
+    start = (page - 1) * per
+    return jsonify({
+        'items':    [{k: v for k, v in a.items() if k != 'data'} for a in items[start:start + per]],
+        'total':    len(items),
+        'per_page': per,
+        'page':     page,
+        'pages':    max(1, -(-len(items) // per))  # ceil division
+    })
+
+@app.route('/admin/history/<aid>', methods=['GET'])
+@require_auth
+def admin_history_get(aid):
+    db = _db_load()
+    a  = next((x for x in db['analyses'] if x['id'] == aid), None)
+    if not a:
+        return jsonify({'error': 'not_found'}), 404
+    return jsonify({**a['data'], 'id': a['id'], 'timestamp': a['timestamp'], 'domain': a['domain']})
+
+@app.route('/admin/history/<aid>', methods=['DELETE'])
+@require_auth
+def admin_history_delete(aid):
+    db = _db_load()
+    db['analyses'] = [a for a in db['analyses'] if a['id'] != aid]
+    _db_save(db)
+    return jsonify({'ok': True})
+
+# ─────────────────────────────────────────────
+# ADMIN — USUARIOS
+# ─────────────────────────────────────────────
+@app.route('/admin/users', methods=['GET'])
+@require_admin
+def admin_users_list():
+    db = _db_load()
+    return jsonify({
+        'users': [{k: v for k, v in u.items() if k != 'password'} for u in db['users']]
+    })
+
+@app.route('/admin/users', methods=['POST'])
+@require_admin
+def admin_users_create():
+    data  = request.json or {}
+    email = data.get('email', '').strip().lower()
+    pwd   = data.get('password', '')
+    role  = data.get('role', 'analyst')
+
+    if not email or not pwd:
+        return jsonify({'error': 'missing_fields', 'message': 'Email y contraseña requeridos'}), 400
+    if role not in ('admin', 'analyst'):
+        return jsonify({'error': 'invalid_role', 'message': 'Rol debe ser admin o analyst'}), 400
+
+    db = _db_load()
+    if any(u['email'].lower() == email for u in db['users']):
+        return jsonify({'error': 'user_exists', 'message': 'El usuario ya existe'}), 409
+
+    db['users'].append({
+        'id':         _uid(),
+        'email':      email,
+        'password':   _hash(pwd),
+        'role':       role,
+        'active':     True,
+        'last_login': None,
+    })
+    _db_save(db)
+    _log(f'Usuario creado: {email} ({role})')
+    return jsonify({'ok': True})
+
+@app.route('/admin/users/<uid>/toggle', methods=['POST'])
+@require_admin
+def admin_users_toggle(uid):
+    active = bool((request.json or {}).get('active', True))
+    db = _db_load()
+    found = False
+    for u in db['users']:
+        if u['id'] == uid:
+            # No permitir desactivar el único admin
+            if not active and u['role'] == 'admin':
+                admins = sum(1 for x in db['users'] if x['role'] == 'admin' and x.get('active'))
+                if admins <= 1:
+                    return jsonify({'error': 'cannot_disable_last_admin',
+                                    'message': 'No puedes desactivar el único admin'}), 400
+            u['active'] = active
+            found = True
+    if not found:
+        return jsonify({'error': 'not_found'}), 404
+    _db_save(db)
+    return jsonify({'ok': True})
+
+@app.route('/admin/users/<uid>', methods=['DELETE'])
+@require_admin
+def admin_users_delete(uid):
+    db = _db_load()
+    user = next((u for u in db['users'] if u['id'] == uid), None)
+    if not user:
+        return jsonify({'error': 'not_found'}), 404
+    # No eliminar el único admin
+    if user['role'] == 'admin':
+        admins = sum(1 for u in db['users'] if u['role'] == 'admin')
+        if admins <= 1:
+            return jsonify({'error': 'cannot_delete_last_admin',
+                            'message': 'No puedes eliminar el único admin'}), 400
+    db['users'] = [u for u in db['users'] if u['id'] != uid]
+    _db_save(db)
+    _log(f'Usuario eliminado: {user["email"]}')
+    return jsonify({'ok': True})
+
+@app.route('/admin/users/<uid>/password', methods=['POST'])
+@require_admin
+def admin_users_change_password(uid):
+    new_pwd = (request.json or {}).get('password', '')
+    if len(new_pwd) < 8:
+        return jsonify({'error': 'password_too_short', 'message': 'Mínimo 8 caracteres'}), 400
+    db = _db_load()
+    for u in db['users']:
+        if u['id'] == uid:
+            u['password'] = _hash(new_pwd)
+            _db_save(db)
+            _log(f'Contraseña cambiada: {u["email"]}')
+            return jsonify({'ok': True})
+    return jsonify({'error': 'not_found'}), 404
+
+# ─────────────────────────────────────────────
+# ADMIN — DOMINIOS MONITOREADOS
+# ─────────────────────────────────────────────
+@app.route('/admin/domains', methods=['GET'])
+@require_auth
+def admin_domains_list():
+    db = _db_load()
+    result = []
+    for d in db.get('domains', []):
+        last = next((a for a in db['analyses'] if a['domain'] == d['domain']), None)
+        result.append({
+            **d,
+            'last_status':   last['status'] if last else None,
+            'last_analyzed': last['timestamp'] if last else None
+        })
+    return jsonify({'domains': result})
+
+@app.route('/admin/domains', methods=['POST'])
+@require_auth
+def admin_domains_add():
+    domain = (request.json or {}).get('domain', '').strip().lower().rstrip('.')
+    if not domain:
+        return jsonify({'error': 'missing_domain'}), 400
+    db = _db_load()
+    if not any(d['domain'] == domain for d in db.get('domains', [])):
+        db.setdefault('domains', []).append({'id': _uid(), 'domain': domain, 'added': _now_iso()})
+        _db_save(db)
+        _log(f'Dominio agregado: {domain}')
+    return jsonify({'ok': True})
+
+@app.route('/admin/domains/<did>', methods=['DELETE'])
+@require_auth
+def admin_domains_delete(did):
+    db = _db_load()
+    db['domains'] = [d for d in db.get('domains', []) if d['id'] != did]
+    _db_save(db)
+    return jsonify({'ok': True})
+
+# ─────────────────────────────────────────────
+# ADMIN — CAPAS / INFO
+# ─────────────────────────────────────────────
+@app.route('/admin/layers/info', methods=['GET'])
+@require_auth
+def admin_layers_info():
+    ver = _dnsviz_version()
+
+    # Contar entradas en los JSON de capas
+    layer_counts = {}
+    for layer in ['capa1-catalogo-dnsviz', 'capa2-mapeo-normativo', 'capa3-explicaciones']:
+        path = os.path.join(FRONTEND_DIR, 'data', f'{layer}.json')
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            layer_counts[layer] = len(data)
+        except Exception:
+            layer_counts[layer] = 0
+
+    return jsonify({
+        'dnsviz_version': ver,
+        'last_updated':   _now_iso(),
+        'layer_counts':   layer_counts
+    })
+
+@app.route('/admin/layers/update', methods=['POST'])
+@require_admin
+def admin_layers_update():
+    script = os.path.join(BASE_DIR, 'scripts', 'build_layers.py')
+    if not os.path.exists(script):
+        return jsonify({'error': 'script_not_found', 'message': 'scripts/build_layers.py no existe'}), 404
+    try:
+        subprocess.run(['python3', script], check=True, timeout=120, capture_output=True)
+        _log('Capas actualizadas.')
+        return jsonify({'ok': True})
+    except subprocess.CalledProcessError as e:
+        return jsonify({'error': 'update_failed', 'message': str(e)}), 500
+
+# ─────────────────────────────────────────────
+# ADMIN — LOGS
+# ─────────────────────────────────────────────
+@app.route('/admin/logs', methods=['GET'])
+@require_admin
+def admin_logs():
+    db    = _db_load()
+    limit = int(request.args.get('limit', 200))
+    lines = [f"[{e['ts']}] {e['msg']}" for e in reversed(db.get('logs', []))]
+    return jsonify({'lines': lines[:limit]})
+
+# ─────────────────────────────────────────────
+# HEALTH CHECK
+# ─────────────────────────────────────────────
+@app.route('/health', methods=['GET'])
+def health():
+    db = _db_load()
+    return jsonify({
+        'status':   'ok',
+        'ts':       _now_iso(),
+        'analyses': len(db['analyses']),
+        'users':    len(db['users'])
+    })
+
+# ─────────────────────────────────────────────
+# ARRANQUE
+# ─────────────────────────────────────────────
+if __name__ == '__main__':
+    _db_init()
+    port = int(os.environ.get('PORT', 8080))
+    log.info(f'Observatorio DNSSEC v2 — http://localhost:{port}')
+    log.info(f'Frontend: {os.path.abspath(FRONTEND_DIR)}')
+    app.run(host='0.0.0.0', port=port, debug=False)

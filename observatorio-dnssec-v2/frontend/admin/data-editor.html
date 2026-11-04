@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor de capas y textos — Admin Observatorio DNSSEC</title>
+  <link rel="icon" href="/img/ote-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style-v2.css">
+  <link rel="stylesheet" href="/css/style-admin-v2.css">
+</head>
+<body class="admin-v2">
+
+  <header class="site-header v2-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="/admin/dashboard" class="header-brand">
+          <div class="header-logos">
+            <img src="/img/ote-favicon.svg" alt="OTE" style="height:32px;width:auto">
+          </div>
+          <span class="header-title">Observatorio DNSSEC — Admin</span>
+        </a>
+        <nav class="header-nav">
+          <a href="/admin/dashboard">Dashboard</a>
+          <a href="/admin/data-editor" class="active">Capas y textos</a>
+          <button class="btn-lang" data-lang-toggle>English</button>
+          <button class="btn-logout" id="btn-logout">Cerrar sesión</button>
+        </nav>
+        <button class="header-menu-toggle" id="menu-toggle" aria-label="Menú">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-edit-banner">
+    <div class="container">
+      <span class="lock-icon" aria-hidden="true">🔒</span>
+      <span data-i18n="admin.edit_locked_notice">Los estados técnicos (RRset / DNSKEY / DS / NSEC / Delegation / Notices) provienen de DNSViz y no son editables aquí.</span>
+    </div>
+  </div>
+
+  <main class="admin-edit-layout">
+    <aside class="admin-sidebar" aria-label="Capas y textos">
+      <h3 class="sidebar-title" data-i18n="admin.layers_title">Capas y textos editables</h3>
+      <ul class="sidebar-list" id="layer-list"></ul>
+      <div class="sidebar-locked">
+        <span class="lock-icon" aria-hidden="true">🔒</span>
+        <div>
+          <strong>Capa 1A</strong>
+          <span class="muted" id="capa1a-filename">capa1a-catalogo-dnsviz.json</span>
+          <span class="muted">Catálogo DNSViz — solo lectura</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="admin-main">
+      <header class="admin-main-header">
+        <div>
+          <h2 id="layer-title">—</h2>
+          <p class="muted" id="layer-meta">—</p>
+        </div>
+        <div class="admin-main-actions">
+          <button class="btn btn-secondary" id="btn-reload">Recargar</button>
+          <button class="btn btn-secondary" id="btn-restore">Restaurar valores por defecto</button>
+          <button class="btn btn-primary"   id="btn-save" disabled>Guardar cambios</button>
+        </div>
+      </header>
+
+      <div class="admin-toolbar" id="admin-toolbar"></div>
+
+      <div class="admin-editor" id="admin-editor">
+        <p class="empty-state">Selecciona una capa para empezar.</p>
+      </div>
+
+      <footer class="admin-status" id="admin-status"></footer>
+    </section>
+  </main>
+
+  <!-- Modal: edit row (tabular layers) -->
+  <dialog id="row-modal" class="admin-modal">
+    <form id="row-form" method="dialog">
+      <header class="modal-head">
+        <h3 id="row-modal-title">Editar fila</h3>
+        <button type="button" class="modal-close" id="row-cancel" aria-label="Cerrar">×</button>
+      </header>
+      <div class="modal-body" id="row-form-fields"></div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-secondary" id="row-cancel-2">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Aplicar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Modal: confirm restore -->
+  <dialog id="restore-modal" class="admin-modal">
+    <header class="modal-head">
+      <h3>Restaurar valores por defecto</h3>
+      <button type="button" class="modal-close" id="restore-cancel" aria-label="Cerrar">×</button>
+    </header>
+    <div class="modal-body">
+      <p>Vas a restaurar el archivo:</p>
+      <p><strong id="restore-filename">—</strong></p>
+      <p class="warning">Esto sobrescribirá los cambios actuales con los valores semilla. Se creará un <strong>backup automático</strong> antes de restaurar.</p>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-secondary" id="restore-cancel-2">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="restore-confirm">Restaurar</button>
+    </footer>
+  </dialog>
+
+  <!-- Modal: raw JSON edit (document layers) -->
+  <dialog id="raw-modal" class="admin-modal">
+    <form id="raw-form" method="dialog">
+      <header class="modal-head">
+        <h3>Modo JSON crudo</h3>
+        <button type="button" class="modal-close" id="raw-cancel" aria-label="Cerrar">×</button>
+      </header>
+      <div class="modal-body">
+        <p class="muted">Edita el JSON completo. Se valida antes de guardar. UTF-8, ensure_ascii=False.</p>
+        <textarea id="raw-textarea" class="admin-raw-textarea" spellcheck="false"></textarea>
+        <div class="admin-raw-error" id="raw-error" hidden></div>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-secondary" id="raw-cancel-2">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Aplicar al editor</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toast-container" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:300;display:flex;flex-direction:column;gap:0.5rem"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin-data.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte DNSViz - Observatorio DNSSEC</title>
+  <link rel="icon" href="/img/ote-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site-header no-print">
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="header-brand">
+        <img src="/img/ote-favicon.svg" alt="OTE" style="height:28px;width:auto">
+        <span class="header-title" data-i18n="home.hero_title">Observatorio DNSSEC</span>
+      </a>
+      <nav class="header-nav">
+        <a href="/" data-i18n="nav.home">Inicio</a>
+        <a href="/about" data-i18n="nav.about">Acerca de</a>
+        <button class="btn-lang" onclick="I18n.toggle()" data-lang-toggle>English</button>
+        <a href="/lab" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+        <a href="/admin/login" class="btn-login-header" data-i18n="nav.admin">Administracion</a>
+      </nav>
+      <button class="header-menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+    </div>
+  </div>
+  <nav class="header-mobile-nav" id="mobile-nav">
+    <a href="/" data-i18n="nav.home">Inicio</a>
+    <a href="/about" data-i18n="nav.about">Acerca de</a>
+    <button onclick="I18n.toggle()" data-lang-toggle>English</button>
+    <a href="/lab" data-i18n="nav.lab">Laboratorio DNSSEC</a>
+    <a href="/admin/login" data-i18n="nav.admin">Administracion</a>
+  </nav>
+</header>
+
+<main class="dnsviz-page">
+  <div id="loader" class="loader-wrap visible no-print">
+    <div class="spinner"></div>
+    <p class="loader-msg" data-i18n="report.loading">Cargando reporte DNSViz...</p>
+  </div>
+
+  <section id="report-wrap" class="dnsviz-report hidden">
+    <header class="dnsviz-report-top no-print">
+      <div>
+        <a href="/" class="btn btn-sm" data-i18n="report.new_analysis">Nuevo analisis</a>
+        <h1 id="res-domain">-</h1>
+        <div class="dnsviz-meta">
+          <span id="res-date"></span>
+          <span id="res-runner"></span>
+        </div>
+      </div>
+      <div class="dnsviz-actions">
+        <a id="download-png-top" class="btn btn-sm" href="#" target="_blank" rel="noopener" data-i18n-title="report.tooltip_graph_png">PNG</a>
+        <a id="download-svg-top" class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener" data-i18n-title="report.tooltip_graph_svg">SVG</a>
+      </div>
+    </header>
+
+    <div class="dnsviz-source-note no-print">
+      <span data-i18n="report.dnsviz_base_note">Reporte base DNSViz: estados y avisos derivados de los artefactos DNSViz. Sin interpretacion operacional adicional en esta vista.</span>
+    </div>
+
+    <div class="dnsviz-layout">
+      <aside class="dnsviz-sidebar" aria-label="DNSViz status panel">
+        <section class="dnsviz-panel">
+          <h2 data-i18n="report.rrset_status">RRset status</h2>
+          <div id="rrset-status" class="dnsviz-status-list"></div>
+        </section>
+
+        <section class="dnsviz-panel">
+          <h2 data-i18n="report.dnskey_ds_nsec_status">DNSKEY/DS/NSEC status</h2>
+          <div id="dnskey-status" class="dnsviz-status-list"></div>
+        </section>
+
+        <section class="dnsviz-panel">
+          <h2 data-i18n="report.delegation_status">Delegation status</h2>
+          <div id="delegation-status" class="dnsviz-status-list"></div>
+        </section>
+
+        <section class="dnsviz-panel">
+          <h2 data-i18n="report.notices">Notices</h2>
+          <div id="notice-status" class="dnsviz-notices"></div>
+        </section>
+
+        <section class="dnsviz-panel dnsviz-legend-panel">
+          <h2 id="legend-compact-title">DNSKEY legend</h2>
+          <button type="button" class="dnsviz-legend-link" onclick="Report.openLegend()" id="legend-open-link">Full legend</button>
+          <div id="legend-compact" class="dnsviz-legend-compact"></div>
+        </section>
+      </aside>
+
+      <section class="dnsviz-graph-stage" aria-label="DNSViz graph">
+        <div class="dnsviz-graph-toolbar no-print">
+          <span data-i18n="report.dnsviz_auth_chain">DNSSEC Authentication Chain</span>
+          <span class="dnsviz-graph-downloads">
+            <span data-i18n="report.download">Download:</span>
+            <a id="download-png" href="#" target="_blank" rel="noopener">png</a>
+            <span>|</span>
+            <a id="download-svg" href="#" target="_blank" rel="noopener">svg</a>
+          </span>
+        </div>
+        <div class="dnsviz-graph-help no-print" data-i18n="report.graph_help">Mueve el cursor sobre los elementos del grafico para ver el detalle DNSViz. Las descargas publicas disponibles son PNG y SVG.</div>
+        <div id="graph-empty" class="dnsviz-empty hidden" data-i18n="report.graph_not_found">No se encontro grafico para este analisis.</div>
+        <iframe id="graph-frame" class="dnsviz-graph-frame hidden" title="DNSViz interactive graph"></iframe>
+        <img id="graph-img" class="dnsviz-graph-img hidden" alt="DNSViz graph">
+      </section>
+    </div>
+  </section>
+</main>
+
+<div id="legend-modal" class="dnsviz-legend-modal hidden" role="dialog" aria-modal="true" aria-labelledby="legend-modal-title">
+  <div class="dnsviz-legend-dialog">
+    <header class="dnsviz-legend-dialog-head">
+      <h2 id="legend-modal-title">Full legend</h2>
+      <button type="button" class="btn btn-sm" onclick="Report.closeLegend()" id="legend-close-btn">Cerrar</button>
+    </header>
+    <div id="legend-full" class="dnsviz-legend-full"></div>
+  </div>
+</div>
+
+<footer class="site-footer no-print">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-orgs">
+        <div class="footer-org">
+          <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="home.footer_dev">Desarrollado por</span>
+          <img src="/img/logo-isocec.png" alt="ISOC Ecuador" style="height:24px;background:#fff;padding:2px 5px;border-radius:3px;opacity:.95">
+        </div>
+        <div class="footer-org">
+          <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="home.footer_support">Con apoyo de</span>
+          <img src="/img/logo-corpece.png" alt="CORPECE" style="height:24px;background:#fff;padding:2px 5px;border-radius:3px;opacity:.95">
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="/" data-i18n="nav.home">Inicio</a>
+        <a href="/about#disclaimer" data-i18n="report.legal_notice">Aviso legal</a>
+        <a href="mailto:observatorio@corpece.org.ec" data-i18n="nav.contact">Contacto</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/report.js"></script>
+</body>
+</html>

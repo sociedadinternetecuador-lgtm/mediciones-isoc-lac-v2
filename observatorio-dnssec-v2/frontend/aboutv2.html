@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acerca de — Observatorio DNSSEC</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar__brand">
+    <span class="navbar__brand-dot"></span>
+    <span>Observatorio DNSSEC</span>
+  </div>
+  <div class="navbar__links">
+    <button class="navbar__link" onclick="location.href='/'">Inicio</button>
+    <button class="navbar__link navbar__link--active" onclick="location.href='/about'">Acerca de</button>
+    <button class="navbar__link" onclick="location.href='/admin/login'">Admin</button>
+    <button class="navbar__lang" data-lang-toggle onclick="I18n.toggle()">English</button>
+  </div>
+</nav>
+
+<main class="about-page">
+
+  <h1 data-i18n="about.title">Acerca del Observatorio DNSSEC</h1>
+
+  <div class="about-section fade-in">
+    <h2 data-i18n="about.what_title">¿Qué es?</h2>
+    <p data-i18n="about.what_text">El Observatorio DNSSEC es una herramienta de análisis de seguridad DNS desarrollada por ISOC Ecuador con apoyo de CORPECE.</p>
+  </div>
+
+  <div class="about-section fade-in">
+    <h2 data-i18n="about.how_title">¿Cómo funciona?</h2>
+    <p data-i18n="about.how_text">Utilizamos DNSViz combinada con tres capas de interpretación.</p>
+  </div>
+
+  <div class="about-section fade-in">
+    <h2 data-i18n="about.why_title">¿Por qué importa DNSSEC?</h2>
+    <p data-i18n="about.why_text">DNSSEC protege el sistema de nombres de dominio contra ataques de envenenamiento de caché.</p>
+  </div>
+
+  <div class="about-section fade-in">
+    <h2 data-i18n="about.contact_title">Contacto</h2>
+    <p><a href="mailto:observatorio@corpece.org.ec">observatorio@corpece.org.ec</a></p>
+    <p class="mt-1 text-dim" style="font-size:0.8rem">
+      <span data-i18n="about.version_label">Versión</span>
+      <span id="app-version" class="text-mono"> — </span>
+    </p>
+  </div>
+
+  <div class="about-orgs">
+    <div class="about-org fade-in">
+      <div class="about-org__role" data-i18n="home.footer_dev">Desarrollado por</div>
+      <div class="about-org__name">ISOC Ecuador</div>
+    </div>
+    <div class="about-org fade-in">
+      <div class="about-org__role" data-i18n="home.footer_support">Con apoyo de</div>
+      <div class="about-org__name">CORPECE</div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer__orgs">
+    <span data-i18n="home.footer_dev">Desarrollado por</span>
+    <span class="footer__org">ISOC Ecuador</span>
+    <span class="footer__sep">·</span>
+    <span data-i18n="home.footer_support">Con apoyo de</span>
+    <span class="footer__org">CORPECE</span>
+  </div>
+</footer>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  (async () => {
+    await I18n.init();
+    const cfg = I18n.config();
+    const v = document.getElementById('app-version');
+    if (v && cfg.app_version) v.textContent = cfg.app_version;
+    document.querySelectorAll('[data-lang-toggle]').forEach(el =>
+      el.addEventListener('click', () => I18n.toggle()));
+  })();
+</script>
+</body>
+</html>

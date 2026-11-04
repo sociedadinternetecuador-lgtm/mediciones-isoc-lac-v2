@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Observatorio DNSSEC</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Mobile nav para secciones admin */
+    .admin-mobile-nav {
+      display: none;
+      flex-direction: column;
+      background: var(--color-primary-dark);
+      padding: 0.5rem 1rem 1rem;
+      gap: 0.25rem;
+    }
+    .admin-mobile-nav.open { display: flex; }
+    .admin-mobile-nav button {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.9rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .admin-mobile-nav button:hover,
+    .admin-mobile-nav button.active {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .admin-mobile-nav button.active { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="/" class="header-brand">
+          <div class="header-logos">
+            <div class="header-logo-placeholder">ISOC EC</div>
+            <div class="header-logo-placeholder">CORPECE</div>
+          </div>
+          <span class="header-title">Observatorio DNSSEC — Admin</span>
+        </a>
+        <nav class="header-nav">
+          <a href="/" data-i18n="nav.home">Inicio</a>
+          <button class="btn-lang" onclick="I18n.toggle()" data-lang-toggle>English</button>
+          <button class="btn-login-header" onclick="Admin.logout()" data-i18n="admin.btn_logout">Cerrar sesión</button>
+        </nav>
+        <button class="header-menu-toggle" id="menu-toggle" aria-label="Menú">☰</button>
+      </div>
+    </div>
+    <!-- Mobile nav — secciones admin -->
+    <nav class="admin-mobile-nav" id="mobile-nav">
+      <button data-section="stats"   data-i18n="admin.nav_stats">Estadísticas</button>
+      <button data-section="history" data-i18n="admin.nav_history">Historial</button>
+      <button data-section="domains" data-i18n="admin.nav_domains">Dominios</button>
+      <button data-section="users"   data-i18n="admin.nav_users" data-admin-only>Usuarios</button>
+      <button data-section="layers"  data-i18n="admin.nav_layers">Capas</button>
+      <button data-section="report_texts">Textos del reporte</button>
+      <button data-section="logs"    data-i18n="admin.nav_logs" data-admin-only>Logs</button>
+      <button onclick="Admin.logout()" style="color:rgba(255,100,100,0.9)" data-i18n="admin.btn_logout">Cerrar sesión</button>
+    </nav>
+  </header>
+
+  <div class="admin-layout">
+
+    <!-- SIDEBAR (desktop) -->
+    <aside class="admin-sidebar">
+      <div style="padding:0 1.25rem 0.75rem;font-size:0.75rem;font-weight:600;color:var(--color-text-light);text-transform:uppercase;letter-spacing:0.05em">Panel</div>
+      <button class="admin-menu-item" data-section="stats">   <span>📊</span><span data-i18n="admin.nav_stats">Estadísticas</span></button>
+      <button class="admin-menu-item" data-section="history"> <span>🕐</span><span data-i18n="admin.nav_history">Historial</span></button>
+      <button class="admin-menu-item" data-section="domains"> <span>🌐</span><span data-i18n="admin.nav_domains">Dominios</span></button>
+      <button class="admin-menu-item" data-section="users" data-admin-only>  <span>👤</span><span data-i18n="admin.nav_users">Usuarios</span></button>
+      <button class="admin-menu-item" data-section="layers">  <span>⚙</span><span data-i18n="admin.nav_layers">Capas</span></button>
+      <button class="admin-menu-item" data-section="logs" data-admin-only>   <span>📋</span><span data-i18n="admin.nav_logs">Logs</span></button>
+      <button class="admin-menu-item" data-section="report_texts"><span>TXT</span><span>Textos del reporte</span></button>
+      <div class="admin-menu-divider"></div>
+      <div style="padding:0.6rem 1.25rem;font-size:0.78rem;color:var(--color-text-light)" id="sidebar-email"></div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="admin-content">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;color:var(--color-text)" id="section-title">—</h2>
+      <div id="main-panel">
+        <div class="loader-wrap visible"><div class="spinner"></div></div>
+      </div>
+    </main>
+
+  </div>
+
+  <div id="toast-container" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:300;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none"></div>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>Admin.init();</script>
+</body>
+</html>

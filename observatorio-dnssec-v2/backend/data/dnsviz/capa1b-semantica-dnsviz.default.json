@@ -1,0 +1,902 @@
+[
+  {
+    "code": "MISSING_RRSIG",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrset", "zone"],
+    "notes": "Aparece cuando el RRset no trae firma RRSIG. Puede degradar el estado visual del nodo RRset a BOGUS."
+  },
+  {
+    "code": "MISSING_RRSIG_FOR_ALG",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrset", "zone"],
+    "notes": "Falta una RRSIG para un algoritmo declarado en el DNSKEY/DS. DNSViz suele marcar el RRset como BOGUS."
+  },
+  {
+    "code": "MISSING_RRSIG_FOR_ALG_DNSKEY",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "zone"],
+    "notes": "Algoritmo presente en DNSKEY sin RRSIG correspondiente que firme el DNSKEY RRset."
+  },
+  {
+    "code": "MISSING_RRSIG_FOR_ALG_DS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DS / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["ds", "zone"],
+    "notes": "Algoritmo declarado en el DS sin RRSIG correspondiente del DNSKEY apex."
+  },
+  {
+    "code": "SIGNATURE_INVALID",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrset", "rrsig"],
+    "notes": "DNSViz validó criptográficamente la firma y no es correcta para la clave indicada."
+  },
+  {
+    "code": "EXPIRATION_IN_PAST",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrsig"],
+    "notes": "El campo Expiration de la RRSIG está en el pasado al momento del análisis."
+  },
+  {
+    "code": "INCEPTION_IN_FUTURE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrsig"],
+    "notes": "El campo Inception de la RRSIG aún no llegó. Suele indicar reloj desincronizado en el firmante."
+  },
+  {
+    "code": "EXPIRATION_WITHIN_CLOCK_SKEW",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrsig"],
+    "notes": "Expiración cae dentro del margen de skew configurado por DNSViz; no invalida la firma."
+  },
+  {
+    "code": "INCEPTION_WITHIN_CLOCK_SKEW",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG / DNSSEC Crypto",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrsig"],
+    "notes": "Inception cercana al ahora dentro del margen de skew."
+  },
+  {
+    "code": "TTL_BEYOND_EXPIRATION",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrsig", "rrset"],
+    "notes": "El TTL puede dejar la respuesta cacheada después de expirar la RRSIG."
+  },
+  {
+    "code": "ORIGINAL_TTL_EXCEEDED_RRSET",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrset"],
+    "notes": "El TTL del RRset supera el Original TTL declarado en la RRSIG."
+  },
+  {
+    "code": "ORIGINAL_TTL_EXCEEDED_RRSIG",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrsig"],
+    "notes": "El TTL de la RRSIG supera su Original TTL."
+  },
+  {
+    "code": "RRSET_TTL_MISMATCH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["rrset"],
+    "notes": "Inconsistencia de TTL entre miembros del RRset."
+  },
+  {
+    "code": "RRSIG_LABELS_EXCEED_RRSET_OWNER_LABELS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrsig", "rrset"],
+    "notes": "El campo Labels de la RRSIG excede el número de etiquetas del owner."
+  },
+  {
+    "code": "SIGNER_NOT_ZONE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRSIG",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrsig"],
+    "notes": "El campo Signer Name de la RRSIG no coincide con la zona."
+  },
+  {
+    "code": "ALGORITHM_NOT_SUPPORTED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["dnskey", "rrsig"],
+    "notes": "DNSViz no soporta el algoritmo en su build; no implica BOGUS por sí mismo."
+  },
+  {
+    "code": "ALGORITHM_PROHIBITED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "rrsig"],
+    "notes": "Algoritmo prohibido por RFC 8624. Resolvers conformes lo tratarán como insecure/bogus."
+  },
+  {
+    "code": "ALGORITHM_VALIDATION_PROHIBITED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "rrsig"],
+    "notes": "Validación con este algoritmo está prohibida por RFC 8624."
+  },
+  {
+    "code": "ALGORITHM_NOT_RECOMMENDED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["dnskey"],
+    "notes": "Algoritmo desaconsejado por RFC 8624 pero aún no prohibido."
+  },
+  {
+    "code": "DNSKEY_REVOKED_RRSIG",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "rrsig"],
+    "notes": "RRSIG generada por una DNSKEY con flag REVOKE."
+  },
+  {
+    "code": "DNSKEY_REVOKED_DS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY / DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "ds"],
+    "notes": "Una DNSKEY referenciada por DS está revocada."
+  },
+  {
+    "code": "DNSKEY_MISSING_FROM_SERVERS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey", "server"],
+    "notes": "Una DNSKEY no fue devuelta por todos los servidores autoritativos."
+  },
+  {
+    "code": "DNSKEY_NOT_AT_ZONE_APEX",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey"],
+    "notes": "DNSKEY publicada fuera del apex de la zona."
+  },
+  {
+    "code": "DNSKEY_BAD_LENGTH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DNSKEY / DNSSEC Crypto",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["dnskey"],
+    "notes": "Longitud de la clave fuera de los rangos recomendados para el algoritmo."
+  },
+  {
+    "code": "DNSKEY_ZERO_LENGTH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSKEY",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["dnskey"],
+    "notes": "DNSKEY con material criptográfico de longitud cero."
+  },
+  {
+    "code": "NO_SEP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["delegation", "ds", "dnskey"],
+    "notes": "No hay punto de entrada seguro: ningún DS coincide con una DNSKEY que firme el DNSKEY RRset."
+  },
+  {
+    "code": "MISSING_SEP_FOR_ALG",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["delegation", "ds", "dnskey"],
+    "notes": "El DS declara un algoritmo sin DNSKEY equivalente que firme el apex."
+  },
+  {
+    "code": "REFERRAL_FOR_DS_QUERY",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / DS",
+    "visual_status_relation": "may_cause_insecure",
+    "applies_to": ["delegation", "ds"],
+    "notes": "La consulta DS recibió referral en lugar de respuesta autoritativa."
+  },
+  {
+    "code": "DS_DIGEST_ALGORITHM_IGNORED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest del DS ignorado por DNSViz según política."
+  },
+  {
+    "code": "DS_DIGEST_ALGORITHM_MAYBE_IGNORED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest puede ser ignorado dependiendo del resolver."
+  },
+  {
+    "code": "DIGEST_ALGORITHM_NOT_SUPPORTED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest no soportado por la build de DNSViz."
+  },
+  {
+    "code": "DIGEST_ALGORITHM_VALIDATION_PROHIBITED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest cuya validación está prohibida por RFC 8624."
+  },
+  {
+    "code": "DIGEST_ALGORITHM_PROHIBITED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest prohibido por RFC 8624."
+  },
+  {
+    "code": "DIGEST_ALGORITHM_NOT_RECOMMENDED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["ds"],
+    "notes": "Algoritmo de digest desaconsejado por RFC 8624."
+  },
+  {
+    "code": "DIGEST_INVALID",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DS",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["ds", "dnskey"],
+    "notes": "El digest del DS no coincide con la DNSKEY referenciada."
+  },
+  {
+    "code": "MISSING_NSEC",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec"],
+    "notes": "Falta NSEC/NSEC3 en respuesta que requiere prueba de inexistencia."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NODATA",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec", "rrset"],
+    "notes": "Respuesta NODATA sin prueba criptográfica de inexistencia del tipo."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NXDOMAIN",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec", "rrset"],
+    "notes": "Respuesta NXDOMAIN sin prueba criptográfica de inexistencia del nombre."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_WILDCARD",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec", "rrset"],
+    "notes": "Respuesta proveniente de wildcard sin NSEC que pruebe la no existencia del nombre exacto."
+  },
+  {
+    "code": "NONZERO_NSEC3_ITERATION_COUNT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["nsec", "zone"],
+    "notes": "Política RFC 9276: iteraciones NSEC3 deben ser 0. DNSViz puede ocultar este aviso con --ignore-rfc9276."
+  },
+  {
+    "code": "NONEMPTY_NSEC3_SALT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["nsec", "zone"],
+    "notes": "Política RFC 9276: salt NSEC3 debe estar vacío. DNSViz puede ocultarlo con --ignore-rfc9276."
+  },
+  {
+    "code": "UNSUPPORTED_NSEC3_ALGORITHM",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["nsec"],
+    "notes": "Algoritmo NSEC3 no soportado por la build de DNSViz."
+  },
+  {
+    "code": "INVALID_NSEC3_OWNER_NAME",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec"],
+    "notes": "Owner de NSEC3 con codificación inválida."
+  },
+  {
+    "code": "INVALID_NSEC3_HASH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec"],
+    "notes": "Hash NSEC3 no recalcula al valor declarado."
+  },
+  {
+    "code": "LAST_NSEC_NEXT_NOT_ZONE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "NSEC / NSEC3",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["nsec"],
+    "notes": "El último NSEC de la cadena no apunta al apex de la zona."
+  },
+  {
+    "code": "NO_NS_IN_PARENT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["delegation", "zone"],
+    "notes": "La zona padre no publica registros NS para la zona hija."
+  },
+  {
+    "code": "NO_NS_IN_PARENT_NODATA",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["delegation", "zone"],
+    "notes": "La zona padre responde NODATA al consultar NS de la hija."
+  },
+  {
+    "code": "NO_NS_IN_PARENT_NXDOMAIN",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["delegation", "zone"],
+    "notes": "La zona padre responde NXDOMAIN al consultar la hija; delegación inexistente."
+  },
+  {
+    "code": "MISSING_GLUE_IPV4",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Falta glue A para un NS in-bailiwick."
+  },
+  {
+    "code": "MISSING_GLUE_IPV6",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Falta glue AAAA para un NS in-bailiwick."
+  },
+  {
+    "code": "EXTRA_GLUE_IPV4",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Glue A presente sin A autoritativo correspondiente."
+  },
+  {
+    "code": "EXTRA_GLUE_IPV6",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Glue AAAA presente sin AAAA autoritativo correspondiente."
+  },
+  {
+    "code": "GLUE_MISMATCH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Las direcciones de glue difieren de las autoritativas."
+  },
+  {
+    "code": "GLUE_PRIVATE_IP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Glue apunta a IP privada."
+  },
+  {
+    "code": "ERROR_RESOLVING_NS_NAME",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "No se pudo resolver alguno de los NS a una dirección IP."
+  },
+  {
+    "code": "MISSING_GLUE_FOR_NS_NAME",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation / Glue",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "El referral no incluyó el glue requerido para el NS."
+  },
+  {
+    "code": "NO_ADDRESS_FOR_NS_NAME",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "El NS name no resolvió a ninguna dirección."
+  },
+  {
+    "code": "NO_NS_ADDRESSES_FOR_IPV4",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Ninguna dirección IPv4 disponible para los NS de la zona."
+  },
+  {
+    "code": "NO_NS_ADDRESSES_FOR_IPV6",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Ninguna dirección IPv6 disponible para los NS de la zona."
+  },
+  {
+    "code": "NS_NAME_NOT_IN_CHILD",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Un NS publicado por el padre no aparece en el NS RRset de la zona hija."
+  },
+  {
+    "code": "NS_NAME_NOT_IN_PARENT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Delegation",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["delegation"],
+    "notes": "Un NS de la zona hija no fue declarado por el padre."
+  },
+  {
+    "code": "MISSING_SOA",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["zone", "rrset"],
+    "notes": "El servidor no devolvió SOA al consultar la zona."
+  },
+  {
+    "code": "MISSING_SOA_FOR_NODATA",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Respuesta NODATA sin SOA en la sección authority."
+  },
+  {
+    "code": "MISSING_SOA_FOR_NXDOMAIN",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Respuesta NXDOMAIN sin SOA en la sección authority."
+  },
+  {
+    "code": "SOA_OWNER_NOT_ZONE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El owner del SOA no coincide con el apex declarado."
+  },
+  {
+    "code": "NOT_AUTHORITATIVE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server", "zone"],
+    "notes": "El servidor responde sin flag AA aunque DNSViz lo trata como autoritativo."
+  },
+  {
+    "code": "SERVER_NOT_AUTHORITATIVE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "El servidor está listado como NS pero no es autoritativo para la zona."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server", "zone", "delegation"],
+    "notes": "El servidor no respondió a la consulta. Puede aparecer aunque el estado visual final sea SECURE si responden otros NS."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_UDP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server", "zone", "delegation"],
+    "notes": "Servidor sin respuesta vía UDP. Puede coexistir con estado visual SECURE."
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_TCP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server", "zone", "delegation"],
+    "notes": "Servidor sin respuesta vía TCP. Puede coexistir con estado visual SECURE."
+  },
+  {
+    "code": "SERVER_INVALID_RESPONSE_UDP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Respuesta UDP malformada o no parseable."
+  },
+  {
+    "code": "SERVER_INVALID_RESPONSE_TCP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Respuesta TCP malformada o no parseable."
+  },
+  {
+    "code": "TIMEOUT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Timeout genérico de DNSViz al consultar el servidor."
+  },
+  {
+    "code": "NETWORK_ERROR",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Error de red al consultar el servidor."
+  },
+  {
+    "code": "INVALID_RCODE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Delegation / Transport",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Código de respuesta DNS inesperado."
+  },
+  {
+    "code": "ERROR_WITH_EDNS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "El servidor falla cuando se incluye EDNS."
+  },
+  {
+    "code": "EDNS_IGNORED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "El servidor ignora la sección OPT del cliente."
+  },
+  {
+    "code": "EDNS_SUPPORT_NO_OPT",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "El servidor parece soportar EDNS pero no devuelve OPT."
+  },
+  {
+    "code": "EDNS_VERSION_MISMATCH",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "El servidor responde con versión EDNS distinta a la solicitada."
+  },
+  {
+    "code": "EDNS_UNDEFINED_FLAGS_SET",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Flags EDNS reservados puestos en uno."
+  },
+  {
+    "code": "PMTU_EXCEEDED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "Transport / EDNS",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["server"],
+    "notes": "Tamaño de respuesta supera el PMTU detectado."
+  },
+  {
+    "code": "DNSSEC_DOWNGRADE",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSSEC Crypto",
+    "visual_status_relation": "may_cause_insecure",
+    "applies_to": ["server", "zone"],
+    "notes": "DNSViz observó condiciones que producen downgrade de DNSSEC."
+  },
+  {
+    "code": "DNSSEC_DOWNGRADE_DO_BIT_CLEARED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSSEC Crypto",
+    "visual_status_relation": "may_cause_insecure",
+    "applies_to": ["server"],
+    "notes": "El servidor responde con DO=0 incluso cuando el cliente lo solicita."
+  },
+  {
+    "code": "DNSSEC_DOWNGRADE_EDNS_DISABLED",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSSEC Crypto",
+    "visual_status_relation": "may_cause_insecure",
+    "applies_to": ["server"],
+    "notes": "El servidor falla con EDNS, forzando reintentos sin DNSSEC."
+  },
+  {
+    "code": "UNABLE_TO_RETRIEVE_DNSSEC_RECORDS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSSEC Crypto",
+    "visual_status_relation": "may_cause_insecure",
+    "applies_to": ["server", "zone"],
+    "notes": "DNSViz no pudo obtener DNSKEY/RRSIG necesarios para validar."
+  },
+  {
+    "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone", "ds", "dnskey"],
+    "notes": "El CDNSKEY publicado no coincide con el DS actual del padre."
+  },
+  {
+    "code": "CDNSKEY_INCONSISTENT_WITH_CDS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Inconsistencia interna entre los RRsets CDS y CDNSKEY."
+  },
+  {
+    "code": "CDS_INCONSISTENT_WITH_DS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone", "ds"],
+    "notes": "El CDS publicado no coincide con el DS actual del padre."
+  },
+  {
+    "code": "CDS_INCONSISTENT_WITH_CDNSKEY",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El CDS no coincide con el digest derivado del CDNSKEY."
+  },
+  {
+    "code": "CDNSKEY_DELETE_MULTIPLE_RECORDS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Múltiples CDNSKEY de borrado (algoritmo 0). RFC 8078 indica un único registro."
+  },
+  {
+    "code": "CDS_DELETE_MULTIPLE_RECORDS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Múltiples CDS de borrado (algoritmo 0). RFC 8078 indica un único registro."
+  },
+  {
+    "code": "MULTIPLE_CDNSKEY",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Variantes inconsistentes de CDNSKEY entre servidores."
+  },
+  {
+    "code": "MULTIPLE_CDS",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "Variantes inconsistentes de CDS entre servidores."
+  },
+  {
+    "code": "CDNSKEY_INCORRECT_DELETE_VALUES",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El registro CDNSKEY de borrado no usa los valores indicados por RFC 8078."
+  },
+  {
+    "code": "CDS_INCORRECT_DELETE_VALUES",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El registro CDS de borrado no usa los valores indicados por RFC 8078."
+  },
+  {
+    "code": "CDNSKEY_SIGNER_INVALID",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El CDNSKEY no fue firmado por una clave presente en el DS y DNSKEY actuales."
+  },
+  {
+    "code": "CDS_SIGNER_INVALID",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Warning",
+    "dnsviz_group": "CDNSKEY",
+    "visual_status_relation": "does_not_override_visual_status",
+    "applies_to": ["zone"],
+    "notes": "El CDS no fue firmado por una clave presente en el DS y DNSKEY actuales."
+  },
+  {
+    "code": "CNAME_LOOP",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrset"],
+    "notes": "Se detectó un ciclo en la resolución por CNAME."
+  },
+  {
+    "code": "CNAME_WITH_OTHER_DATA",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "RRset",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["rrset"],
+    "notes": "Owner con CNAME y otros tipos coexistiendo."
+  },
+  {
+    "code": "NO_TRUST_ANCHOR_SIGNING",
+    "dnsviz_section": "Notices",
+    "dnsviz_level": "Error",
+    "dnsviz_group": "DNSSEC Crypto",
+    "visual_status_relation": "may_cause_bogus",
+    "applies_to": ["zone"],
+    "notes": "DNSViz no encontró firma alguna que ancle al trust anchor configurado."
+  }
+]

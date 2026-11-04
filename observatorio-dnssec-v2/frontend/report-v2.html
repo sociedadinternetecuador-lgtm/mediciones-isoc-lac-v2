@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Reporte estructurado DNSViz — Observatorio DNSSEC">
+  <title>Reporte DNSSEC v2 — Observatorio</title>
+  <link rel="icon" href="/img/ote-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style-v2.css">
+</head>
+<body class="report-v2">
+
+  <header class="site-header v2-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="/" class="header-brand">
+          <div class="header-logos">
+            <img src="/img/ote-favicon.svg" alt="OTE" style="height:32px;width:auto">
+          </div>
+          <span class="header-title" data-i18n="home.hero_title">Observatorio DNSSEC</span>
+        </a>
+        <nav class="header-nav">
+          <a href="/" data-i18n="nav.home">Inicio</a>
+          <a href="/about" data-i18n="nav.about">Acerca de</a>
+          <a href="mailto:observatorio@corpece.org.ec" data-i18n="nav.contact">Contacto</a>
+          <button class="btn-lang" data-lang-toggle>English</button>
+          <a href="/admin/login" class="btn-login-header" data-i18n="nav.admin">Administración</a>
+        </nav>
+        <button class="header-menu-toggle" id="menu-toggle" aria-label="Menú">☰</button>
+      </div>
+    </div>
+    <nav class="header-mobile-nav" id="mobile-nav">
+      <a href="/" data-i18n="nav.home">Inicio</a>
+      <a href="/about" data-i18n="nav.about">Acerca de</a>
+      <a href="mailto:observatorio@corpece.org.ec">Contacto</a>
+      <button data-lang-toggle>English</button>
+      <a href="/admin/login" data-i18n="nav.admin">Administración</a>
+    </nav>
+  </header>
+
+  <div class="report-status" id="report-status" hidden>
+    <div class="container status-line">
+      <div class="status-meta">
+        <strong class="status-domain" id="report-domain"></strong>
+        <span class="status-time" id="report-time"></span>
+        <span class="status-id" id="report-id"></span>
+      </div>
+      <div class="status-actions">
+        <span class="source-badge" data-i18n="report.source_notice">Fuente: DNSViz local</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="mobile-tabs" role="tablist" id="mobile-tabs" aria-label="Vistas del reporte">
+    <button class="mobile-tab active" data-tab="left" role="tab" aria-selected="true" data-i18n="report.tab_left">DNSViz original</button>
+    <button class="mobile-tab" data-tab="right" role="tab" aria-selected="false" data-i18n="report.tab_right">Vista estructurada</button>
+  </nav>
+
+  <main class="report-layout" id="report-layout">
+
+    <section class="panel panel-left active" data-panel="left" id="panel-left">
+      <header class="panel-header">
+        <h2 data-i18n="report.panel_left_title">DNSViz original (evidencia)</h2>
+        <p class="panel-caption" data-i18n="report.graph_evidence_caption">Grafo DNSViz original. Esta vista no es modificada por el Observatorio.</p>
+      </header>
+      <div class="panel-body panel-body-graph" id="panel-body-graph">
+        <a id="dnsviz-graph-link" href="#" target="_blank" rel="noopener noreferrer" title="Abrir en nueva pestaña a tamaño real">
+          <img id="dnsviz-graph-img" alt="Grafo DNSViz" src="" loading="lazy">
+        </a>
+        <div class="graph-fallback" id="graph-fallback" hidden>
+          <p>El PNG del grafo no se pudo generar para este análisis.</p>
+          <p>Evidencia DNSViz disponible como artefactos crudos abajo.</p>
+        </div>
+      </div>
+      <footer class="panel-footer">
+        <a id="open-graph-tab"   href="#" target="_blank" rel="noopener noreferrer">graph.html</a>
+        <a id="open-graph-png"   href="#" target="_blank" rel="noopener noreferrer">graph.png</a>
+        <a id="link-grok"        href="#" target="_blank" rel="noopener noreferrer">grok.json</a>
+        <a id="link-probe"       href="#" target="_blank" rel="noopener noreferrer">probe.json</a>
+        <a id="link-print"       href="#" target="_blank" rel="noopener noreferrer">print.txt</a>
+      </footer>
+    </section>
+
+    <section class="panel panel-right" data-panel="right" id="panel-right">
+      <header class="panel-header">
+        <h2 data-i18n="report.panel_right_title">Vista estructurada</h2>
+      </header>
+      <div class="panel-body" id="structured-view">
+
+        <section class="report-section" data-section="summary">
+          <h3 data-i18n="report.section_summary">Resumen DNSViz</h3>
+          <p class="section-intro" id="summary-intro"></p>
+          <div class="summary-grid" id="summary-grid"></div>
+        </section>
+
+        <section class="report-section" data-section="zones">
+          <h3 data-i18n="report.section_zones">Zonas analizadas</h3>
+          <p class="section-intro" id="zones-intro"></p>
+          <div class="zones-list" id="zones-list"></div>
+        </section>
+
+        <section class="report-section" data-section="notices">
+          <h3 data-i18n="report.section_notices">Notices</h3>
+          <p class="section-intro" id="notices-intro"></p>
+          <div class="notices-filter" role="tablist">
+            <button class="filter-btn active" data-filter="all">Todos <span class="filter-count" id="cnt-all">0</span></button>
+            <button class="filter-btn" data-filter="errors">Errores <span class="filter-count" id="cnt-errors">0</span></button>
+            <button class="filter-btn" data-filter="warnings">Advertencias <span class="filter-count" id="cnt-warnings">0</span></button>
+          </div>
+          <div class="notices-list" id="notices-list"></div>
+        </section>
+
+        <section class="report-section" data-section="rfc-map">
+          <h3 data-i18n="report.section_rfc_map">Mapeo DNSViz → RFC</h3>
+          <p class="section-intro" id="rfc-intro"></p>
+          <div class="table-wrap">
+            <table class="rfc-table">
+              <thead>
+                <tr>
+                  <th data-i18n="report.code">Código</th>
+                  <th data-i18n="report.rfc">RFC</th>
+                  <th data-i18n="report.level">Nivel</th>
+                  <th data-i18n="report.original_message">Mensaje DNSViz</th>
+                  <th data-i18n="report.human_explanation">Explicación</th>
+                </tr>
+              </thead>
+              <tbody id="rfc-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="report-section" data-section="glossary">
+          <h3 data-i18n="report.section_glossary">Glosario</h3>
+          <p class="section-intro" id="glossary-intro"></p>
+          <dl class="glossary-list" id="glossary-list"></dl>
+        </section>
+
+        <section class="report-section" data-section="traceability">
+          <h3 data-i18n="report.section_traceability">Trazabilidad</h3>
+          <p class="section-intro" id="trace-intro"></p>
+          <div class="trace-list" id="trace-list"></div>
+        </section>
+
+      </div>
+
+      <div class="report-actions" id="report-actions">
+        <a class="btn btn-secondary" href="/" data-i18n="report.new_analysis">Nuevo análisis</a>
+        <button class="btn btn-secondary" id="btn-export-json" data-i18n="report.export_json">Exportar JSON</button>
+        <button class="btn btn-secondary" id="btn-export-csv" data-i18n="report.export_csv">Exportar CSV</button>
+        <button class="btn btn-primary"   id="btn-export-pdf" data-i18n="report.export_pdf">Exportar PDF</button>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="report-loader" class="loader-wrap visible">
+    <div class="spinner"></div>
+    <p>Cargando reporte…</p>
+  </div>
+
+  <div id="report-error" class="alert alert-error hidden" style="max-width:640px;margin:1rem auto;text-align:left;"></div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-orgs">
+          <div class="footer-org">
+            <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="footer.developed_by">Desarrollado por</span>
+            <img src="/img/logo-isocec.png" alt="ISOC Ecuador" style="height:28px;width:auto;background:#fff;padding:2px 6px;border-radius:4px;opacity:.95">
+          </div>
+          <div class="footer-org">
+            <span style="font-size:.78rem;color:rgba(255,255,255,.5)" data-i18n="footer.supported_by">Con apoyo de</span>
+            <img src="/img/logo-corpece.png" alt="CORPECE" style="height:28px;width:auto;background:#fff;padding:2px 6px;border-radius:4px;opacity:.95">
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="/about" data-i18n="nav.about">Acerca de</a>
+          <a href="mailto:observatorio@corpece.org.ec">Contacto</a>
+          <a href="/admin/login" data-i18n="nav.admin">Administración</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-credit" data-i18n="footer.based_on">Basado en DNSViz open source</span>
+        <span class="footer-notice" data-i18n="footer.no_data_stored">Los datos analizados no son almacenados</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/report-v2.js"></script>
+</body>
+</html>

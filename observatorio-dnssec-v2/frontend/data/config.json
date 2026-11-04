@@ -1,0 +1,20 @@
+{
+  "api_base": "",
+  "default_lang": "es",
+  "app_version": "2.0.0",
+  "organizations": {
+    "developer": {
+      "name": "ISOC Ecuador",
+      "url": "https://isoc.org.ec",
+      "logo": null
+    },
+    "sponsor": {
+      "name": "CORPECE",
+      "url": "https://corpece.org.ec",
+      "logo": null
+    }
+  },
+  "contact": {
+    "email": "observatorio@corpece.org.ec"
+  }
+}

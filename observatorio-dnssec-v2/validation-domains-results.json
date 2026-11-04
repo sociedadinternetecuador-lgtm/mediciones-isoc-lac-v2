@@ -1,0 +1,590 @@
+[
+  {
+    "domain": "org",
+    "category": "generico",
+    "ok": true,
+    "dnssec_status": "SECURE",
+    "dns_service_health": "HEALTHY",
+    "errors_count": 0,
+    "warnings_count": 4,
+    "notices": [
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "org."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "com",
+    "category": "generico",
+    "ok": false,
+    "error": "JSONDecodeError",
+    "message": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "domain": "net",
+    "category": "generico",
+    "ok": false,
+    "error": "JSONDecodeError",
+    "message": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "domain": "isoc.org.ec",
+    "category": "Ecuador / segundo nivel",
+    "ok": true,
+    "dnssec_status": "SECURE",
+    "dns_service_health": "DEGRADED",
+    "errors_count": 7,
+    "warnings_count": 11,
+    "notices": [
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDS_INCONSISTENT_WITH_DS",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDS_INCONSISTENT_WITH_DS",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "ec.",
+      "org.ec."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "www.gob.pe",
+    "category": "Peru / territorial",
+    "ok": true,
+    "dnssec_status": "SECURE",
+    "dns_service_health": "DEGRADED",
+    "errors_count": 0,
+    "warnings_count": 15,
+    "notices": [
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "PMTU_EXCEEDED",
+        "zone": "pe",
+        "servers": [
+          "200.1.176.4",
+          "204.61.216.85"
+        ]
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "gob.pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "gob.pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "gob.pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "gob.pe",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "gob.pe",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "pe.",
+      "gob.pe.",
+      "www.gob.pe."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "whitehouse.gov",
+    "category": "USA",
+    "ok": false,
+    "error": "JSONDecodeError",
+    "message": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "domain": "registro.br",
+    "category": "Brasil",
+    "ok": false,
+    "error": "JSONDecodeError",
+    "message": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "domain": "internet.nl",
+    "category": "Holanda",
+    "ok": false,
+    "error": "JSONDecodeError",
+    "message": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "domain": "red.es",
+    "category": "Espana",
+    "ok": true,
+    "dnssec_status": "SECURE",
+    "dns_service_health": "DEGRADED",
+    "errors_count": 4,
+    "warnings_count": 5,
+    "notices": [
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "es",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "PMTU_EXCEEDED",
+        "zone": "es",
+        "servers": [
+          "204.61.217.1"
+        ]
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "es."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "nic.ad.jp",
+    "category": "Japon",
+    "ok": true,
+    "dnssec_status": "SECURE",
+    "dns_service_health": "HEALTHY",
+    "errors_count": 0,
+    "warnings_count": 4,
+    "notices": [
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "nic.ad.jp",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "nic.ad.jp",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "nic.ad.jp",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "nic.ad.jp",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "nic.ad.jp."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "broken-dnssec.org",
+    "category": "control DNSSEC roto",
+    "ok": true,
+    "dnssec_status": "UNKNOWN",
+    "dns_service_health": "HEALTHY",
+    "errors_count": 0,
+    "warnings_count": 5,
+    "notices": [
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "broken-dnssec.org",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "org.",
+      "broken-dnssec.org."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  },
+  {
+    "domain": "no-existe-prueba-dnssec-corpece-2026.org.ec",
+    "category": "control NXDOMAIN",
+    "ok": true,
+    "dnssec_status": "UNKNOWN",
+    "dns_service_health": "DEGRADED",
+    "errors_count": 8,
+    "warnings_count": 12,
+    "notices": [
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "ERROR",
+        "code": "NONZERO_NSEC3_ITERATION_COUNT",
+        "zone": "no-existe-prueba-dnssec-corpece-2026.org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDS_INCONSISTENT_WITH_DS",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "CDS_INCONSISTENT_WITH_DS",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      },
+      {
+        "type": "WARNING",
+        "code": "NONEMPTY_NSEC3_SALT",
+        "zone": "org.ec",
+        "servers": []
+      }
+    ],
+    "dnsviz_version": "0.11.1",
+    "grok_zones": [
+      "ec.",
+      "org.ec.",
+      "no-existe-prueba-dnssec-corpece-2026.org.ec."
+    ],
+    "fidelity_notes": [
+      "Local WSL has no global IPv6 connectivity; IPv6-only DNSViz.net notices can differ.",
+      "DNSViz visual notices use --ignore-rfc9276 to match dnsviz.net visual defaults; raw_grok keeps RFC 9276 findings.",
+      "DNSViz graph node_info was extracted locally; dnsviz.net can still differ by network perspective and UI options."
+    ]
+  }
+]

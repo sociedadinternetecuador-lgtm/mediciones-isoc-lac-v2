@@ -1,0 +1,471 @@
+/* ═══════════════════════════════════════════════════════════
+   report.js — Renderizado del reporte DNSSEC
+   ═══════════════════════════════════════════════════════════ */
+
+const Report = (() => {
+  let _capa1 = [];
+  let _capa2 = [];
+  let _capa3 = [];
+  let _data  = null;
+
+  async function init() {
+    await I18n.init();
+
+    document.getElementById('menu-toggle')
+      ?.addEventListener('click', () =>
+        document.getElementById('mobile-nav')?.classList.toggle('open'));
+
+    try {
+      const [r1, r2, r3] = await Promise.all([
+        fetch('/data/capa1-catalogo-dnsviz.json'),
+        fetch('/data/capa2-mapeo-normativo.json'),
+        fetch('/data/capa3-explicaciones.json'),
+      ]);
+      _capa1 = await r1.json();
+      _capa2 = await r2.json();
+      _capa3 = await r3.json();
+    } catch (e) {
+      console.warn('report: capas no cargadas', e);
+    }
+
+    const raw = sessionStorage.getItem('obs_report');
+    if (!raw) { location.href = '/'; return; }
+    try { _data = JSON.parse(raw); } catch { location.href = '/'; return; }
+
+    _render();
+
+    document.addEventListener('langchange', () => I18n.init().then(() => _render()));
+  }
+
+  // ── Toggle público (llamado desde onclick inline) ────────
+  function toggle(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const body = el.querySelector('.error-body');
+    const icon = el.querySelector('.error-toggle');
+    const isOpen = el.classList.toggle('open');
+    if (body) body.style.display = isOpen ? 'block' : 'none';
+    if (icon) icon.textContent = isOpen ? '▲' : '▼';
+  }
+
+  function _render() {
+    if (!_data) return;
+
+    document.getElementById('loader')?.classList.remove('visible');
+    document.getElementById('report-wrap')?.classList.remove('hidden');
+    document.title = `${_data.domain} — DNSSEC`;
+
+    // Dominio + status
+    const domEl = document.getElementById('res-domain');
+    if (domEl) domEl.textContent = _data.domain;
+
+    const statusEl = document.getElementById('res-status');
+    if (statusEl) {
+      statusEl.textContent = I18n.get(`status.${_data.dnssec_status}`) || _data.dnssec_status;
+      statusEl.className = `status-badge status-${_data.dnssec_status}`;
+    }
+
+    const dateEl = document.getElementById('res-date');
+    if (dateEl && _data.timestamp)
+      dateEl.textContent = new Date(_data.timestamp).toLocaleString();
+
+    // Métricas
+    const errors   = _reportIssues(false);
+    const warnings = _reportIssues(true);
+    const counts   = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+    errors.forEach(e => {
+      const sev = (_layer2(e).severity_ops || 'HIGH');
+      counts[sev] = (counts[sev] || 0) + 1;
+    });
+    document.getElementById('cnt-critical').textContent = counts.CRITICAL;
+    document.getElementById('cnt-high').textContent     = counts.HIGH;
+    document.getElementById('cnt-medium').textContent   = counts.MEDIUM;
+    document.getElementById('cnt-low').textContent      = counts.LOW;
+    document.getElementById('cnt-warnings').textContent = warnings.length;
+
+    _renderTrustChain(_data.trust_chain || []);
+    _renderNS(_data.nameservers || []);
+    _renderDnsvizVisual(_data.dnsviz_visual || null);
+    _renderIssues('error-list',    'no-errors',    'errors-subtitle',   errors,   false);
+    _renderIssues('warnings-list', 'no-warnings',  null,                warnings, true);
+    _renderReportMatrix([...errors, ...warnings]);
+  }
+
+  function _renderTrustChain(chain) {
+    const el = document.getElementById('trust-chain');
+    if (!el) return;
+    if (!chain.length) { el.innerHTML = '<span class="text-muted">—</span>'; return; }
+    el.innerHTML = chain.map((node, i) => {
+      const cls   = node.secure ? 'trust-ok' : 'trust-fail';
+      const arrow = i < chain.length - 1 ? '<span class="trust-arrow">›</span>' : '';
+      return `<span class="trust-node ${cls}">${_esc(node.name)}</span>${arrow}`;
+    }).join('');
+  }
+
+  function _renderNS(ns) {
+    const el = document.getElementById('ns-list');
+    if (!el) return;
+    el.innerHTML = ns.length
+      ? ns.map(n => `<span class="pill pill-outline text-mono">${_esc(n)}</span>`).join('')
+      : '<span class="text-muted">—</span>';
+  }
+
+  function _renderDnsvizVisual(visual) {
+    const card = document.getElementById('dnsviz-visual-card');
+    if (!card) return;
+    if (!visual || visual.source !== 'dnsviz graph node_info') {
+      card.classList.add('hidden');
+      return;
+    }
+
+    card.classList.remove('hidden');
+    const notices = visual.notices || {};
+    const summary = document.getElementById('dnsviz-visual-summary');
+    if (summary) {
+      const ipv6 = _data?.fidelity?.ipv6_available === false ? 'IPv6 local: no' : 'IPv6 local: si';
+      summary.textContent = `Modelo visual extraido de DNSViz graph - ${notices.errors_count || 0} errores, ${notices.warnings_count || 0} advertencias - ${ipv6}`;
+    }
+
+    const view = visual.default_view || visual;
+    _renderVisualGroups('dnsviz-rrsets', view.rrset_status || []);
+    _renderVisualGroups('dnsviz-dnskeys', view.dnskey_ds_nsec_status || []);
+    _renderVisualGroups('dnsviz-delegations', view.delegation_status || []);
+    _renderVisualNotices(visual);
+  }
+
+  function _renderVisualGroups(id, groups) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!groups.length) {
+      el.innerHTML = '<span class="text-muted">--</span>';
+      return;
+    }
+    el.innerHTML = groups.map(group => {
+      const status = group.status || 'UNKNOWN';
+      const cls = status === 'VALID' ? 'status-SECURE' : `status-${status}`;
+      const items = (group.items || []).map(item => {
+        const issueCount = (item.errors || []).length + (item.warnings || []).length;
+        const issueBadge = issueCount
+          ? `<span class="pill" style="font-size:.68rem;padding:.08rem .4rem;margin-left:.25rem">${issueCount}</span>`
+          : '';
+        return `<li style="margin:.18rem 0">${_esc(item.label)}${issueBadge}</li>`;
+      }).join('');
+      return `
+        <div style="margin-bottom:.65rem">
+          <span class="status-badge ${cls}" style="font-size:.72rem;padding:.2rem .55rem">${_esc(status)} (${group.count || 0})</span>
+          <ul style="margin:.35rem 0 0 1rem;padding:0;font-size:.78rem;line-height:1.35">${items}</ul>
+        </div>`;
+    }).join('');
+  }
+
+  function _renderVisualNotices(visual) {
+    const el = document.getElementById('dnsviz-notices');
+    if (!el) return;
+    const notices = visual.notices || {};
+    const errors = (notices.errors || []).map(x => ({ ...x, level: 'ERROR' }));
+    const warnings = (notices.warnings || []).map(x => ({ ...x, level: 'WARNING' }));
+    const rows = [...errors, ...warnings];
+    if (!rows.length) {
+      el.innerHTML = '<span class="text-muted">--</span>';
+      return;
+    }
+    el.innerHTML = rows.map(item => {
+      const sevClass = item.level === 'ERROR' ? 'sev-HIGH' : 'sev-LOW';
+      const servers = Array.isArray(item.servers) && item.servers.length
+        ? ` <span class="text-muted">(${_esc(item.servers.join(', '))})</span>`
+        : '';
+      return `
+        <div style="font-size:.8rem;line-height:1.4;margin:.35rem 0">
+          <span class="severity-badge ${sevClass}" style="font-size:.66rem;padding:.12rem .45rem">${_esc(item.level)}</span>
+          <span class="text-mono">${_esc(item.label)}</span>:
+          ${_esc(item.description || item.code)}${servers}
+        </div>`;
+    }).join('');
+  }
+
+  function _renderIssues(listId, noId, subId, items, isWarning) {
+    const listEl = document.getElementById(listId);
+    const noEl   = document.getElementById(noId);
+    const subEl  = subId ? document.getElementById(subId) : null;
+
+    if (!items.length) {
+      if (listEl) listEl.innerHTML = '';
+      noEl?.classList.remove('hidden');
+      if (subEl) subEl.textContent = '';
+      return;
+    }
+
+    noEl?.classList.add('hidden');
+    if (subEl) subEl.textContent = `${items.length} ${I18n.get('report.errors_title') || 'encontrados'}`;
+    if (listEl) listEl.innerHTML = items.map((item, i) => _errorRow(item, `${listId}-${i}`, isWarning)).join('');
+  }
+
+  function _errorRow(item, uid, isWarning) {
+    const code = item.code || '';
+    const c1   = _layer1(item)[0] || {};
+    const c2   = _layer2(item);
+    const c3   = _layer3(item);
+
+    const sev       = isWarning ? (c2.severity_ops || 'LOW') : (c2.severity_ops || 'HIGH');
+    const sevLabel  = I18n.get(`severity.${sev}`) || sev;
+    const resp      = c2.responsible || '';
+    const respLabel = resp ? (I18n.get(`responsible.${resp}`) || resp) : '';
+    const dnsvizLabel = item.dnsviz_label || item.label || '';
+    const titleBase = c3.plain_title || item.description || code;
+    const title = dnsvizLabel ? `${dnsvizLabel}: ${titleBase}` : titleBase;
+
+    // Cuerpo
+    let body = '';
+    body += `
+      <div class="error-section">
+        <div class="error-section-label">Texto tecnico DNSViz</div>
+        <div class="error-section-text">
+          ${dnsvizLabel ? `<div><strong>Elemento:</strong> <span class="text-mono">${_esc(dnsvizLabel)}</span></div>` : ''}
+          <div><strong>Codigo:</strong> <span class="text-mono">${_esc(code)}</span></div>
+          ${item.description ? `<div><strong>Detalle:</strong> ${_esc(item.description)}</div>` : ''}
+          ${item.servers?.length ? `<div><strong>Servidores:</strong> <span class="text-mono">${_esc(item.servers.join(', '))}</span></div>` : ''}
+          ${item.query_options?.length ? `<div><strong>Opciones:</strong> <span class="text-mono">${_esc(item.query_options.join(', '))}</span></div>` : ''}
+        </div>
+      </div>`;
+
+    if (c3.plain_description) body += `
+      <div class="error-section">
+        <div class="error-section-label">Interpretacion del Observatorio</div>
+        <div class="error-section-text">${_esc(c3.plain_description)}</div>
+      </div>`;
+
+    if (c3.impact) body += `
+      <div class="error-section">
+        <div class="error-section-label">${I18n.get('report.impact') || 'Impacto'}</div>
+        <div class="error-section-text">${_esc(c3.impact)}</div>
+      </div>`;
+
+    [['hosting', c3.action_hosting], ['registrar', c3.action_registrar],
+     ['registry', c3.action_registry], ['owner', c3.action_owner]
+    ].filter(([,t]) => t).forEach(([k, t]) => {
+      body += `
+        <div class="error-section">
+          <div class="error-section-label">${I18n.get(`report.action_${k}`) || k}</div>
+          <div class="error-section-text">${_esc(t)}</div>
+        </div>`;
+    });
+
+    // Meta
+    let meta = '';
+    const addMeta = (label, val) => {
+      if (val) meta += `<div class="error-meta-item"><span class="label">${label}</span><span class="value">${val}</span></div>`;
+    };
+    addMeta(I18n.get('report.responsible') || 'Responsable', respLabel ? `<span class="resp-tag resp-${resp}">${_esc(respLabel)}</span>` : '');
+    addMeta(I18n.get('report.complexity')  || 'Complejidad', c2.complexity ? _esc(I18n.get(`complexity.${c2.complexity}`) || c2.complexity) : '');
+    addMeta(I18n.get('report.time_estimate') || 'Tiempo',    c2.time_estimate ? _esc(c2.time_estimate) : '');
+    addMeta('NIST',      c2.nist      ? _esc(c2.nist)      : '');
+    addMeta('ISO 27001', c2.iso27001  ? _esc(c2.iso27001)  : '');
+    addMeta('DNSViz',    c1.class ? _esc(`${c1.class}${c1.category ? ' / ' + c1.category : ''}`) : '');
+    addMeta('RFC',       Array.isArray(c1.references) && c1.references.length ? _esc(c1.references.join(', ')) : '');
+    addMeta('Estado nodo DNSViz', item.dnsviz_node_status ? _esc(item.dnsviz_node_status) : '');
+    addMeta('Origen',    item.source_path ? _esc(item.source_path) : '');
+    if (meta) body += `<div class="error-meta">${meta}</div>`;
+
+    const count = item.count || 1;
+    const countBadge = count > 1
+      ? `<span class="pill" style="background:var(--color-bg-surface);border:.5px solid var(--color-border);font-size:.72rem;padding:.15rem .5rem">${count}×</span>`
+      : '';
+    const zoneBadge = item.zone && item.zone !== ((_data && _data.domain) || '')
+      ? `<span class="pill pill-outline" style="font-size:.7rem;font-family:var(--font-mono)">${_esc(item.zone)}</span>`
+      : '';
+
+    return `
+      <div class="error-row sev-${sev}" id="${uid}">
+        <div class="error-header" onclick="Report.toggle('${uid}')">
+          <span class="severity-badge sev-${sev}">${_esc(sevLabel)}</span>
+          <span class="error-title">${_esc(title)}</span>
+          ${respLabel ? `<span class="resp-tag resp-${resp}">${_esc(respLabel)}</span>` : ''}
+          ${countBadge}
+          ${zoneBadge}
+          <span class="error-code">${_esc(code)}</span>
+          <span class="error-toggle">▼</span>
+        </div>
+        <div class="error-body" style="display:none">${body}</div>
+      </div>`;
+  }
+
+  function newAnalysis() {
+    sessionStorage.removeItem('obs_report');
+    location.href = '/';
+  }
+
+  function exportPdf() {
+    window.print();
+  }
+
+  function exportJson() {
+    if (!_data) return;
+    const payload = {
+      export_metadata: {
+        format: 'observatorio-dnssec-analysis',
+        format_version: 2,
+        exported_at: new Date().toISOString(),
+        source: 'Observatorio DNSSEC',
+        layers_used: [
+          'capa1-catalogo-dnsviz',
+          'capa2-mapeo-normativo',
+          'capa3-explicaciones'
+        ]
+      },
+      analysis: _analysisWithMappings()
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const domain = String(_data.domain || 'dominio').replace(/[^a-z0-9.-]+/gi, '-');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    link.href = url;
+    link.download = `dnssec-${domain}-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function _analysisWithMappings() {
+    return {
+      ..._data,
+      errors: (_data.errors || []).map(_issueWithMapping),
+      warnings: (_data.warnings || []).map(_issueWithMapping),
+      report_rows: [..._reportIssues(false), ..._reportIssues(true)].map(_issueWithMapping),
+      dnsviz_visual: _visualWithMappings(_data.dnsviz_visual)
+    };
+  }
+
+  function _visualWithMappings(visual) {
+    if (!visual || !visual.notices) return visual;
+    return {
+      ...visual,
+      notices: {
+        ...visual.notices,
+        errors: (visual.notices.errors || []).map(_issueWithMapping),
+        warnings: (visual.notices.warnings || []).map(_issueWithMapping)
+      }
+    };
+  }
+
+  function _reportIssues(isWarning) {
+    const notices = _data?.dnsviz_visual?.notices;
+    const hasVisual = _data?.dnsviz_visual?.source === 'dnsviz graph node_info' && notices;
+    if (hasVisual) {
+      const rows = isWarning ? (notices.warnings || []) : (notices.errors || []);
+      return rows.map(row => _noticeToIssue(row, isWarning)).map(_issueWithMapping);
+    }
+    const fallback = isWarning ? (_data.warnings || []) : (_data.errors || []);
+    return fallback.map(row => ({ ...row, report_type: isWarning ? 'WARNING' : 'ERROR' })).map(_issueWithMapping);
+  }
+
+  function _noticeToIssue(row, isWarning) {
+    return {
+      ...row,
+      report_type: isWarning ? 'WARNING' : 'ERROR',
+      dnsviz_label: row.label || '',
+      dnsviz_node_key: row.node_key || '',
+      dnsviz_node_status: row.node_status || '',
+      count: row.count || 1,
+    };
+  }
+
+  function _renderReportMatrix(rows) {
+    const body = document.getElementById('report-matrix-body');
+    const summary = document.getElementById('report-matrix-summary');
+    const card = document.getElementById('report-matrix-card');
+    if (!body || !card) return;
+    if (!rows.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+    if (summary) {
+      const source = _data?.dnsviz_visual?.source === 'dnsviz graph node_info'
+        ? 'Fuente principal: DNSViz graph node_info'
+        : 'Fuente principal: dnsviz grok';
+      summary.textContent = `${rows.length} filas para exportacion PDF. ${source}.`;
+    }
+    body.innerHTML = rows.map(item => {
+      const c2 = _layer2(item);
+      const c3 = _layer3(item);
+      const sev = c2.severity_ops || (item.report_type === 'WARNING' ? 'LOW' : 'HIGH');
+      const resp = c2.responsible || '';
+      const respLabel = resp ? (I18n.get(`responsible.${resp}`) || resp) : '';
+      const action = _actionFor(c2, c3);
+      return `
+        <tr>
+          <td>${_esc(item.report_type || '')}</td>
+          <td class="text-mono">${_esc(item.dnsviz_label || item.label || item.zone || '')}</td>
+          <td class="text-mono">${_esc(item.code || '')}</td>
+          <td>${_esc(item.description || '')}${_esc(_serversText(item))}</td>
+          <td>${_esc(I18n.get(`severity.${sev}`) || sev)}</td>
+          <td>${_esc(respLabel || resp)}</td>
+          <td>${_esc(c3.impact || '')}</td>
+          <td>${_esc(action)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function _serversText(item) {
+    const parts = [];
+    if (Array.isArray(item.servers) && item.servers.length) parts.push(`Servidores: ${item.servers.join(', ')}`);
+    if (Array.isArray(item.query_options) && item.query_options.length) parts.push(`Opciones: ${item.query_options.join(', ')}`);
+    return parts.length ? ` ${parts.join(' | ')}` : '';
+  }
+
+  function _actionFor(c2, c3) {
+    const resp = c2.responsible;
+    if (resp && c3[`action_${resp}`]) return c3[`action_${resp}`];
+    return c3.action_hosting || c3.action_registrar || c3.action_registry || c3.action_owner || '';
+  }
+
+  function _issueWithMapping(item) {
+    return {
+      ...item,
+      mapping: item.mapping || {
+        capa1_catalogo_dnsviz: _layer1(item),
+        capa2_mapeo_normativo: _layer2(item),
+        capa3_explicaciones: _layer3(item),
+        missing_layers: _missingLayers(item)
+      }
+    };
+  }
+
+  function _layer1(item) {
+    const embedded = item?.mapping?.capa1_catalogo_dnsviz;
+    if (Array.isArray(embedded)) return embedded;
+    return _capa1.filter(x => x.code === item.code);
+  }
+
+  function _layer2(item) {
+    return item?.mapping?.capa2_mapeo_normativo
+      || _capa2.find(x => x.code === item.code)
+      || {};
+  }
+
+  function _layer3(item) {
+    return item?.mapping?.capa3_explicaciones
+      || _capa3.find(x => x.code === item.code)
+      || {};
+  }
+
+  function _missingLayers(item) {
+    const missing = [];
+    if (!_layer1(item).length) missing.push('capa1_catalogo_dnsviz');
+    if (!Object.keys(_layer2(item)).length) missing.push('capa2_mapeo_normativo');
+    if (!Object.keys(_layer3(item)).length) missing.push('capa3_explicaciones');
+    return missing;
+  }
+
+  function _esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+  return { newAnalysis, toggle, exportJson, exportPdf };
+})();

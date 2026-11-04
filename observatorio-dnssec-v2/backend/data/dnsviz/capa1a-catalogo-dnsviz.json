@@ -1,0 +1,3243 @@
+[
+  {
+    "class": "CDNSKEYDeleteMultipleRecords",
+    "code": "CDNSKEY_DELETE_MULTIPLE_RECORDS",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "A %(rdtype)s RRset used for DNSSEC deletion (algorithm 0) should only include a single record.",
+    "references": [
+      "RFC 8078, Sec. 4"
+    ],
+    "rfcs": [
+      "8078"
+    ],
+    "required_params": [],
+    "parent_class": "DNSSECDeleteMultipleRecords"
+  },
+  {
+    "class": "CDNSKEYInconsistentWithCDS",
+    "code": "CDNSKEY_INCONSISTENT_WITH_CDS",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "The contents of the CDNSKEY RRset are inconsistent with those of the CDS RRset.",
+    "references": [
+      "RFC 7344, Sec. 4"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "CDNSKEYCDSError"
+  },
+  {
+    "class": "CDNSKEYRecordIncorrectDeleteValues",
+    "code": "CDNSKEY_INCORRECT_DELETE_VALUES",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "The contents of a %(rdtype)s record used for DNSSEC deletion (algorithm 0) should be 0, 3, 0, AA==.",
+    "references": [
+      "RFC 8078, Sec. 4"
+    ],
+    "rfcs": [
+      "8078"
+    ],
+    "required_params": [],
+    "parent_class": "DNSSECDeleteRecordIncorrectValues"
+  },
+  {
+    "class": "CDNSKEYSignerInvalid",
+    "code": "CDNSKEY_SIGNER_INVALID",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "The %(rdtype)s RRset must be signed with a key that is represented in both the current DNSKEY and the current DS RRset.",
+    "references": [
+      "RFC 7344, Sec. 4.1"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "CDNSKEYCDSSignerInvalid"
+  },
+  {
+    "class": "CDSDeleteMultipleRecords",
+    "code": "CDS_DELETE_MULTIPLE_RECORDS",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "A %(rdtype)s RRset used for DNSSEC deletion (algorithm 0) should only include a single record.",
+    "references": [
+      "RFC 8078, Sec. 4"
+    ],
+    "rfcs": [
+      "8078"
+    ],
+    "required_params": [],
+    "parent_class": "DNSSECDeleteMultipleRecords"
+  },
+  {
+    "class": "CDSRecordIncorrectDeleteValues",
+    "code": "CDS_INCORRECT_DELETE_VALUES",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "The contents of a %(rdtype)s record used for DNSSEC deletion (algorithm 0) should be 0, 0, 0, 00.",
+    "references": [
+      "RFC 8078, Sec. 4"
+    ],
+    "rfcs": [
+      "8078"
+    ],
+    "required_params": [],
+    "parent_class": "DNSSECDeleteRecordIncorrectValues"
+  },
+  {
+    "class": "CDSSignerInvalid",
+    "code": "CDS_SIGNER_INVALID",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "The %(rdtype)s RRset must be signed with a key that is represented in both the current DNSKEY and the current DS RRset.",
+    "references": [
+      "RFC 7344, Sec. 4.1"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "CDNSKEYCDSSignerInvalid"
+  },
+  {
+    "class": "MultipleCDNSKEY",
+    "code": "MULTIPLE_CDNSKEY",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "Multiple variants of %(rdtype)s RRsets were found.",
+    "references": [
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "MultipleCDNSKEYCDS"
+  },
+  {
+    "class": "MultipleCDS",
+    "code": "MULTIPLE_CDS",
+    "abstract": false,
+    "category": "CDNSKEY",
+    "description_template": "Multiple variants of %(rdtype)s RRsets were found.",
+    "references": [
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "MultipleCDNSKEYCDS"
+  },
+  {
+    "class": "ErrorResolvingNSName",
+    "code": "ERROR_RESOLVING_NS_NAME",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "There was an error resolving the following NS name(s) to address(es): %(names_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "names"
+    ],
+    "parent_class": "NSNameError"
+  },
+  {
+    "class": "ExtraGlueIPv4",
+    "code": "EXTRA_GLUE_IPV4",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "A glue records exist for %(name)s, but there are no corresponding authoritative A records.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "ExtraGlueIPv6",
+    "code": "EXTRA_GLUE_IPV6",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "AAAA glue records exist for %(name)s, but there are no corresponding authoritative AAAA records.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "GlueMismatchError",
+    "code": "GLUE_MISMATCH",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The glue address(es) for %(name)s (%(glue_addresses_text)s) differed from its authoritative address(es) (%(auth_addresses_text)s).",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "name",
+      "glue_addresses",
+      "auth_addresses"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "GlueReferencesPrivateIP",
+    "code": "GLUE_PRIVATE_IP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "Glue for the following NS name(s) referenced IP address(es) in private IP address space: %(names_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "names"
+    ],
+    "parent_class": "PrivateAddressNS"
+  },
+  {
+    "class": "MissingGlueForNSName",
+    "code": "MISSING_GLUE_FOR_NS_NAME",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The following NS name(s) required glue, but no glue was returned in the referral: %(names_text)s",
+    "references": [
+      "RFC 1034, Sec. 4.2.1"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "names"
+    ],
+    "parent_class": "NSNameError"
+  },
+  {
+    "class": "MissingGlueIPv4",
+    "code": "MISSING_GLUE_IPV4",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "Authoritative A records exist for %(name)s, but there are no corresponding A glue records.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "MissingGlueIPv6",
+    "code": "MISSING_GLUE_IPV6",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "Authoritative AAAA records exist for %(name)s, but there are no corresponding AAAA glue records.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "MissingSEPForAlg",
+    "code": "MISSING_SEP_FOR_ALG",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The %(source)s RRset for the zone included algorithm %(algorithm)d (%(algorithm_text)s), but no %(source)s RR matched a DNSKEY with algorithm %(algorithm)d that signs the zone's DNSKEY RRset.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11"
+    ],
+    "rfcs": [
+      "4035",
+      "6840"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "MissingSEPForAlgCDNSKEY",
+    "code": "MISSING_SEP_FOR_ALG",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The %(source)s RRset for the zone included algorithm %(algorithm)d (%(algorithm_text)s), but no %(source)s RR matched a DNSKEY with algorithm %(algorithm)d that signs the zone's DNSKEY RRset.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11",
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "4035",
+      "7344",
+      "6840"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "MissingSEPForAlg"
+  },
+  {
+    "class": "NoAddressForNSName",
+    "code": "NO_ADDRESS_FOR_NS_NAME",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The following NS name(s) did not resolve to address(es): %(names_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "names"
+    ],
+    "parent_class": "NSNameError"
+  },
+  {
+    "class": "NoNSAddressesForIPv4",
+    "code": "NO_NS_ADDRESSES_FOR_IPV4",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No IPv%(version)d addresses were found for NS records in the %(reference)s zone.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "reference"
+    ],
+    "parent_class": "NoNSAddressesForIPVersion"
+  },
+  {
+    "class": "NoNSAddressesForIPv6",
+    "code": "NO_NS_ADDRESSES_FOR_IPV6",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No IPv%(version)d addresses were found for NS records in the %(reference)s zone.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "reference"
+    ],
+    "parent_class": "NoNSAddressesForIPVersion"
+  },
+  {
+    "class": "NoNSInParentNoData",
+    "code": "NO_NS_IN_PARENT_NODATA",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No delegation NS records were detected in the parent zone (%(parent)s).  This results in a NODATA response to a DS query (for DNSSEC), even if the parent servers are authoritative for the child.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "parent"
+    ],
+    "parent_class": "NoNSInParent"
+  },
+  {
+    "class": "NoNSInParentNXDOMAIN",
+    "code": "NO_NS_IN_PARENT_NXDOMAIN",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No delegation NS records were detected in the parent zone (%(parent)s).  This results in an NXDOMAIN response to a DS query (for DNSSEC), even if the parent servers are authoritative for the child.",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "parent"
+    ],
+    "parent_class": "NoNSInParent"
+  },
+  {
+    "class": "NoSEP",
+    "code": "NO_SEP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No valid RRSIGs made by a key corresponding to a %(source)s RR were found covering the DNSKEY RRset, resulting in no secure entry point (SEP) into the zone.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11"
+    ],
+    "rfcs": [
+      "4035",
+      "6840"
+    ],
+    "required_params": [],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "NoSEPCDNSKEY",
+    "code": "NO_SEP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "No valid RRSIGs made by a key corresponding to a %(source)s RR were found covering the DNSKEY RRset, resulting in no secure entry point (SEP) into the zone.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11",
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "4035",
+      "7344",
+      "6840"
+    ],
+    "required_params": [],
+    "parent_class": "NoSEP"
+  },
+  {
+    "class": "NSNameNotInChild",
+    "code": "NS_NAME_NOT_IN_CHILD",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The following NS name(s) were found in the delegation NS RRset (i.e., in the %(parent)s zone), but not in the authoritative NS RRset: %(names_text)s",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "names",
+      "parent"
+    ],
+    "parent_class": "NSNameError"
+  },
+  {
+    "class": "NSNameNotInParent",
+    "code": "NS_NAME_NOT_IN_PARENT",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The following NS name(s) were found in the authoritative NS RRset, but not in the delegation NS RRset (i.e., in the %(parent)s zone): %(names_text)s",
+    "references": [
+      "RFC 1034, Sec. 4.2.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "names",
+      "parent"
+    ],
+    "parent_class": "NSNameError"
+  },
+  {
+    "class": "NSNameResolvesToPrivateIP",
+    "code": "NS_NAME_PRIVATE_IP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The following NS name(s) resolved to IP address(es) in private IP address space: %(names_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "names"
+    ],
+    "parent_class": "PrivateAddressNS"
+  },
+  {
+    "class": "ServerInvalidResponseTCP",
+    "code": "SERVER_INVALID_RESPONSE_TCP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The server(s) responded over TCP with a malformed response or with an invalid RCODE.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "ServerInvalidResponseUDP",
+    "code": "SERVER_INVALID_RESPONSE_UDP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The server(s) responded over UDP with a malformed response or with an invalid RCODE.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "ServerNotAuthoritative",
+    "code": "SERVER_NOT_AUTHORITATIVE",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The server(s) did not respond authoritatively for the namespace.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "DelegationError"
+  },
+  {
+    "class": "ServerUnresponsiveTCP",
+    "code": "SERVER_UNRESPONSIVE_TCP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The server(s) were not responsive to queries over %(proto)s.",
+    "references": [
+      "RFC 1035, Sec. 4.2"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "ServerUnresponsive"
+  },
+  {
+    "class": "ServerUnresponsiveUDP",
+    "code": "SERVER_UNRESPONSIVE_UDP",
+    "abstract": false,
+    "category": "DELEGATION",
+    "description_template": "The server(s) were not responsive to queries over %(proto)s.",
+    "references": [
+      "RFC 1035, Sec. 4.2"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "ServerUnresponsive"
+  },
+  {
+    "class": "DNSKEYBadLengthECDSA256",
+    "code": "DNSKEY_BAD_LENGTH_ECDSA256",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is %(length)d bits, but an ECDSA public key using Curve %(curve)s (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 6605, Sec. 4"
+    ],
+    "rfcs": [
+      "6605"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSKEYBadLengthECDSA"
+  },
+  {
+    "class": "DNSKEYBadLengthECDSA384",
+    "code": "DNSKEY_BAD_LENGTH_ECDSA384",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is %(length)d bits, but an ECDSA public key using Curve %(curve)s (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 6605, Sec. 4"
+    ],
+    "rfcs": [
+      "6605"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSKEYBadLengthECDSA"
+  },
+  {
+    "class": "DNSKEYBadLengthEd25519",
+    "code": "DNSKEY_BAD_LENGTH_ED25519",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is %(length)d bits, but an %(curve)s public key (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 8080, Sec. 3"
+    ],
+    "rfcs": [
+      "8080"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSKEYBadLengthEdDSA"
+  },
+  {
+    "class": "DNSKEYBadLengthEd448",
+    "code": "DNSKEY_BAD_LENGTH_ED448",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is %(length)d bits, but an %(curve)s public key (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 8080, Sec. 3"
+    ],
+    "rfcs": [
+      "8080"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSKEYBadLengthEdDSA"
+  },
+  {
+    "class": "DNSKEYBadLengthGOST",
+    "code": "DNSKEY_BAD_LENGTH_GOST",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is %(length)d bits, but a GOST public key (DNSSEC algorithm 12) must be 512 bits long.",
+    "references": [
+      "RFC 5933, Sec. 5.1"
+    ],
+    "rfcs": [
+      "5933"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSKEYBadLength"
+  },
+  {
+    "class": "DNSKEYMissingFromServers",
+    "code": "DNSKEY_MISSING_FROM_SERVERS",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The DNSKEY RR was not found in the DNSKEY RRset returned by one or more servers.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [],
+    "parent_class": "DNSKEYError"
+  },
+  {
+    "class": "DNSKEYNotAtZoneApex",
+    "code": "DNSKEY_NOT_AT_ZONE_APEX",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The owner name of the DNSKEY RRset (%(name)s) does not match the zone apex (%(zone)s).",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "zone",
+      "name"
+    ],
+    "parent_class": "DNSKEYError"
+  },
+  {
+    "class": "DNSKEYZeroLength",
+    "code": "DNSKEY_ZERO_LENGTH",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The length of the key is 0 bits.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [],
+    "parent_class": "DNSKEYBadLength"
+  },
+  {
+    "class": "RevokedNotSigning",
+    "code": "REVOKED_NOT_SIGNING",
+    "abstract": false,
+    "category": "DNSKEY",
+    "description_template": "The key was revoked but was not found signing the RRset.",
+    "references": [
+      "RFC 5011, Sec. 2.1"
+    ],
+    "rfcs": [
+      "5011"
+    ],
+    "required_params": [],
+    "parent_class": "DNSKEYError"
+  },
+  {
+    "class": "DNSSECDowngradeDOBitCleared",
+    "code": "DNSSEC_DOWNGRADE_DO_CLEARED",
+    "abstract": false,
+    "category": "DNSSEC",
+    "description_template": "DNSSEC was effectively downgraded because %(response_error_description)s with %(precondition)s.",
+    "references": [
+      "RFC 4035, Sec. 3.2.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "response_error"
+    ],
+    "parent_class": "DNSSECDowngrade"
+  },
+  {
+    "class": "DNSSECDowngradeEDNSDisabled",
+    "code": "DNSSEC_DOWNGRADE_EDNS_DISABLED",
+    "abstract": false,
+    "category": "DNSSEC",
+    "description_template": "DNSSEC was effectively downgraded because %(response_error_description)s with %(precondition)s.",
+    "references": [
+      "RFC 6891, Sec. 7",
+      "RFC 2671, Sec. 5.3"
+    ],
+    "rfcs": [
+      "6891",
+      "2671"
+    ],
+    "required_params": [
+      "response_error"
+    ],
+    "parent_class": "DNSSECDowngrade"
+  },
+  {
+    "class": "CDNSKEYInconsistentWithDS",
+    "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "The contents of the DS RRset are inconsistent with those of the %(rdtype)s RRset.",
+    "references": [
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "DSConsistencyError"
+  },
+  {
+    "class": "CDSInconsistentWithDS",
+    "code": "CDS_INCONSISTENT_WITH_DS",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "The contents of the DS RRset are inconsistent with those of the %(rdtype)s RRset.",
+    "references": [
+      "RFC 7344, Sec. 3",
+      "RFC 7344, Sec. 5"
+    ],
+    "rfcs": [
+      "7344"
+    ],
+    "required_params": [],
+    "parent_class": "DSConsistencyError"
+  },
+  {
+    "class": "DigestAlgorithmNotRecommended",
+    "code": "DIGEST_ALGORITHM_NOT_RECOMMENDED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "DNSSEC implementers are recommended against implementing signing with DS algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.2"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DigestAlgorithmNotSupported",
+    "code": "DIGEST_ALGORITHM_NOT_SUPPORTED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "Generating cryptographic hashes using algorithm %(algorithm)d (%(algorithm_text)s) is not supported by this code, so the cryptographic status of the DS RR is unknown.",
+    "references": [
+      "RFC 4035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DigestAlgorithmProhibited",
+    "code": "DIGEST_ALGORITHM_PROHIBITED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "DNSSEC implementers are prohibited from implementing signing with DS algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.2"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DigestAlgorithmValidationProhibited",
+    "code": "DIGEST_ALGORITHM_VALIDATION_PROHIBITED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "DNSSEC implementers are prohibited from implementing validation of DS algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.2"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DigestInvalid",
+    "code": "DIGEST_INVALID",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "The cryptographic hash in the Digest field of the DS RR does not match the computed value.",
+    "references": [
+      "RFC 4035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DNSKEYRevokedDS",
+    "code": "DNSKEY_REVOKED_DS",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "The DNSKEY RR corresponding to the DS RR has the REVOKE bit set.  A revoked key cannot be used with DS records.",
+    "references": [
+      "RFC 5011, Sec. 2.1"
+    ],
+    "rfcs": [
+      "5011"
+    ],
+    "required_params": [],
+    "parent_class": "DSDigestError"
+  },
+  {
+    "class": "DSDigestAlgorithmIgnored",
+    "code": "DS_DIGEST_ALGORITHM_IGNORED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "DS records with digest type %(algorithm)d (%(algorithm_text)s) are ignored when DS records with digest type %(new_algorithm)d (%(new_algorithm_text)s) exist in the same RRset.",
+    "references": [
+      "RFC 4509, Sec. 3"
+    ],
+    "rfcs": [
+      "4509"
+    ],
+    "required_params": [
+      "algorithm",
+      "new_algorithm"
+    ],
+    "parent_class": "DSError"
+  },
+  {
+    "class": "DSDigestAlgorithmMaybeIgnored",
+    "code": "DS_DIGEST_ALGORITHM_MAYBE_IGNORED",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "In the spirit of RFC 4509, DS records with digest type %(algorithm)d (%(algorithm_text)s) might be ignored when DS records with digest type %(new_algorithm)d (%(new_algorithm_text)s) exist in the same RRset.",
+    "references": [
+      "RFC 4509, Sec. 3"
+    ],
+    "rfcs": [
+      "4509"
+    ],
+    "required_params": [
+      "algorithm",
+      "new_algorithm"
+    ],
+    "parent_class": "DSError"
+  },
+  {
+    "class": "ReferralForDSQuery",
+    "code": "REFERRAL_FOR_DS_QUERY",
+    "abstract": false,
+    "category": "DS",
+    "description_template": "The server(s) for the parent zone (%(parent)s) responded with a referral instead of answering authoritatively for the DS RR type.",
+    "references": [
+      "RFC 4034, Sec. 5"
+    ],
+    "rfcs": [
+      "4034"
+    ],
+    "required_params": [
+      "parent"
+    ],
+    "parent_class": "DSError"
+  },
+  {
+    "class": "EDNSIgnored",
+    "code": "EDNS_IGNORED",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server responded with no OPT record, rather than with RCODE FORMERR.",
+    "references": [
+      "RFC 6891, Sec. 7"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "EDNSSupportNoOpt",
+    "code": "EDNS_SUPPORT_NO_OPT",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server appeared to understand EDNS by including RRSIG records, but its response included no OPT record.",
+    "references": [
+      "RFC 6891, Sec. 7"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "EDNSUndefinedFlagsSet",
+    "code": "EDNS_UNDEFINED_FLAGS_SET",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server set EDNS flags that are undefined: %(flags_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.4"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "flags"
+    ],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "EDNSVersionMismatch",
+    "code": "EDNS_VERSION_MISMATCH",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server responded with EDNS version %(response_version)d when a request with EDNS version %(request_version)d was sent, instead of responding with RCODE BADVERS.",
+    "references": [
+      "RFC 6891, Sec. 6.1.3"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "request_version",
+      "response_version"
+    ],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "GratuitousOPT",
+    "code": "GRATUITOUS_OPT",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server responded with an OPT record, even though none was sent in the request.",
+    "references": [
+      "RFC 6891, Sec. 6.1.1"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "ImplementedEDNSVersionNotProvided",
+    "code": "IMPLEMENTED_EDNS_VERSION_NOT_PROVIDED",
+    "abstract": false,
+    "category": "EDNS",
+    "description_template": "The server responded with BADVERS to EDNS version %(request_version)d but responded with version %(response_version)d instead of providing the highest EDNS version it implements.",
+    "references": [
+      "RFC 6891, Sec. 6.1.3"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "request_version",
+      "response_version"
+    ],
+    "parent_class": "EDNSError"
+  },
+  {
+    "class": "ExistingCovered",
+    "code": "EXISTING_NAME_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the %(nsec_type)s records indicate that the queried names don't exist: %(queries_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingNSECError"
+  },
+  {
+    "class": "ExistingCoveredNSEC",
+    "code": "EXISTING_NAME_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the %(nsec_type)s records indicate that the queried names don't exist: %(queries_text)s",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingCovered"
+  },
+  {
+    "class": "ExistingCoveredNSEC3",
+    "code": "EXISTING_NAME_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the %(nsec_type)s records indicate that the queried names don't exist: %(queries_text)s",
+    "references": [
+      "RFC 5155, Sec. 8.4"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingCovered"
+  },
+  {
+    "class": "ExistingTypeNotInBitmap",
+    "code": "EXISTING_TYPE_NOT_IN_BITMAP",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the bitmap in the %(nsec_type)s RR indicates that the queried records don't exist: %(queries_text)s",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingNSECError"
+  },
+  {
+    "class": "ExistingTypeNotInBitmapNSEC",
+    "code": "EXISTING_TYPE_NOT_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the bitmap in the %(nsec_type)s RR indicates that the queried records don't exist: %(queries_text)s",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingTypeNotInBitmap"
+  },
+  {
+    "class": "ExistingTypeNotInBitmapNSEC3",
+    "code": "EXISTING_TYPE_NOT_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The following queries resulted in an answer response, even though the bitmap in the %(nsec_type)s RR indicates that the queried records don't exist: %(queries_text)s",
+    "references": [
+      "RFC 5155, Sec. 8.5"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "queries"
+    ],
+    "parent_class": "ExistingTypeNotInBitmap"
+  },
+  {
+    "class": "InvalidNSEC3Hash",
+    "code": "INVALID_NSEC3_HASH",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The NSEC3 record for %(name)s is invalid; the value of the Next Hashed Owner Name field (%(nsec3_hash)s) does not appear to be a valid hash.",
+    "references": [
+      "RFC 5155, Sec. 3.1.7"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "name",
+      "nsec3_hash"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "InvalidNSEC3OwnerName",
+    "code": "INVALID_NSEC3_OWNER_NAME",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s owner name (%(name)s) is invalid; it does not appear to be the Base32 Hex encoding of a hashed owner name.",
+    "references": [
+      "RFC 5155, Sec. 3"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "LastNSECNextNotZone",
+    "code": "LAST_NSEC_NEXT_NOT_ZONE",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The value of the Next Domain Name field in the %(nsec_type)s RR with owner name %(nsec_owner)s indicates that it is the last %(nsec_type)s RR in the zone, but the value (%(next_name)s) did not match the name of the zone apex (%(zone_name)s).",
+    "references": [
+      "RFC 4034, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "4034"
+    ],
+    "required_params": [
+      "nsec_owner",
+      "next_name",
+      "zone_name"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NextClosestEncloserNotCovered",
+    "code": "NEXT_CLOSEST_ENCLOSER_NOT_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the next closest encloser (%(next_closest_encloser)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NextClosestEncloserNotCoveredNODATADS",
+    "code": "NEXT_CLOSEST_ENCLOSER_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the next closest encloser (%(next_closest_encloser)s).",
+    "references": [
+      "RFC 5155, Sec. 8.6"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NextClosestEncloserNotCovered"
+  },
+  {
+    "class": "NextClosestEncloserNotCoveredNameError",
+    "code": "NEXT_CLOSEST_ENCLOSER_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the next closest encloser (%(next_closest_encloser)s).",
+    "references": [
+      "RFC 5155, Sec. 8.4"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NextClosestEncloserNotCovered"
+  },
+  {
+    "class": "NextClosestEncloserNotCoveredWildcardAnswer",
+    "code": "NEXT_CLOSEST_ENCLOSER_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the next closest encloser (%(next_closest_encloser)s).",
+    "references": [
+      "RFC 5155, Sec. 8.8"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NextClosestEncloserNotCovered"
+  },
+  {
+    "class": "NextClosestEncloserNotCoveredWildcardNODATA",
+    "code": "NEXT_CLOSEST_ENCLOSER_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the next closest encloser (%(next_closest_encloser)s).",
+    "references": [
+      "RFC 5155, Sec. 8.7"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NextClosestEncloserNotCovered"
+  },
+  {
+    "class": "NonEmptyNSEC3Salt",
+    "code": "NONEMPTY_NSEC3_SALT",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The salt value for an %(nsec_type)s record should be empty.",
+    "references": [
+      "RFC 9276, Sec. 3.1"
+    ],
+    "rfcs": [
+      "9276"
+    ],
+    "required_params": [],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NonZeroNSEC3IterationCount",
+    "code": "NONZERO_NSEC3_ITERATION_COUNT",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "An iterations count of 0 must be used in %(nsec_type)s records to alleviate computational burdens.",
+    "references": [
+      "RFC 9276, Sec. 3.1"
+    ],
+    "rfcs": [
+      "9276"
+    ],
+    "required_params": [],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NoClosestEncloser",
+    "code": "NO_CLOSEST_ENCLOSER",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR corresponds to the closest encloser of the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NoClosestEncloserNODATADS",
+    "code": "NO_CLOSEST_ENCLOSER",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR corresponds to the closest encloser of the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.6"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoClosestEncloser"
+  },
+  {
+    "class": "NoClosestEncloserNameError",
+    "code": "NO_CLOSEST_ENCLOSER",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR corresponds to the closest encloser of the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.4"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoClosestEncloser"
+  },
+  {
+    "class": "NoClosestEncloserWildcardAnswer",
+    "code": "NO_CLOSEST_ENCLOSER",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR corresponds to the closest encloser of the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.8"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoClosestEncloser"
+  },
+  {
+    "class": "NoClosestEncloserWildcardNODATA",
+    "code": "NO_CLOSEST_ENCLOSER",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR corresponds to the closest encloser of the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.7"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoClosestEncloser"
+  },
+  {
+    "class": "NoNSEC3MatchingSname",
+    "code": "NO_NSEC3_MATCHING_SNAME",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NoNSEC3MatchingSnameDSNODATA",
+    "code": "NO_NSEC3_MATCHING_SNAME",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.6"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoNSEC3MatchingSname"
+  },
+  {
+    "class": "NoNSEC3MatchingSnameNODATA",
+    "code": "NO_NSEC3_MATCHING_SNAME",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.5"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoNSEC3MatchingSname"
+  },
+  {
+    "class": "NoNSECMatchingSname",
+    "code": "NO_NSEC_MATCHING_SNAME",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "NoNSECMatchingSnameNODATA",
+    "code": "NO_NSEC_MATCHING_SNAME",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoNSECMatchingSname"
+  },
+  {
+    "class": "NoNSECMatchingSnameWildcardNODATA",
+    "code": "NO_NSEC_MATCHING_SNAME",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR matches the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.4"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NoNSECMatchingSname"
+  },
+  {
+    "class": "OptOutFlagNotSet",
+    "code": "OPT_OUT_FLAG_NOT_SET",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The opt-out flag was not set in the %(nsec_type)s RR covering the next closest encloser (%(next_closest_encloser)s) but was required for the NODATA response.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "OptOutFlagNotSetNODATA",
+    "code": "OPT_OUT_FLAG_NOT_SET",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The opt-out flag was not set in the %(nsec_type)s RR covering the next closest encloser (%(next_closest_encloser)s) but was required for the NODATA response.",
+    "references": [
+      "RFC 5155, Sec. 8.5",
+      "RFC Errata 3441"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "OptOutFlagNotSet"
+  },
+  {
+    "class": "OptOutFlagNotSetNODATADS",
+    "code": "OPT_OUT_FLAG_NOT_SET",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The opt-out flag was not set in the %(nsec_type)s RR covering the next closest encloser (%(next_closest_encloser)s) but was required for the NODATA response.",
+    "references": [
+      "RFC 5155, Sec. 8.6"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "next_closest_encloser"
+    ],
+    "parent_class": "OptOutFlagNotSet"
+  },
+  {
+    "class": "ReferralWithoutNSBit",
+    "code": "REFERRAL_WITHOUT_NS",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The NS bit was not set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "ReferralWithoutNSBitNSEC",
+    "code": "REFERRAL_WITHOUT_NS",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The NS bit was not set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 6840, Sec. 4.4"
+    ],
+    "rfcs": [
+      "6840"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithoutNSBit"
+  },
+  {
+    "class": "ReferralWithoutNSBitNSEC3",
+    "code": "REFERRAL_WITHOUT_NS",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The NS bit was not set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.9"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithoutNSBit"
+  },
+  {
+    "class": "ReferralWithDSBit",
+    "code": "REFERRAL_WITH_DS",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The DS bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "ReferralWithDSBitNSEC",
+    "code": "REFERRAL_WITH_DS",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The DS bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 4034, Sec. 5.2"
+    ],
+    "rfcs": [
+      "4034"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithDSBit"
+  },
+  {
+    "class": "ReferralWithDSBitNSEC3",
+    "code": "REFERRAL_WITH_DS",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The DS bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.9"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithDSBit"
+  },
+  {
+    "class": "ReferralWithSOABit",
+    "code": "REFERRAL_WITH_SOA",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The SOA bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "ReferralWithSOABitNSEC",
+    "code": "REFERRAL_WITH_SOA",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The SOA bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 4034, Sec. 5.2"
+    ],
+    "rfcs": [
+      "4034"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithSOABit"
+  },
+  {
+    "class": "ReferralWithSOABitNSEC3",
+    "code": "REFERRAL_WITH_SOA",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The SOA bit was set in the bitmap of the %(nsec_type)s RR corresponding to the delegated name (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.9"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "ReferralWithSOABit"
+  },
+  {
+    "class": "SnameCoveredNODATANSEC",
+    "code": "SNAME_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the SNAME (%(sname)s), indicating that it doesn't exist.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "SnameNotCovered",
+    "code": "SNAME_NOT_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "SnameNotCoveredNameError",
+    "code": "SNAME_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "SnameNotCovered"
+  },
+  {
+    "class": "SnameNotCoveredWildcardAnswer",
+    "code": "SNAME_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.3"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "sname"
+    ],
+    "parent_class": "SnameNotCovered"
+  },
+  {
+    "class": "StypeInBitmap",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "StypeInBitmapNODATA",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmap"
+  },
+  {
+    "class": "StypeInBitmapNODATADSNSEC3",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.6"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmapNODATANSEC3"
+  },
+  {
+    "class": "StypeInBitmapNODATANSEC",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmapNODATA"
+  },
+  {
+    "class": "StypeInBitmapNODATANSEC3",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.5"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmapNODATA"
+  },
+  {
+    "class": "StypeInBitmapWildcardNODATA",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmap"
+  },
+  {
+    "class": "StypeInBitmapWildcardNODATANSEC",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.4"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmapWildcardNODATA"
+  },
+  {
+    "class": "StypeInBitmapWildcardNODATANSEC3",
+    "code": "STYPE_IN_BITMAP",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(stype)s bit was set in the bitmap of the %(nsec_type)s RR corresponding to the SNAME (%(sname)s).",
+    "references": [
+      "RFC 5155, Sec. 8.7"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "stype",
+      "sname"
+    ],
+    "parent_class": "StypeInBitmapWildcardNODATA"
+  },
+  {
+    "class": "UnsupportedNSEC3Algorithm",
+    "code": "UNSUPPORTED_NSEC3_ALGORITHM",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "Generating %(nsec_type)s hashes using algorithm %(algorithm)d is not supported by this code.",
+    "references": [
+      "RFC 5155, Sec. 8.1"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "WildcardCovered",
+    "code": "WILDCARD_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "WildcardCoveredAnswer",
+    "code": "WILDCARD_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCovered"
+  },
+  {
+    "class": "WildcardCoveredAnswerNSEC",
+    "code": "WILDCARD_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.3"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCoveredAnswer"
+  },
+  {
+    "class": "WildcardCoveredAnswerNSEC3",
+    "code": "WILDCARD_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [
+      "RFC 5155, Sec. 8.8"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCoveredAnswer"
+  },
+  {
+    "class": "WildcardCoveredNODATA",
+    "code": "WILDCARD_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCovered"
+  },
+  {
+    "class": "WildcardCoveredNODATANSEC",
+    "code": "WILDCARD_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.4"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCoveredNODATA"
+  },
+  {
+    "class": "WildcardCoveredNODATANSEC3",
+    "code": "WILDCARD_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The %(nsec_type)s RR covers the wildcard itself (%(wildcard)s), indicating that it doesn't exist.",
+    "references": [
+      "RFC 5155, Sec. 8.7"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardCoveredNODATA"
+  },
+  {
+    "class": "WildcardExpansionInvalid",
+    "code": "WILDCARD_EXPANSION_INVALID",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "The wildcard expansion of %(wildcard)s to %(sname)s is invalid, as the %(nsec_type)s RR indicates that the next closest encloser (%(next_closest_encloser)s) exists.",
+    "references": [
+      "RFC 1034, Sec. 4.4"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "sname",
+      "wildcard",
+      "next_closest_encloser"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "WildcardNotCovered",
+    "code": "WILDCARD_NOT_COVERED",
+    "abstract": true,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the wildcard (%(wildcard)s).",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "NSECError"
+  },
+  {
+    "class": "WildcardNotCoveredNSEC",
+    "code": "WILDCARD_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the wildcard (%(wildcard)s).",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardNotCovered"
+  },
+  {
+    "class": "WildcardNotCoveredNSEC3",
+    "code": "WILDCARD_NOT_COVERED",
+    "abstract": false,
+    "category": "NSEC",
+    "description_template": "No %(nsec_type)s RR covers the wildcard (%(wildcard)s).",
+    "references": [
+      "RFC 5155, Sec. 8.4"
+    ],
+    "rfcs": [
+      "5155"
+    ],
+    "required_params": [
+      "wildcard"
+    ],
+    "parent_class": "WildcardNotCovered"
+  },
+  {
+    "class": "DNAMENoCNAME",
+    "code": "DNAME_NO_CNAME",
+    "abstract": false,
+    "category": "OTHER",
+    "description_template": "No synthesized CNAME RR was found accompanying the DNAME record.",
+    "references": [
+      "RFC 6672, Sec. 3.1"
+    ],
+    "rfcs": [
+      "6672"
+    ],
+    "required_params": [],
+    "parent_class": "DNAMEError"
+  },
+  {
+    "class": "DNAMETargetMismatch",
+    "code": "DNAME_TARGET_MISMATCH",
+    "abstract": false,
+    "category": "OTHER",
+    "description_template": "The included CNAME RR is not a valid synthesis of the DNAME record (%(included_target)s != %(synthesized_target)s).",
+    "references": [
+      "RFC 6672, Sec. 2.2"
+    ],
+    "rfcs": [
+      "6672"
+    ],
+    "required_params": [
+      "included_target",
+      "synthesized_target"
+    ],
+    "parent_class": "DNAMEError"
+  },
+  {
+    "class": "DNAMETTLMismatch",
+    "code": "DNAME_TTL_MISMATCH",
+    "abstract": false,
+    "category": "OTHER",
+    "description_template": "The TTL of the synthesized CNAME RR (%(cname_ttl)d) does not match the TTL of the DNAME record (%(dname_ttl)d).",
+    "references": [
+      "RFC 6672, Sec. 3.1"
+    ],
+    "rfcs": [
+      "6672"
+    ],
+    "required_params": [
+      "cname_ttl",
+      "dname_ttl"
+    ],
+    "parent_class": "DNAMEError"
+  },
+  {
+    "class": "DNAMETTLZero",
+    "code": "DNAME_TTL_ZERO",
+    "abstract": false,
+    "category": "OTHER",
+    "description_template": "The TTL of the synthesized CNAME RR is 0.",
+    "references": [
+      "RFC 6672, Sec. 3.1"
+    ],
+    "rfcs": [
+      "6672"
+    ],
+    "required_params": [],
+    "parent_class": "DNAMEError"
+  },
+  {
+    "class": "AuthoritativeReferral",
+    "code": "AUTHORITATIVE_REFERRAL",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The Authoritative Answer (AA) flag was set in the referral response.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "CasePreservationError",
+    "code": "CASE_NOT_PRESERVED",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The case of the query name (%(qname)s) was not preserved in the Question section of the response.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "qname"
+    ],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "ClientCookieMismatch",
+    "code": "CLIENT_COOKIE_MISMATCH",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The client cookie returned by the server did not match what was sent.",
+    "references": [
+      "RFC 7873, Sec. 5.3"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "CookieInvalidLength",
+    "code": "COOKIE_INVALID_LENGTH",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The cookie returned by the server had an invalid length of %(length)d bytes.",
+    "references": [
+      "RFC 7873, Sec. 5.3"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "ResponseErrorWithoutEDNSFlag",
+    "code": "ERROR_WITHOUT_EDNS_FLAG",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.4"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "flag"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithoutEDNSOption",
+    "code": "ERROR_WITHOUT_EDNS_OPTION",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.2"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "option"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithoutRequestFlag",
+    "code": "ERROR_WITHOUT_REQUEST_FLAG",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "flag"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithEDNS",
+    "code": "ERROR_WITH_EDNS",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.2.6"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithEDNSFlag",
+    "code": "ERROR_WITH_EDNS_FLAG",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.4"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "flag"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithEDNSOption",
+    "code": "ERROR_WITH_EDNS_OPTION",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.2"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "option"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithEDNSVersion",
+    "code": "ERROR_WITH_EDNS_VERSION",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 6891, Sec. 6.1.3"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "edns_old",
+      "edns_new"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ResponseErrorWithRequestFlag",
+    "code": "ERROR_WITH_REQUEST_FLAG",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(response_error_description)s until %(change)s%(query_specific_text)s.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [
+      "response_error",
+      "query_specific",
+      "flag"
+    ],
+    "parent_class": "ResponseErrorWithCondition"
+  },
+  {
+    "class": "ForeignClassDataAdditional",
+    "code": "FOREIGN_CLASS_DATA_ADDITIONAL",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "Data of class %(cls)s was found in the %(section)s section of the response.",
+    "references": [
+      "RFC 1034, Sec. 6.1",
+      "RFC 1035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "1034",
+      "1035"
+    ],
+    "required_params": [
+      "cls"
+    ],
+    "parent_class": "ForeignClassData"
+  },
+  {
+    "class": "ForeignClassDataAnswer",
+    "code": "FOREIGN_CLASS_DATA_ANSWER",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "Data of class %(cls)s was found in the %(section)s section of the response.",
+    "references": [
+      "RFC 1034, Sec. 6.1",
+      "RFC 1035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "1034",
+      "1035"
+    ],
+    "required_params": [
+      "cls"
+    ],
+    "parent_class": "ForeignClassData"
+  },
+  {
+    "class": "ForeignClassDataAuthority",
+    "code": "FOREIGN_CLASS_DATA_AUTHORITY",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "Data of class %(cls)s was found in the %(section)s section of the response.",
+    "references": [
+      "RFC 1034, Sec. 6.1",
+      "RFC 1035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "1034",
+      "1035"
+    ],
+    "required_params": [
+      "cls"
+    ],
+    "parent_class": "ForeignClassData"
+  },
+  {
+    "class": "FormError",
+    "code": "FORMERR",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The response (%(msg_size)d bytes) was malformed.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "tcp",
+      "msg_size"
+    ],
+    "parent_class": "InvalidResponseError"
+  },
+  {
+    "class": "GratuitousCookie",
+    "code": "GRATUITOUS_COOKIE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server sent a COOKIE option when none was sent by the client.",
+    "references": [
+      "RFC 7873, Sec. 5.2.1"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "InconsistentNXDOMAIN",
+    "code": "INCONSISTENT_NXDOMAIN",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server returned a no error (NOERROR) response when queried for %(qname)s having record data of type %(rdtype_noerror)s, but returned a name error (NXDOMAIN) when queried for %(qname)s having record data of type %(rdtype_nxdomain)s.",
+    "references": [
+      "RFC 1034, Sec. 4.3.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [
+      "qname",
+      "rdtype_nxdomain",
+      "rdtype_noerror"
+    ],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "InconsistentNXDOMAINAncestry",
+    "code": "INCONSISTENT_NXDOMAIN_ANCESTOR",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "A query for %(qname)s results in a NOERROR response, while a query for its ancestor, %(ancestor_qname)s, returns a name error (NXDOMAIN), which indicates that subdomains of %(ancestor_qname)s, including %(qname)s, don't exist.",
+    "references": [
+      "RFC 8020, Sec. 2"
+    ],
+    "rfcs": [
+      "8020"
+    ],
+    "required_params": [
+      "qname",
+      "ancestor_qname"
+    ],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "InvalidRcode",
+    "code": "INVALID_RCODE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The response had an invalid RCODE (%(rcode)s).",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [
+      "tcp",
+      "rcode"
+    ],
+    "parent_class": "InvalidResponseError"
+  },
+  {
+    "class": "InvalidServerCookieWithoutBADCOOKIE",
+    "code": "INVALID_SERVER_COOKIE_WITHOUT_BADCOOKIE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server appears to support DNS cookies but did not return a BADCOOKIE status when an invalid server cookie was sent.",
+    "references": [
+      "RFC 7873, Sec. 5.2.4"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "MalformedCookieWithoutFORMERR",
+    "code": "MALFORMED_COOKIE_WITHOUT_FORMERR",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server appears to support DNS cookies but did not return a FORMERR status when issued a malformed COOKIE option.",
+    "references": [
+      "RFC 7873, Sec. 5.2.2"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "MissingNSECForNODATA",
+    "code": "MISSING_NSEC_FOR_NODATA",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "No NSEC RR(s) were returned to validate the %(response)s response.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.1",
+      "RFC 5155, Sec. 7.2.3",
+      "RFC 5155, Sec. 7.2.4"
+    ],
+    "rfcs": [
+      "4035",
+      "5155"
+    ],
+    "required_params": [],
+    "parent_class": "MissingNSEC"
+  },
+  {
+    "class": "MissingNSECForNXDOMAIN",
+    "code": "MISSING_NSEC_FOR_NXDOMAIN",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "No NSEC RR(s) were returned to validate the %(response)s response.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.2",
+      "RFC 5155, Sec. 7.2.2"
+    ],
+    "rfcs": [
+      "4035",
+      "5155"
+    ],
+    "required_params": [],
+    "parent_class": "MissingNSEC"
+  },
+  {
+    "class": "MissingNSECForWildcard",
+    "code": "MISSING_NSEC_FOR_WILDCARD",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "No NSEC RR(s) were returned to validate the %(response)s response.",
+    "references": [
+      "RFC 4035, Sec. 3.1.3.3",
+      "RFC 4035, Sec. 3.1.3.4",
+      "RFC 5155, Sec. 7.2.5",
+      "RFC 5155, Sec. 7.2.6"
+    ],
+    "rfcs": [
+      "4035",
+      "5155"
+    ],
+    "required_params": [],
+    "parent_class": "MissingNSEC"
+  },
+  {
+    "class": "MissingRRSIG",
+    "code": "MISSING_RRSIG",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "No RRSIG covering the RRset was returned in the response.",
+    "references": [
+      "RFC 4035, Sec. 3.1.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "MissingRRSIGForAlgDLV",
+    "code": "MISSING_RRSIG_FOR_ALG_DLV",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The %(source)s RRset for the zone included algorithm %(algorithm)d (%(algorithm_text)s), but no RRSIG with algorithm %(algorithm)d covering the RRset was returned in the response.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11"
+    ],
+    "rfcs": [
+      "4035",
+      "6840"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "MissingRRSIGForAlg"
+  },
+  {
+    "class": "MissingRRSIGForAlgDNSKEY",
+    "code": "MISSING_RRSIG_FOR_ALG_DNSKEY",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The %(source)s RRset for the zone included algorithm %(algorithm)d (%(algorithm_text)s), but no RRSIG with algorithm %(algorithm)d covering the RRset was returned in the response.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11"
+    ],
+    "rfcs": [
+      "4035",
+      "6840"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "MissingRRSIGForAlg"
+  },
+  {
+    "class": "MissingRRSIGForAlgDS",
+    "code": "MISSING_RRSIG_FOR_ALG_DS",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The %(source)s RRset for the zone included algorithm %(algorithm)d (%(algorithm_text)s), but no RRSIG with algorithm %(algorithm)d covering the RRset was returned in the response.",
+    "references": [
+      "RFC 4035, Sec. 2.2",
+      "RFC 6840, Sec. 5.11"
+    ],
+    "rfcs": [
+      "4035",
+      "6840"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "MissingRRSIGForAlg"
+  },
+  {
+    "class": "MissingSOAForNODATA",
+    "code": "MISSING_SOA_FOR_NODATA",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The %(response)s response did not include an SOA record.",
+    "references": [
+      "RFC 1034, Sec. 4.3.4",
+      "RFC 2308, Sec. 2.2"
+    ],
+    "rfcs": [
+      "1034",
+      "2308"
+    ],
+    "required_params": [],
+    "parent_class": "MissingSOA"
+  },
+  {
+    "class": "MissingSOAForNXDOMAIN",
+    "code": "MISSING_SOA_FOR_NXDOMAIN",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The %(response)s response did not include an SOA record.",
+    "references": [
+      "RFC 1034, Sec. 4.3.4",
+      "RFC 2308, Sec. 2.1"
+    ],
+    "rfcs": [
+      "1034",
+      "2308"
+    ],
+    "required_params": [],
+    "parent_class": "MissingSOA"
+  },
+  {
+    "class": "NetworkError",
+    "code": "NETWORK_ERROR",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(description)s",
+    "references": [
+      "RFC 1035, Sec. 4.2"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [
+      "tcp",
+      "errno"
+    ],
+    "parent_class": "InvalidResponseError"
+  },
+  {
+    "class": "NotAuthoritative",
+    "code": "NOT_AUTHORITATIVE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The Authoritative Answer (AA) flag was not set in the response.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "NoCookieOption",
+    "code": "NO_COOKIE_OPTION",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server appears to support DNS cookies but did not return a COOKIE option.",
+    "references": [
+      "RFC 7873, Sec. 5.2.3"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "NoServerCookie",
+    "code": "NO_SERVER_COOKIE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server appears to support DNS cookies but did not return a server cookie with its COOKIE option.",
+    "references": [
+      "RFC 7873, Sec. 5.2.3"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "NoServerCookieWithoutBADCOOKIE",
+    "code": "NO_SERVER_COOKIE_WITHOUT_BADCOOKIE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The server appears to support DNS cookies but did not return a BADCOOKIE status when no server cookie was sent.",
+    "references": [
+      "RFC 7873, Sec. 5.2.3"
+    ],
+    "rfcs": [
+      "7873"
+    ],
+    "required_params": [],
+    "parent_class": "DNSCookieError"
+  },
+  {
+    "class": "PMTUExceeded",
+    "code": "PMTU_EXCEEDED",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "%(description)s",
+    "references": [
+      "RFC 6891, Sec. 6.2.6"
+    ],
+    "rfcs": [
+      "6891"
+    ],
+    "required_params": [
+      "pmtu_lower_bound",
+      "pmtu_upper_bound"
+    ],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "RecursionNotAvailable",
+    "code": "RECURSION_NOT_AVAILABLE",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "Recursion was desired, but the Recursion Available (RA) flag was not set in the response.",
+    "references": [
+      "RFC 1035, Sec. 4.1.1"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "UnknownResponseError",
+    "code": "RESPONSE_ERROR",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "An invalid response was received from the server over %(proto)s.",
+    "references": [],
+    "rfcs": [],
+    "required_params": [
+      "tcp"
+    ],
+    "parent_class": "InvalidResponseError"
+  },
+  {
+    "class": "SOAOwnerNotZoneForNODATA",
+    "code": "SOA_NOT_OWNER_FOR_NODATA",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "An SOA RR with owner name (%(soa_owner_name)s) not matching the zone name (%(zone_name)s) was returned with the %(response)s response.",
+    "references": [
+      "RFC 1034, Sec. 4.3.4",
+      "RFC 2308, Sec. 2.2"
+    ],
+    "rfcs": [
+      "1034",
+      "2308"
+    ],
+    "required_params": [
+      "soa_owner_name",
+      "zone_name"
+    ],
+    "parent_class": "SOAOwnerNotZone"
+  },
+  {
+    "class": "SOAOwnerNotZoneForNXDOMAIN",
+    "code": "SOA_NOT_OWNER_FOR_NXDOMAIN",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "An SOA RR with owner name (%(soa_owner_name)s) not matching the zone name (%(zone_name)s) was returned with the %(response)s response.",
+    "references": [
+      "RFC 1034, Sec. 4.3.4",
+      "RFC 2308, Sec. 2.1"
+    ],
+    "rfcs": [
+      "1034",
+      "2308"
+    ],
+    "required_params": [
+      "soa_owner_name",
+      "zone_name"
+    ],
+    "parent_class": "SOAOwnerNotZone"
+  },
+  {
+    "class": "Timeout",
+    "code": "TIMEOUT",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "No response was received from the server over %(proto)s (tried %(attempts)d times).",
+    "references": [
+      "RFC 1035, Sec. 4.2"
+    ],
+    "rfcs": [
+      "1035"
+    ],
+    "required_params": [
+      "tcp",
+      "attempts"
+    ],
+    "parent_class": "InvalidResponseError"
+  },
+  {
+    "class": "UnableToRetrieveDNSSECRecords",
+    "code": "UNABLE_TO_RETRIEVE_DNSSEC_RECORDS",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The DNSSEC records necessary to validate the response could not be retrieved from the server.",
+    "references": [
+      "RFC 4035, Sec. 3.1.1",
+      "RFC 4035, Sec. 3.1.3"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "UpwardReferral",
+    "code": "UPWARD_REFERRAL",
+    "abstract": false,
+    "category": "RESPONSE",
+    "description_template": "The response was an upward referral.",
+    "references": [
+      "https://www.dns-oarc.net/oarc/articles/upward-referrals-considered-harmful"
+    ],
+    "rfcs": [],
+    "required_params": [],
+    "parent_class": "ResponseError"
+  },
+  {
+    "class": "AlgorithmNotRecommended",
+    "code": "ALGORITHM_NOT_RECOMMENDED",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "DNSSEC implementers are recommended against implementing signing with DNSSEC algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.1"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "AlgorithmNotSupported",
+    "code": "ALGORITHM_NOT_SUPPORTED",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "Validation of DNSSEC algorithm %(algorithm)d (%(algorithm_text)s) is not supported by this code, so the cryptographic status of this RRSIG is unknown.",
+    "references": [
+      "RFC 4035, Sec. 5.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "AlgorithmProhibited",
+    "code": "ALGORITHM_PROHIBITED",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "DNSSEC implementers are prohibited from implementing signing with DNSSEC algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.1"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "AlgorithmValidationProhibited",
+    "code": "ALGORITHM_VALIDATION_PROHIBITED",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "DNSSEC implementers are prohibited from implementing validation of DNSSEC algorithm %(algorithm)d (%(algorithm_text)s).",
+    "references": [
+      "RFC 8624, Sec. 3.1"
+    ],
+    "rfcs": [
+      "8624"
+    ],
+    "required_params": [
+      "algorithm"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "DNSKEYRevokedRRSIG",
+    "code": "DNSKEY_REVOKED_RRSIG",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The DNSKEY RR corresponding to the RRSIG RR has the REVOKE bit set.  A revoked key cannot be used to validate RRSIGs.",
+    "references": [
+      "RFC 5011, Sec. 2.1"
+    ],
+    "rfcs": [
+      "5011"
+    ],
+    "required_params": [],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "ExpirationInPast",
+    "code": "EXPIRATION_IN_PAST",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The Signature Expiration field of the RRSIG RR (%(expiration)s) is %(expired_time)s in the past.",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "expiration",
+      "reference_time"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "ExpirationWithinClockSkew",
+    "code": "EXPIRATION_WITHIN_CLOCK_SKEW",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The value of the Signature Expiration field of the RRSIG RR (%(expiration)s) is within possible clock skew range (%(difference)s) of the current time (%(reference_time)s).",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "expiration",
+      "reference_time"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "InceptionInFuture",
+    "code": "INCEPTION_IN_FUTURE",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The Signature Inception field of the RRSIG RR (%(inception)s) is %(premature_time)s in the future.",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "inception",
+      "reference_time"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "InceptionWithinClockSkew",
+    "code": "INCEPTION_WITHIN_CLOCK_SKEW",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The value of the Signature Inception field of the RRSIG RR (%(inception)s) is within possible clock skew range (%(difference)s) of the current time (%(reference_time)s).",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "inception",
+      "reference_time"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "OriginalTTLExceededRRset",
+    "code": "ORIGINAL_TTL_EXCEEDED_RRSET",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The TTL of the RRset (%(rrset_ttl)d) exceeds the value of the Original TTL field of the RRSIG RR covering it (%(original_ttl)d).",
+    "references": [
+      "RFC 4035, Sec. 2.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "original_ttl",
+      "rrset_ttl"
+    ],
+    "parent_class": "OriginalTTLExceeded"
+  },
+  {
+    "class": "OriginalTTLExceededRRSIG",
+    "code": "ORIGINAL_TTL_EXCEEDED_RRSIG",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The TTL of the RRSIG (%(rrsig_ttl)d) exceeds the value of its Original TTL field (%(original_ttl)d).",
+    "references": [
+      "RFC 4035, Sec. 2.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "original_ttl",
+      "rrsig_ttl"
+    ],
+    "parent_class": "OriginalTTLExceeded"
+  },
+  {
+    "class": "RRsetTTLMismatch",
+    "code": "RRSET_TTL_MISMATCH",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The TTL of the RRSIG RR (%(rrsig_ttl)d) does not match the TTL of the RRset it covers (%(rrset_ttl)d).",
+    "references": [
+      "RFC 4035, Sec. 2.2"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "rrset_ttl",
+      "rrsig_ttl"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "RRSIGBadLengthECDSA256",
+    "code": "RRSIG_BAD_LENGTH_ECDSA256",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The length of the signature is %(length)d bits, but an ECDSA signature made with Curve %(curve)s (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 6605, Sec. 4"
+    ],
+    "rfcs": [
+      "6605"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "RRSIGBadLengthECDSA"
+  },
+  {
+    "class": "RRSIGBadLengthECDSA384",
+    "code": "RRSIG_BAD_LENGTH_ECDSA384",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The length of the signature is %(length)d bits, but an ECDSA signature made with Curve %(curve)s (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 6605, Sec. 4"
+    ],
+    "rfcs": [
+      "6605"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "RRSIGBadLengthECDSA"
+  },
+  {
+    "class": "RRSIGBadLengthEd25519",
+    "code": "RRSIG_BAD_LENGTH_ED25519",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The length of the signature is %(length)d bits, but an %(curve)s signature (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 8080, Sec. 4"
+    ],
+    "rfcs": [
+      "8080"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "RRSIGBadLengthEdDSA"
+  },
+  {
+    "class": "RRSIGBadLengthEd448",
+    "code": "RRSIG_BAD_LENGTH_ED448",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The length of the signature is %(length)d bits, but an %(curve)s signature (DNSSEC algorithm %(algorithm)d) must be %(correct_length)d bits long.",
+    "references": [
+      "RFC 8080, Sec. 4"
+    ],
+    "rfcs": [
+      "8080"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "RRSIGBadLengthEdDSA"
+  },
+  {
+    "class": "RRSIGBadLengthGOST",
+    "code": "RRSIG_BAD_LENGTH_GOST",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The length of the signature is %(length)d bits, but a GOST signature (DNSSEC algorithm 12) must be 512 bits long.",
+    "references": [
+      "RFC 5933, Sec. 5.2"
+    ],
+    "rfcs": [
+      "5933"
+    ],
+    "required_params": [
+      "length"
+    ],
+    "parent_class": "RRSIGBadLength"
+  },
+  {
+    "class": "RRSIGLabelsExceedRRsetOwnerLabels",
+    "code": "RRSIG_LABELS_EXCEED_RRSET_OWNER_LABELS",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The value of the labels field of the RRSIG RR (%(rrsig_labels)d) exceeds the number of labels in the RRset owner name (%(rrset_owner_labels)d).",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "rrsig_labels",
+      "rrset_owner_labels"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "SignatureInvalid",
+    "code": "SIGNATURE_INVALID",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The cryptographic signature of the RRSIG RR does not properly validate.",
+    "references": [
+      "RFC 4035, Sec. 5.3.3"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "SignerNotZone",
+    "code": "SIGNER_NOT_ZONE",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "The Signer's Name field of the RRSIG RR (%(signer_name)s) does not match the name of the zone containing the RRset (%(zone_name)s).",
+    "references": [
+      "RFC 4035, Sec. 5.3.1"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "zone_name",
+      "signer_name"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "TTLBeyondExpiration",
+    "code": "TTL_BEYOND_EXPIRATION",
+    "abstract": false,
+    "category": "RRSIG",
+    "description_template": "With a TTL of %(rrsig_ttl)d the RRSIG RR can be in the cache of a non-validating resolver until %(difference)s after it expires at %(expiration)s.",
+    "references": [
+      "RFC 4035, Sec. 5.3.3"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "expiration",
+      "rrsig_ttl",
+      "reference_time"
+    ],
+    "parent_class": "RRSIGError"
+  },
+  {
+    "class": "NoTrustAnchorSigning",
+    "code": "NO_TRUST_ANCHOR_SIGNING",
+    "abstract": false,
+    "category": "TRUST",
+    "description_template": "One or more keys were designated as trust anchors for %(zone)s, but none were found signing the DNSKEY RRset.",
+    "references": [
+      "RFC 4035, Sec. 5"
+    ],
+    "rfcs": [
+      "4035"
+    ],
+    "required_params": [
+      "zone"
+    ],
+    "parent_class": "TrustAnchorError"
+  },
+  {
+    "class": "CNAMELoop",
+    "code": "CNAME_LOOP",
+    "abstract": false,
+    "category": "ZONE",
+    "description_template": "This record results in a CNAME loop.",
+    "references": [
+      "RFC 1034, Sec. 3.6.2"
+    ],
+    "rfcs": [
+      "1034"
+    ],
+    "required_params": [],
+    "parent_class": "ZoneDataError"
+  },
+  {
+    "class": "CNAMEWithOtherData",
+    "code": "CNAME_WITH_OTHER_DATA",
+    "abstract": false,
+    "category": "ZONE",
+    "description_template": "The server returned CNAME for %(name)s, but records of other types exist at that name.",
+    "references": [
+      "RFC 2181, Sec. 10.1"
+    ],
+    "rfcs": [
+      "2181"
+    ],
+    "required_params": [
+      "name"
+    ],
+    "parent_class": "ZoneDataError"
+  }
+]

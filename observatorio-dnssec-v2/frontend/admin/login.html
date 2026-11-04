@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Observatorio DNSSEC</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="/" class="header-brand">
+          <div class="header-logos">
+            <div class="header-logo-placeholder">ISOC EC</div>
+            <div class="header-logo-placeholder">CORPECE</div>
+          </div>
+          <span class="header-title">Observatorio DNSSEC</span>
+        </a>
+        <nav class="header-nav">
+          <a href="/" data-i18n="nav.home">Inicio</a>
+          <button class="btn-lang" onclick="I18n.toggle()" data-lang-toggle>English</button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <div class="login-page">
+    <div class="login-card">
+
+      <div class="login-logos">
+        <div class="header-logo-placeholder">ISOC EC</div>
+        <div class="header-logo-placeholder">CORPECE</div>
+      </div>
+
+      <!-- Panel login -->
+      <div id="panel-login">
+        <h1 class="login-title" data-i18n="admin.login_title">Acceso Administrativo</h1>
+        <p class="login-subtitle">Observatorio DNSSEC</p>
+
+        <div class="alert alert-error hidden" id="login-error"></div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="admin.email_label">Email</label>
+          <input class="form-input" id="login-email" type="email"
+            autocomplete="email"
+            data-i18n="admin.email_placeholder"
+            placeholder="admin@corpece.org.ec">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="admin.password_label">Contraseña</label>
+          <input class="form-input" id="login-password" type="password"
+            autocomplete="current-password"
+            placeholder="••••••••">
+        </div>
+
+        <button class="btn btn-primary btn-full" id="login-btn" onclick="AdminLogin.login()">
+          <span data-i18n="admin.btn_login">Iniciar sesión</span>
+        </button>
+
+        <div class="login-footer">
+          <a href="#" onclick="AdminLogin.showRecover(); return false;" data-i18n="admin.forgot_password">¿Olvidaste tu contraseña?</a>
+        </div>
+      </div>
+
+      <!-- Panel recuperación -->
+      <div id="panel-recover" class="hidden">
+        <h1 class="login-title" data-i18n="admin.recover_title">Recuperar contraseña</h1>
+        <p class="login-subtitle" data-i18n="admin.recover_desc">Ingresa tu email y te enviaremos instrucciones.</p>
+
+        <div class="alert alert-error hidden" id="recover-error"></div>
+        <div class="alert alert-success hidden" id="recover-ok">
+          <span data-i18n="admin.recover_sent">Si el email existe, recibirás instrucciones.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="admin.email_label">Email</label>
+          <input class="form-input" id="recover-email" type="email" placeholder="admin@corpece.org.ec">
+        </div>
+
+        <button class="btn btn-primary btn-full" id="recover-btn" onclick="AdminLogin.recover()" style="margin-bottom:0.75rem">
+          <span data-i18n="admin.btn_recover">Enviar instrucciones</span>
+        </button>
+        <button class="btn btn-full" onclick="AdminLogin.showLogin()">
+          ← <span data-i18n="admin.back_to_login">Volver al login</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+  const AdminLogin = (() => {
+    async function init() {
+      await I18n.init();
+
+      if (API.isLoggedIn()) {
+        try { await API.me(); location.href = '/admin/dashboard'; return; }
+        catch { API.clearToken(); }
+      }
+
+      ['login-email','login-password'].forEach(id =>
+        document.getElementById(id)?.addEventListener('keydown', e => {
+          if (e.key === 'Enter') login();
+        }));
+
+      document.getElementById('recover-email')
+        ?.addEventListener('keydown', e => { if (e.key === 'Enter') recover(); });
+
+      document.addEventListener('langchange', () => I18n.init());
+    }
+
+    function showLogin() {
+      document.getElementById('panel-login').classList.remove('hidden');
+      document.getElementById('panel-recover').classList.add('hidden');
+      document.getElementById('login-error').classList.add('hidden');
+    }
+
+    function showRecover() {
+      document.getElementById('panel-login').classList.add('hidden');
+      document.getElementById('panel-recover').classList.remove('hidden');
+      document.getElementById('recover-ok').classList.add('hidden');
+      document.getElementById('recover-error').classList.add('hidden');
+    }
+
+    async function login() {
+      const email = document.getElementById('login-email').value.trim();
+      const pwd   = document.getElementById('login-password').value;
+      const errEl = document.getElementById('login-error');
+      const btn   = document.getElementById('login-btn');
+
+      errEl.classList.add('hidden');
+
+      if (!email || !pwd) {
+        errEl.textContent = I18n.get('errors.missing_fields');
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.querySelector('span').textContent = I18n.get('admin.btn_login_loading') || 'Verificando…';
+
+      try {
+        await API.login(email, pwd);
+        location.href = '/admin/dashboard';
+      } catch (err) {
+        errEl.textContent = err.error === 'invalid_credentials'
+          ? I18n.get('errors.invalid_credentials')
+          : (err.message || I18n.get('errors.analysis_failed'));
+        errEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.querySelector('span').textContent = I18n.get('admin.btn_login') || 'Iniciar sesión';
+      }
+    }
+
+    async function recover() {
+      const email = document.getElementById('recover-email').value.trim();
+      const errEl = document.getElementById('recover-error');
+      const okEl  = document.getElementById('recover-ok');
+      const btn   = document.getElementById('recover-btn');
+
+      errEl.classList.add('hidden');
+      okEl.classList.add('hidden');
+
+      if (!email) {
+        errEl.textContent = I18n.get('errors.missing_fields');
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        const res = await API.recover(email);
+        const okText = okEl.querySelector('span');
+        if (okText && res?.message) okText.textContent = res.message;
+        okEl.classList.remove('hidden');
+      } catch {
+        errEl.textContent = I18n.get('errors.network');
+        errEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    return { init, login, recover, showLogin, showRecover };
+  })();
+
+  AdminLogin.init();
+  </script>
+</body>
+</html>

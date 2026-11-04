@@ -1,0 +1,262 @@
+[
+  {
+    "code": "MISSING_RRSIG",
+    "plain_title": "Registros DNS sin firma digital",
+    "plain_description": "Uno o más registros de tu dominio no tienen firma digital DNSSEC. Esto significa que cualquier resolver que valide DNSSEC rechazará las respuestas de tu dominio como inseguras, lo que puede causar que el sitio web o correo no sean accesibles para algunos usuarios.",
+    "impact": "Usuarios con resolvers validantes (Cloudflare 1.1.1.1, Google 8.8.8.8 en modo estricto) no pueden resolver tu dominio. Riesgo de caída de servicio.",
+    "action_hosting": "Contactar al proveedor de hosting/DNS y solicitar: 'Necesito que firmen todos los RRsets de la zona con DNSSEC. El registro TYPE está devolviendo respuestas sin RRSIG desde el servidor IP.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": "Verificar en el panel de control del hosting que DNSSEC está habilitado. Si el hosting no soporta DNSSEC, considerar migrar a uno que sí lo soporte."
+  },
+  {
+    "code": "EXPIRATION_IN_PAST",
+    "plain_title": "Firma digital vencida",
+    "plain_description": "La firma digital (RRSIG) de tu dominio ha expirado. Es como un certificado SSL vencido pero para DNS. Los resolvers validantes rechazarán tu dominio completamente.",
+    "impact": "CRÍTICO — el dominio puede estar siendo rechazado ahora mismo por resolvers que validan DNSSEC. Usuarios no pueden acceder al sitio ni al correo.",
+    "action_hosting": "Urgente: contactar al hosting/DNS e indicar: 'Las firmas RRSIG de la zona están vencidas. Necesitan regenerar y republicar las firmas DNSSEC inmediatamente.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": "Si administras tu propio DNS, ejecutar el proceso de re-firma de la zona inmediatamente."
+  },
+  {
+    "code": "SIGNATURE_INVALID",
+    "plain_title": "Firma digital inválida o corrupta",
+    "plain_description": "Las firmas digitales de tu dominio existen pero no son válidas criptográficamente. Puede ser un error de configuración o, en casos graves, indicador de manipulación de registros DNS.",
+    "impact": "CRÍTICO — los resolvers validantes rechazarán todas las respuestas. Posible indicador de ataque o configuración incorrecta grave.",
+    "action_hosting": "Contactar al hosting urgente: 'Las firmas RRSIG son inválidas criptográficamente. Verificar las claves DNSSEC y re-firmar la zona.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": "Revisar si hubo cambios recientes en el DNS. Considerar si las claves pudieron haber sido comprometidas."
+  },
+  {
+    "code": "INCEPTION_IN_FUTURE",
+    "plain_title": "Firma digital aún no válida (fecha de inicio en el futuro)",
+    "plain_description": "La firma digital tiene una fecha de inicio que está en el futuro. El servidor DNS probablemente tiene el reloj desincronizado o hubo un error al generar las firmas.",
+    "impact": "Los resolvers rechazarán las respuestas firmadas hasta que llegue la fecha de inicio.",
+    "action_hosting": "Solicitar al hosting: 'La fecha de inception de las RRSIG está en el futuro. Verificar sincronización NTP del servidor y re-generar las firmas.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "NO_SEP",
+    "plain_title": "No hay punto de entrada seguro al dominio (cadena DNSSEC rota)",
+    "plain_description": "El registro DS publicado por el registrar no corresponde a ninguna clave KSK válida en la zona. Esto rompe la cadena de confianza DNSSEC desde la zona padre hasta tu dominio. Es como si la cerradura y la llave no coincidieran.",
+    "impact": "CRÍTICO — cadena de confianza DNSSEC rota. El dominio aparece como BOGUS en todos los resolvers validantes.",
+    "action_hosting": "Solicitar al hosting: 'Necesito el registro DS actualizado de la KSK para publicarlo en el registrar. Por favor compartir el DS correcto.'",
+    "action_registrar": "Actualizar el registro DS en el panel del registrar con el valor proporcionado por el hosting. En NIC.EC: gestión del dominio → DNSSEC → actualizar DS.",
+    "action_registry": null,
+    "action_owner": "Coordinar entre hosting y registrar para alinear los registros DS y DNSKEY."
+  },
+  {
+    "code": "MISSING_SEP_FOR_ALG",
+    "plain_title": "Algoritmo DNSSEC del DS sin clave correspondiente en la zona",
+    "plain_description": "El registro DS especifica un algoritmo de firma pero no hay ninguna clave DNSKEY con ese algoritmo en la zona. El registrar y el hosting están usando algoritmos distintos.",
+    "impact": "CRÍTICO — la delegación segura está rota. Mismo efecto que cadena de confianza rota.",
+    "action_hosting": "Solicitar al hosting: 'El DS del registrar especifica algoritmo X pero no hay DNSKEY con ese algoritmo en la zona. Generar KSK con el algoritmo correspondiente o proporcionar el DS correcto.'",
+    "action_registrar": "Actualizar el registro DS en el registrar con el valor que proporcione el hosting.",
+    "action_registry": null,
+    "action_owner": "Coordinar entre hosting y registrar."
+  },
+  {
+    "code": "DNSKEY_MISSING_FROM_SERVERS",
+    "plain_title": "Clave DNSSEC no disponible en todos los servidores",
+    "plain_description": "La clave DNSKEY que debería estar en la zona no está siendo devuelta por uno o más servidores DNS. Puede ser un problema de sincronización entre servidores primario y secundarios.",
+    "impact": "Los resolvers que consulten el servidor afectado no pueden validar DNSSEC correctamente.",
+    "action_hosting": "Solicitar al hosting: 'El DNSKEY con keytag X no está siendo servido por el servidor IP. Verificar sincronización entre servidores DNS maestro y esclavos.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "DIGEST_INVALID",
+    "plain_title": "El registro DS no coincide con la clave DNSKEY actual",
+    "plain_description": "El hash en el registro DS publicado por el registrar no coincide con la clave DNSKEY real de la zona. El DS está desactualizado o fue ingresado incorrectamente.",
+    "impact": "CRÍTICO — cadena de confianza rota. El dominio es BOGUS para resolvers validantes.",
+    "action_registrar": "Solicitar al hosting el DS actualizado y actualizarlo en el panel del registrar.",
+    "action_hosting": "Proporcionar el registro DS correcto y actualizado para publicar en el registrar.",
+    "action_registry": null,
+    "action_owner": "Coordinar la actualización del DS entre hosting y registrar."
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NODATA",
+    "plain_title": "Falta prueba criptográfica para respuesta vacía (NODATA)",
+    "plain_description": "Cuando se consulta un tipo de registro que no existe (por ejemplo IPv6 en un dominio sin IPv6), el servidor debe devolver un registro NSEC3 que pruebe criptográficamente que ese registro no existe. Tu servidor no devuelve esa prueba.",
+    "impact": "Los resolvers validantes no pueden confirmar que la respuesta vacía es legítima y no fue manipulada.",
+    "action_hosting": "Solicitar al hosting: 'El servidor no devuelve registros NSEC3 para respuestas NODATA. Verificar configuración de denial-of-existence en la zona DNSSEC.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "MISSING_NSEC_FOR_NXDOMAIN",
+    "plain_title": "Falta prueba criptográfica para dominio inexistente (NXDOMAIN)",
+    "plain_description": "Cuando se consulta un subdominio que no existe, el servidor debe demostrar criptográficamente que no existe. Tu servidor no proporciona esa prueba.",
+    "impact": "Resolvers validantes no pueden confirmar que las respuestas NXDOMAIN son legítimas.",
+    "action_hosting": "Solicitar al hosting: 'El servidor no devuelve registros NSEC3 para respuestas NXDOMAIN. Revisar configuración de denial-of-existence en la zona DNSSEC.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "NONZERO_NSEC3_ITERATION_COUNT",
+    "plain_title": "Configuración NSEC3 desactualizada — iteraciones mayor a cero",
+    "plain_description": "Tu zona usa NSEC3 con un número de iteraciones mayor a 0. El RFC 9276 (2022) recomienda 0 iteraciones porque las iteraciones altas hacen el servidor vulnerable a ataques de denegación de servicio sin añadir seguridad real.",
+    "impact": "MEDIO — vulnerabilidad potencial a CPU exhaustion attacks. No es urgente pero debe corregirse.",
+    "action_hosting": "Solicitar al hosting: 'La zona usa NSEC3 con iteraciones > 0. Según RFC 9276 actualizar la configuración NSEC3 a 0 iteraciones: NSEC3PARAM 1 0 0 -'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "NONEMPTY_NSEC3_SALT",
+    "plain_title": "NSEC3 usa salt no vacío — práctica obsoleta",
+    "plain_description": "Tu zona NSEC3 usa un valor salt. El RFC 9276 (2022) indica que el salt debe estar vacío porque no mejora la seguridad y añade complejidad innecesaria.",
+    "impact": "BAJO — práctica obsoleta, no es una vulnerabilidad activa pero indica configuración desactualizada.",
+    "action_hosting": "Solicitar al hosting: 'La zona usa NSEC3 con salt no vacío. Actualizar a salt vacío según RFC 9276: NSEC3PARAM 1 0 0 -'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE",
+    "plain_title": "Servidor DNS no responde",
+    "plain_description": "Uno o más servidores DNS de tu dominio no están respondiendo a consultas. Si todos los servidores fallan, el dominio no es resolvible para ningún usuario.",
+    "impact": "CRÍTICO — el dominio puede ser irresolvible. Usuarios no pueden acceder al sitio ni al correo.",
+    "action_hosting": "Contactar al hosting urgente: 'El servidor DNS IP no responde consultas DNS. Verificar que el servicio esté activo y que el firewall permita UDP/TCP en puerto 53.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_UDP",
+    "plain_title": "Servidor DNS no responde por UDP",
+    "plain_description": "El servidor DNS no responde consultas por UDP. Casi todas las consultas DNS usan UDP por defecto, lo que hace esto un problema crítico de disponibilidad.",
+    "impact": "CRÍTICO — los clientes DNS usan UDP primero. El dominio no resuelve para la mayoría de usuarios.",
+    "action_hosting": "Contactar al hosting: 'El servidor IP no responde consultas DNS por UDP en puerto 53. Verificar firewall y estado del servicio DNS.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "SERVER_UNRESPONSIVE_TCP",
+    "plain_title": "Servidor DNS no responde por TCP",
+    "plain_description": "El servidor DNS no acepta conexiones TCP. TCP es necesario para respuestas grandes como las de DNSSEC con múltiples claves y firmas.",
+    "impact": "ALTO — las consultas DNSSEC frecuentemente requieren TCP. Sin TCP la validación DNSSEC puede fallar intermitentemente.",
+    "action_hosting": "Solicitar al hosting: 'El servidor IP no acepta conexiones TCP en puerto 53. Verificar que el firewall permita TCP/53 y que el servidor DNS esté configurado para responder por TCP.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "NOT_AUTHORITATIVE",
+    "plain_title": "Servidor DNS no es autoritativo para la zona",
+    "plain_description": "Uno de los servidores NS declarados para tu dominio responde consultas pero sin el flag AA (Authoritative Answer). Ese servidor no tiene la zona cargada correctamente.",
+    "impact": "CRÍTICO — los resolvers no confían en respuestas no autoritativas. Causa fallos de resolución y problemas DNSSEC.",
+    "action_hosting": "Solicitar al hosting: 'El servidor IP está listado como NS del dominio pero no responde con flag AA. Verificar que la zona esté correctamente cargada en ese servidor.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "SERVER_NOT_AUTHORITATIVE",
+    "plain_title": "Servidor listado como NS no tiene autoridad sobre la zona",
+    "plain_description": "Similar al anterior — un servidor que aparece como NS oficial de tu dominio no tiene cargada la zona y no responde como autoritativo.",
+    "impact": "CRÍTICO — respuestas no confiables para resolvers. Puede causar BOGUS en validación DNSSEC.",
+    "action_hosting": "Solicitar al hosting: 'El servidor IP está registrado como NS pero no tiene la zona cargada. Sincronizar la zona a ese servidor o removerlo de los NS.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "DNSSEC_DOWNGRADE_EDNS_DISABLED",
+    "plain_title": "Servidor fuerza degradación de seguridad DNSSEC desactivando EDNS",
+    "plain_description": "El servidor devuelve error cuando EDNS está habilitado (necesario para DNSSEC), forzando al resolver a reintentar sin EDNS y por tanto sin validación DNSSEC. Esto es una vulnerabilidad de seguridad activa.",
+    "impact": "CRÍTICO — DNSSEC queda efectivamente desactivado para usuarios que consulten este servidor. El dominio queda vulnerable a ataques de envenenamiento DNS.",
+    "action_hosting": "Solicitar al hosting urgente: 'El servidor IP devuelve SERVFAIL con EDNS habilitado, forzando degradación DNSSEC. Esto es una vulnerabilidad grave. Verificar configuración EDNS del servidor DNS.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "UNABLE_TO_RETRIEVE_DNSSEC_RECORDS",
+    "plain_title": "No se pueden obtener los registros de seguridad DNSSEC del servidor",
+    "plain_description": "El servidor no devuelve los registros DNSSEC necesarios (DNSKEY, RRSIG) cuando se le solicitan. Puede ser un problema de configuración del servidor o filtrado de paquetes grandes.",
+    "impact": "CRÍTICO — sin los registros DNSSEC no es posible validar el dominio.",
+    "action_hosting": "Solicitar al hosting: 'El servidor IP no devuelve registros DNSSEC en las respuestas. Verificar configuración EDNS, buffer UDP y que DNSSEC esté activo en el servidor.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "ALGORITHM_PROHIBITED",
+    "plain_title": "Algoritmo de firma DNSSEC prohibido por estándares actuales",
+    "plain_description": "Tu zona usa un algoritmo de firma DNSSEC que está oficialmente prohibido por el IETF (RFC 8624). Los resolvers modernos no validarán firmas con este algoritmo.",
+    "impact": "CRÍTICO — las firmas con este algoritmo no serán validadas. El dominio puede ser considerado inseguro.",
+    "action_hosting": "Solicitar al hosting: 'La zona usa algoritmo DNSSEC prohibido según RFC 8624. Migrar a algoritmo 13 (ECDSA P-256/SHA-256) o algoritmo 8 (RSA/SHA-256) como mínimo.'",
+    "action_registrar": "Actualizar el DS en el registrar después de que el hosting migre el algoritmo.",
+    "action_registry": null,
+    "action_owner": "Este cambio requiere coordinación entre hosting y registrar. Planificar ventana de mantenimiento."
+  },
+  {
+    "code": "ALGORITHM_NOT_RECOMMENDED",
+    "plain_title": "Algoritmo de firma DNSSEC no recomendado",
+    "plain_description": "Tu zona usa un algoritmo de firma que ya no es recomendado por el IETF. Aunque todavía funciona, es preferible migrar a un algoritmo más moderno.",
+    "impact": "MEDIO — funciona ahora pero representa deuda técnica de seguridad. Riesgo futuro cuando el algoritmo sea deprecado.",
+    "action_hosting": "Solicitar al hosting: 'La zona usa un algoritmo DNSSEC no recomendado según RFC 8624. Planificar migración a algoritmo 13 (ECDSA P-256) en la próxima renovación de claves.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "CDNSKEY_INCONSISTENT_WITH_DS",
+    "plain_title": "Inconsistencia en solicitud de actualización de clave DNSSEC",
+    "plain_description": "El registro CDNSKEY (solicitud automática de actualización de clave) no es consistente con el DS publicado en el registrar. Puede indicar un cambio de clave en proceso o un error de configuración.",
+    "impact": "MEDIO — puede causar problemas durante el proceso de cambio de claves DNSSEC.",
+    "action_hosting": "Verificar si hay un rollover de clave en proceso y si el CDNSKEY es intencional.",
+    "action_registrar": "Si el hosting confirma que el CDNSKEY es correcto, actualizar el DS en el registrar.",
+    "action_registry": null,
+    "action_owner": "Revisar si se inició un proceso de cambio de claves DNSSEC y coordinarlo con hosting y registrar."
+  },
+  {
+    "code": "CDS_INCONSISTENT_WITH_DS",
+    "plain_title": "Inconsistencia en registro de solicitud de actualización DS",
+    "plain_description": "El registro CDS (solicitud de actualización del DS) no coincide con el DS publicado en el registrar. Puede indicar un cambio de clave en proceso o error de configuración.",
+    "impact": "MEDIO — puede indicar rollover pendiente o error de configuración.",
+    "action_hosting": "Verificar si hay un rollover de clave en proceso.",
+    "action_registrar": "Si es intencional, actualizar el DS con el valor del CDS.",
+    "action_registry": null,
+    "action_owner": "Coordinar con hosting y registrar."
+  },
+  {
+    "code": "NO_NS_IN_PARENT",
+    "plain_title": "El dominio no tiene servidores DNS registrados en la zona padre",
+    "plain_description": "La zona padre (ej: .ec) no tiene registros NS para tu dominio. Esto significa que el dominio no está correctamente delegado y puede ser irresolvible desde partes de internet.",
+    "impact": "CRÍTICO — el dominio puede no ser resolvible desde muchos puntos de la red.",
+    "action_registrar": "Contactar al registrar urgente: 'Los NS del dominio no aparecen en la zona padre. Verificar que la delegación NS esté correctamente publicada.'",
+    "action_hosting": null,
+    "action_registry": "Si el registrar no puede resolverlo, contactar directamente al registry (NIC.EC para dominios .ec).",
+    "action_owner": null
+  },
+  {
+    "code": "MISSING_GLUE_IPV4",
+    "plain_title": "Falta dirección IP del servidor DNS en la zona padre (glue record)",
+    "plain_description": "Cuando el servidor DNS de tu dominio tiene nombre dentro del mismo dominio (ej: ns1.tudominio.com), la IP debe estar registrada en la zona padre. Esa IP está faltando, lo que crea una dependencia circular irresoluble.",
+    "impact": "ALTO — sin el glue record los resolvers no pueden encontrar la IP del servidor DNS.",
+    "action_registrar": "Contactar al registrar: 'Necesito registrar el glue record IPv4 para el nameserver NS_NAME con la IP X.X.X.X'",
+    "action_hosting": null,
+    "action_registry": null,
+    "action_owner": null
+  },
+  {
+    "code": "EDNS_IGNORED",
+    "plain_title": "Servidor DNS ignora extensiones EDNS requeridas para DNSSEC",
+    "plain_description": "El servidor DNS ignora las extensiones EDNS0, que son necesarias para DNSSEC y para transmitir respuestas grandes. Indica un servidor DNS desactualizado o mal configurado.",
+    "impact": "ALTO — sin EDNS no funciona DNSSEC correctamente.",
+    "action_hosting": "Solicitar al hosting: 'El servidor IP no procesa correctamente las extensiones EDNS0. Actualizar el software DNS o corregir la configuración para soportar EDNS0 según RFC 6891.'",
+    "action_registrar": null,
+    "action_registry": null,
+    "action_owner": null
+  }
+]
