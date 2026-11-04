@@ -10,6 +10,15 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_TOTAL_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
+// (2026-11-04) — requestPage() no enviaba ningún User-Agent. Confirmado en
+// vivo contra isoc.org.ec/www.isoc.org.ec: sin User-Agent, Cloudflare
+// responde 429 (lo trata como posible bot); con este mismo User-Agent que
+// ya usa fetchJSON() en server.js, responde 200 normal. Afecta a los ~12
+// checks que dependen de handleHeaders (https, redirect, hsts, csp, xfo,
+// xcto, referrer, permissions, xxss, compression, server, headers) contra
+// cualquier dominio detrás de un WAF similar — no es un problema del
+// dominio medido, era un comportamiento identificable de nuestro cliente.
+const DEFAULT_WEBFETCH_USER_AGENT = 'MedicionesISOCLAC/1.0 (+https://mediciones.isoc.org.ec)';
 
 function isAllowedProtocol(protocol) {
   return protocol === 'http:' || protocol === 'https:';
@@ -135,7 +144,11 @@ async function resolvePublicAddresses(hostname, lookup = dns.lookup) {
 function requestPage(url, address, options = {}) {
   return new Promise((resolve, reject) => {
     const lib = url.protocol === 'http:' ? http : https;
-    const headers = { ...(options.headers || {}), Host: url.host };
+    const headers = {
+      'User-Agent': DEFAULT_WEBFETCH_USER_AGENT,
+      ...(options.headers || {}),
+      Host: url.host
+    };
     const requestOptions = {
       protocol: url.protocol,
       hostname: url.hostname,
