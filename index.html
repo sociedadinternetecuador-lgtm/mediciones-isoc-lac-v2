@@ -234,6 +234,21 @@
   border-color: #2563eb;
 }
 
+/* Enlace externo con el mismo look que tab-btn-content (borde azul), pero
+   SIN la clase .tab-btn — evita engancharse al listener genérico de pestañas
+   (tabButtons.forEach(...) más abajo), que llamaría activateTab(undefined)
+   y ocultaría todos los paneles de la página actual al hacer clic. */
+.external-content-btn {
+  background: transparent;
+  color: #4b5563;
+  border: 2px solid #93c5fd;
+}
+.external-content-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+  border-color: #60a5fa;
+}
+
 /* ACTIVO (PRO) */
 .tab-btn.active {
   background: #2563eb;
@@ -541,14 +556,15 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       EVENTOS
     </button>
 
-    <button
+    <a
       id="tabBtnAprenderDnssec"
-      type="button"
-      class="tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition border border-blue-200 text-blue-700 hover:bg-blue-50"
-      onclick="document.querySelector('[data-tab=&quot;dnssec&quot;]').click(); if (window.DnssecKb) DnssecKb.switchTopTab('aprender');"
+      href="#/dnssec/aprender"
+      target="_blank"
+      rel="noopener"
+      class="external-content-btn px-4 py-2 rounded-lg text-sm font-semibold transition inline-flex items-center"
     >
       APRENDER DNSSEC
-    </button>
+    </a>
 
   </div>
 
@@ -976,10 +992,6 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             <input type="radio" name="dnssec-verify-choice" value="no" id="dnssec-verify-no" />
             No, análisis normal
           </label>
-          <button type="button" onclick="DnssecKb.switchTopTab('aprender')"
-            class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
-            ¿Qué es esto? Aprender DNSSEC →
-          </button>
         </div>
       </div>
       <div class="flex flex-col md:flex-row gap-3">
@@ -1296,6 +1308,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       <!-- Header -->
       <h3 id="dnssec-inline-title" class="text-xl font-bold mb-2"></h3>
       <p id="dnssec-inline-summary" class="mb-4 text-gray-700"></p>
+<div id="dnssec-inline-verify-choice" class="mb-4 rounded-lg border p-3 text-sm"></div>
 <div class="mb-4">
   <span id="dnssec-inline-badge" class="inline-block rounded-full px-4 py-2 text-sm font-semibold"></span>
 </div>
@@ -3596,7 +3609,7 @@ async function analyzeDnssecInline(domain, verifySignature) {
     }
 
     const data = await res.json();
-    renderDnssecInlineResult(data);
+    renderDnssecInlineResult(data, verifySignature);
     content.classList.remove("hidden");
   } catch (err) {
     errorBox.textContent = `No fue posible obtener el análisis DNSSEC. ${err.message}`;
@@ -3648,7 +3661,7 @@ async function loadPulseContext(domain) {
   }
 }
 
-function renderDnssecInlineResult(data) {
+function renderDnssecInlineResult(data, verifySignature) {
   const dnssec = data?.dnssec || {};
   const human = data?.human || {};
   const exec = dnssec?.executive_summary || {};
@@ -3658,6 +3671,25 @@ function renderDnssecInlineResult(data) {
 
   document.getElementById("dnssec-inline-summary").textContent =
     dnssec.summary || "";
+
+  const choiceBox = document.getElementById("dnssec-inline-verify-choice");
+  if (choiceBox) {
+    if (verifySignature) {
+      choiceBox.className = "mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800";
+      choiceBox.innerHTML =
+        "<strong>Opción seleccionada: Sí, validar firma DNSSEC real (DNSViz).</strong> " +
+        "Este resultado incluye verificación criptográfica real, no solo presencia de DS/DNSKEY. " +
+        "Si DNSViz detectó una firma inválida, el estado puede aparecer como \"mal configurado\" " +
+        "aunque los registros DS/DNSKEY estén presentes.";
+    } else {
+      choiceBox.className = "mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600";
+      choiceBox.innerHTML =
+        "<strong>Opción seleccionada: No, análisis normal (sin validar firma).</strong> " +
+        "Este resultado verifica solo la presencia de DS/DNSKEY, no si la firma criptográfica " +
+        "en sí es válida — puede marcar \"correcto\" un dominio cuya firma esté vencida o mal calculada. " +
+        "Para esa verificación adicional, repetí el análisis eligiendo \"Sí, validar firma\".";
+    }
+  }
 const badge = document.getElementById("dnssec-inline-badge");
 const finalStatus = dnssec.final_status || "indeterminate";
 
