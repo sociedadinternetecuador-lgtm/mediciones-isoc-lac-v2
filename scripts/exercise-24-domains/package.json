@@ -1,0 +1,9 @@
+{
+  "name": "exercise-24-domains",
+  "private": true,
+  "type": "module",
+  "description": "Cliente externo puntual (no la app) para correr el ejercicio comparativo de 24 dominios en dos corridas de <=20, reusando exactamente window.medicionesBatchStart() vía jsdom sobre el index.html real. No modifica MEDICIONES, no reimplementa checks, no toca scripts/regional-study/.",
+  "dependencies": {
+    "jsdom": "^29.0.0"
+  }
+}
