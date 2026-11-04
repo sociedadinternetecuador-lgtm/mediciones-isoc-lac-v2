@@ -1893,6 +1893,24 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       </button>
     </div>
 
+    <!-- Modal de progreso bloqueante (mismo patrón que el de validación de
+         firma DNSSEC) — además de la barra inline de abajo, que puede
+         quedar fuera de vista si se hizo scroll. -->
+    <div id="mb-progress-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 text-center">
+        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p id="mb-progress-modal-message" class="text-sm text-gray-700 mb-1">Procesando…</p>
+        <p id="mb-progress-modal-detail" class="text-xs text-gray-400 mb-4"></p>
+        <button type="button" onclick="medicionesBatchCancel()"
+          class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          Cancelar
+        </button>
+      </div>
+    </div>
+
     <!-- Progreso -->
     <div id="mb-progress-wrap" class="hidden mt-6">
       <div class="flex justify-between text-sm text-gray-600 mb-1">
@@ -5679,6 +5697,11 @@ function mbSetProgress(done, total, lastDomain) {
   document.getElementById('mb-progress-pct').textContent = pct + '%';
   document.getElementById('mb-progress-label').textContent = `Procesando: ${done} de ${total}`;
   if (lastDomain) document.getElementById('mb-last-domain').textContent = 'Último: ' + lastDomain;
+
+  const modalMsg = document.getElementById('mb-progress-modal-message');
+  const modalDetail = document.getElementById('mb-progress-modal-detail');
+  if (modalMsg) modalMsg.textContent = `Procesando: ${done} de ${total} (${pct}%)`;
+  if (modalDetail && lastDomain) modalDetail.textContent = 'Último dominio: ' + lastDomain;
 }
 
 function mbSetDnsStatus(text) {
@@ -5771,6 +5794,7 @@ async function medicionesBatchStart() {
   document.getElementById('mb-progress-wrap').classList.remove('hidden');
   document.getElementById('mb-results-wrap').classList.add('hidden');
   document.getElementById('mb-report-error').classList.add('hidden');
+  document.getElementById('mb-progress-modal').classList.remove('hidden');
   mbSetProgress(0, domains.length, '');
   mbSetDnsStatus('en cola…');
 
@@ -5798,6 +5822,7 @@ async function medicionesBatchStart() {
 
   document.getElementById('mb-cancel-btn').classList.add('hidden');
   document.getElementById('mb-start-btn').classList.remove('hidden');
+  document.getElementById('mb-progress-modal').classList.add('hidden');
 
   if (mbCancelled) {
     document.getElementById('mb-progress-label').textContent = 'Cancelado.';
@@ -5870,6 +5895,7 @@ function medicionesBatchCancel() {
   document.getElementById('mb-progress-label').textContent = 'Cancelando…';
   document.getElementById('mb-cancel-btn').classList.add('hidden');
   document.getElementById('mb-start-btn').classList.remove('hidden');
+  document.getElementById('mb-progress-modal').classList.add('hidden');
 }
 
 // Vista previa en pantalla: tabla dominio × check (✓/✗), estilo similar al
