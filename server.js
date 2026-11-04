@@ -83,6 +83,7 @@ const safeWebFetchAdapter = require('./logic/adapters/safeWebFetch.adapter');
 const { fetchSafePage, resolveFinalWebTarget } = safeWebFetchAdapter;
 const { injectI18nVersion } = require('./logic/adapters/i18nVersion.adapter');
 const pulseAdapter = require('./logic/adapters/pulse.adapter');
+const dnsvizAdapter = require('./logic/adapters/dnsviz.adapter');
 const dnsPacket = require('dns-packet');
 const htmlCache = new Map();
 const headerCache = new Map();
@@ -4113,7 +4114,22 @@ if (parsed.pathname === "/dnssec-analysis") {
   try {
     const domain = validateDomainInput(parsed.searchParams.get("domain"));
     const raw = await getDnssecAnalysis(domain);
-    const result = processDnssecAnalysis(raw);
+
+    // Verificación profunda opcional (2026-11-04, opt-in explícito vía
+    // ?deep=1): corre dnsviz real contra el Observatorio DNSSEC v2 — toma
+    // 60-90s por dominio, por eso NUNCA es el camino por defecto. Si
+    // DNSVIZ_OBSERVATORIO_URL no está configurada, o el servicio falla por
+    // cualquier motivo, dnsvizSignal queda undefined y el resultado es
+    // idéntico al de un análisis normal (ver dnssec.rules.js).
+    let dnsvizSignal;
+    if (parsed.searchParams.get("deep") === "1") {
+      const deep = await dnsvizAdapter.runFullAnalysis(domain);
+      if (deep.available) {
+        dnsvizSignal = dnsvizAdapter.extractCryptoValidationSignal(deep.result);
+      }
+    }
+
+    const result = processDnssecAnalysis(raw, dnsvizSignal);
 
     const format = parsed.searchParams.get("format");
 

@@ -121,7 +121,7 @@ function buildHumanReadable(result, context = {}) {
   };
 }
 
-function processDnssecAnalysis(raw) {
+function processDnssecAnalysis(raw, dnsvizSignal) {
   const domain = raw?.domain || null;
   const zones = raw?.raw_checks?.zones || [];
   const delegations = raw?.raw_checks?.delegations || [];
@@ -132,7 +132,8 @@ function processDnssecAnalysis(raw) {
     zones,
     delegations,
     domain,
-    nameExistence
+    nameExistence,
+    dnsvizSignal
   );
 
   const guidance = getDnssecGuidance(conclusion.final_status);

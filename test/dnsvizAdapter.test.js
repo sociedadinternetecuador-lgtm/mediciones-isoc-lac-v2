@@ -75,6 +75,23 @@ async function run() {
     assert.strictEqual(signal.hasCryptoFailure, false);
   }
 
+  // --- regresión real: UNABLE_TO_RETRIEVE_DNSSEC_RECORDS es operativo, NO
+  // criptográfico, aunque contenga la subcadena "DS" (de "RECOR-DS") que
+  // matchearía por accidente contra CRYPTO_DNSSEC_HINTS. Encontrado
+  // probando en vivo contra isoc.org el 2026-11-04 — sin esta exclusión,
+  // cualquier timeout/fallo de transporte se reportaba como fallo de firma.
+  {
+    const result = {
+      structured_view: {
+        zones: [
+          { name: 'example.com', classification: { is_target: true }, errors: [{ code: 'UNABLE_TO_RETRIEVE_DNSSEC_RECORDS' }], warnings: [] }
+        ]
+      }
+    };
+    const signal = dnsviz.extractCryptoValidationSignal(result);
+    assert.strictEqual(signal.hasCryptoFailure, false, 'UNABLE_TO_RETRIEVE_DNSSEC_RECORDS es operativo, no debe contar como fallo criptográfico');
+  }
+
   // --- error de análisis (status: error) ---
   {
     const fetchImpl = async (url) => {

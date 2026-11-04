@@ -439,6 +439,67 @@ function run() {
     console.log('PASS multinivel_sin_regresion_not_implemented');
   }
 
+  // ── dnsvizSignal (2026-11-04, opt-in) — nuevos casos, no modifican los
+  // de arriba. Ver logic/adapters/dnsviz.adapter.js y AUDITORIA_DNSVIZ_VS_
+  // DNSSEC_ECUADOR.md para el contexto de esta integración.
+  {
+    // Sin dnsvizSignal (quinto argumento omitido): comportamiento idéntico
+    // al caso 1 de arriba — no-regresión explícita del parámetro opcional.
+    const zones = [
+      zone({ zone: 'com', level: 1, status: 'signed', query_status: 'ok' }),
+      zone({ zone: 'example.com', level: 2, status: 'signed', query_status: 'ok' })
+    ];
+    const delegations = [delegation({ from: 'com', to: 'example.com', ds_present: true, secure: true, status: 'secure', query_status: 'ok' })];
+    const result = computeDnssecConclusion(zones, delegations, 'example.com', nameExistence());
+    assert.strictEqual(result.final_status, DNSSEC_FINAL_STATUS.OK);
+    console.log('PASS dnsvizSignal_omitido_sin_regresion');
+  }
+
+  {
+    // Con dnsvizSignal.hasCryptoFailure=true: lo que el motor estructural
+    // vería como OK (DS+DNSKEY presentes, igual que el caso 1) debe bajar
+    // a misconfigured por la evidencia criptográfica real de DNSViz.
+    const zones = [
+      zone({ zone: 'com', level: 1, status: 'signed', query_status: 'ok' }),
+      zone({ zone: 'example.com', level: 2, status: 'signed', query_status: 'ok' })
+    ];
+    const delegations = [delegation({ from: 'com', to: 'example.com', ds_present: true, secure: true, status: 'secure', query_status: 'ok' })];
+    const dnsvizSignal = { hasCryptoFailure: true, issues: [{ code: 'RRSIG_EXPIRED' }] };
+    const result = computeDnssecConclusion(zones, delegations, 'example.com', nameExistence(), dnsvizSignal);
+    assert.strictEqual(result.final_status, DNSSEC_FINAL_STATUS.MISCONFIGURED);
+    assert.ok(result.summary.includes('RRSIG_EXPIRED'), 'el resumen debe citar el código real reportado por DNSViz');
+    console.log('PASS dnsvizSignal_degrada_ok_a_misconfigured');
+  }
+
+  {
+    // dnsvizSignal.hasCryptoFailure=false (el adaptador corrió pero no
+    // encontró problema real): el resultado debe seguir siendo ok, no
+    // cambiar por el solo hecho de que el parámetro esté presente.
+    const zones = [
+      zone({ zone: 'com', level: 1, status: 'signed', query_status: 'ok' }),
+      zone({ zone: 'example.com', level: 2, status: 'signed', query_status: 'ok' })
+    ];
+    const delegations = [delegation({ from: 'com', to: 'example.com', ds_present: true, secure: true, status: 'secure', query_status: 'ok' })];
+    const dnsvizSignal = { hasCryptoFailure: false, issues: [] };
+    const result = computeDnssecConclusion(zones, delegations, 'example.com', nameExistence(), dnsvizSignal);
+    assert.strictEqual(result.final_status, DNSSEC_FINAL_STATUS.OK);
+    console.log('PASS dnsvizSignal_sin_fallo_mantiene_ok');
+  }
+
+  {
+    // dnsvizSignal no debe afectar estados que no son "sería ok" — ej. un
+    // not_implemented sigue siendo not_implemented sin importar dnsvizSignal.
+    const zones = [
+      zone({ zone: 'com', level: 1, status: 'signed', query_status: 'ok' }),
+      zone({ zone: 'example.com', level: 2, status: 'unsigned', query_status: 'no_data' })
+    ];
+    const delegations = [delegation({ from: 'com', to: 'example.com', ds_present: false, status: 'insecure', query_status: 'no_data' })];
+    const dnsvizSignal = { hasCryptoFailure: true, issues: [{ code: 'RRSIG_EXPIRED' }] };
+    const result = computeDnssecConclusion(zones, delegations, 'example.com', nameExistence(), dnsvizSignal);
+    assert.strictEqual(result.final_status, DNSSEC_FINAL_STATUS.NOT_IMPLEMENTED);
+    console.log('PASS dnsvizSignal_no_afecta_estados_distintos_de_ok');
+  }
+
   console.log('\nOK — motor de clasificación DNSSEC (dnssec.rules.js): todos los casos pasaron.');
 }
 

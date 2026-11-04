@@ -38,6 +38,29 @@ const CRYPTO_DNSSEC_HINTS = [
   'ALGORITHM', 'SEP', 'KEY', 'CHAIN', 'BOGUS', 'VALIDATION'
 ];
 
+// Portado fiel de OPERATIONAL_DNS_CODES + DNSSEC_POLICY_ONLY_CODES +
+// _is_operational_issue() en app.py (2026-11-04) — sin esta exclusión,
+// códigos puramente operativos (timeouts, transporte) matchean por
+// coincidencia de subcadena contra CRYPTO_DNSSEC_HINTS por accidente.
+// Caso real encontrado probando en vivo: 'UNABLE_TO_RETRIEVE_DNSSEC_RECORDS'
+// (un problema de transporte/consulta, NO de firma) contiene la subcadena
+// "DS" (de "RECOR-DS") y sin esta exclusión se marcaba como fallo
+// criptográfico real — falso positivo confirmado contra isoc.org.
+const OPERATIONAL_DNS_CODES = [
+  'TIMEOUT', 'SERVER_UNRESPONSIVE_UDP', 'SERVER_UNRESPONSIVE_TCP',
+  'PMTU_EXCEEDED', 'ERROR_WITH_EDNS', 'DNSSEC_DOWNGRADE_EDNS_DISABLED',
+  'UNABLE_TO_RETRIEVE_DNSSEC_RECORDS', 'SERVFAIL', 'NETWORK_ERROR',
+  'QUERY_TIMEOUT', 'TCP_CONNECTION_FAILED', 'UDP_TRUNCATED', 'NO_RESPONSE',
+  'RESPONSE_ERROR'
+];
+const DNSSEC_POLICY_ONLY_CODES = [
+  'NONZERO_NSEC3_ITERATION_COUNT', 'NONEMPTY_NSEC3_SALT'
+];
+const OPERATIONAL_TEXT_HINTS = [
+  'TIMEOUT', 'UNRESPONSIVE', 'PMTU', 'TRANSPORT', 'TCP', 'UDP',
+  'NO RESPONSE', 'EDNS', 'SERVFAIL', 'UNABLE TO RETRIEVE'
+];
+
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_MAX_WAIT_MS = 90000; // dnsviz real puede tardar ~60-90s por dominio
@@ -169,9 +192,18 @@ async function runFullAnalysis(domain, { fetchImpl, pollIntervalMs = DEFAULT_POL
   return { available: false, reason: 'DNSVIZ_OBS_TIMED_OUT_WAITING' };
 }
 
-function isCryptoDnssecCode(code) {
-  const upper = String(code || '').toUpperCase();
-  return CRYPTO_DNSSEC_HINTS.some((token) => upper.includes(token));
+function isOperationalIssue(code, description) {
+  const upperCode = String(code || '').toUpperCase();
+  if (OPERATIONAL_DNS_CODES.includes(upperCode)) return true;
+  const text = `${upperCode} ${String(description || '')}`.toUpperCase();
+  return OPERATIONAL_TEXT_HINTS.some((token) => text.includes(token));
+}
+
+function isCryptoDnssecCode(code, description) {
+  const upperCode = String(code || '').toUpperCase();
+  if (DNSSEC_POLICY_ONLY_CODES.includes(upperCode)) return false;
+  if (isOperationalIssue(code, description)) return false;
+  return CRYPTO_DNSSEC_HINTS.some((token) => upperCode.includes(token));
 }
 
 // Extrae, del result.json real (campo público structured_view.zones[]), solo
@@ -188,7 +220,7 @@ function extractCryptoValidationSignal(result) {
   if (!targetZone) {
     return { hasCryptoFailure: false, issues: [] };
   }
-  const issues = (targetZone.errors || []).filter((e) => isCryptoDnssecCode(e && e.code));
+  const issues = (targetZone.errors || []).filter((e) => isCryptoDnssecCode(e && e.code, e && e.original_message));
   return { hasCryptoFailure: issues.length > 0, issues };
 }
 

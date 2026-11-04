@@ -20,7 +20,16 @@ function hasStatus(value, allowed) {
   return allowed.includes(normalizeStatus(value));
 }
 
-function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
+// dnsvizSignal (2026-11-04, opt-in, ver logic/adapters/dnsviz.adapter.js):
+// evidencia real de verificación criptográfica (RRSIG/NSEC/etc.) del
+// Observatorio DNSSEC v2, vía `dnsviz` real — algo que este motor nunca
+// verifica por sí mismo (solo infiere por presencia de DS/DNSKEY, ver
+// limitations en services/dnssec.service.js). Parámetro opcional: si se
+// omite (caso por defecto, análisis individual normal), el comportamiento
+// es IDÉNTICO al de antes de este cambio — no se agrega latencia ni riesgo
+// a la ruta rápida. Solo se usa cuando quien llama decidió explícitamente
+// pedir esta verificación más profunda (ver server.js, parámetro `deep=1`).
+function computeDnssecConclusion(zones, delegations, domain, nameExistence, dnsvizSignal) {
   const zoneList = Array.isArray(zones) ? zones : [];
   const delegationList = Array.isArray(delegations) ? delegations : [];
 
@@ -248,6 +257,23 @@ function computeDnssecConclusion(zones, delegations, domain, nameExistence) {
 
   // 5) OK
   if (domainSigned && secureDelegation) {
+    // 5.1) NUEVO (2026-11-04, opt-in) — evidencia criptográfica real del
+    // Observatorio DNSSEC v2 contradice lo que este motor concluye por
+    // presencia de DS/DNSKEY. Solo se evalúa si dnsvizSignal fue provisto
+    // explícitamente (ver comentario en la firma de la función) — nunca
+    // cambia el resultado de un análisis individual normal sin ese dato.
+    if (dnsvizSignal && dnsvizSignal.hasCryptoFailure) {
+      const codes = (dnsvizSignal.issues || []).map((i) => i.code).filter(Boolean).join(", ") || "sin código";
+      const final_status = DNSSEC_FINAL_STATUS.MISCONFIGURED;
+      return {
+        final_status,
+        readiness: DNSSEC_READINESS.ALREADY_ENABLED,
+        blocking_level: "domain",
+        summary: `${domainZone.zone} tiene DS y DNSKEY presentes, pero una verificación criptográfica real (DNSViz) detectó un problema de validación (${codes}). La cadena de confianza no es válida pese a la evidencia estructural.`,
+        technical_summary: `Evidencia estructural (DS/DNSKEY) sugería OK, pero DNSViz reportó fallo(s) criptográfico(s) real(es) en ${domainZone.zone}: ${codes}.`,
+      };
+    }
+
     const final_status = DNSSEC_FINAL_STATUS.OK;
     return {
       final_status,
