@@ -152,6 +152,36 @@ Fuente → Carga → Normalización → Validación DNS → Resultados y descarg
 Solo contenido informativo (tarjeta OpenINTEL: qué es, por qué no es un censo
 oficial, enlace a openintel.nl). Sin scraping ni descarga automática.
 
+Procedimiento verificado manualmente (2026-10-28, con `curl`, replicable por
+cualquier externo) para bajar la lista real de un ccTLD:
+1. `https://openintel.nl/data/domain-lists/cctld-names/` → confirma que la
+   fuente es "Domain Lists → ccTLD Names" (derivada de Certificate
+   Transparency, no transferencia de zona — esa es otra sección, "Forward
+   DNS → Zone-Based", solo con cobertura europea vía acuerdo bilateral, y no
+   es la que usa este flujo).
+2. `https://openintel.nl/download/domain-lists/cctlds/` — pide aceptar un
+   acuerdo de datos (formulario POST que fija la cookie
+   `openintel-data-agreement-accepted=true`; en un navegador normal basta con
+   el botón "I have read and agree to these terms").
+3. Tras aceptar, es un índice de directorio real navegable:
+   `.../tld=<cc>/year=YYYY/month=MM/day=DD/` — un snapshot nuevo
+   aproximadamente cada semana (los 6 ccTLD de LAC verificados —
+   `ar`/`ec`/`pa`/`py`/`do`/`uy` — tenían su último snapshot el mismo
+   `day=26` de octubre 2026).
+4. El directorio del día contiene un único archivo
+   `ccTLD-domain-names-list.<cc>.<fecha>.csv.gz`, servido directo desde
+   `object.openintel.nl` (ej.
+   `https://object.openintel.nl/seeseetld/lists/tld=ec/year=2026/month=10/day=26/ccTLD-domain-names-list.ec.2026-10-26.csv.gz`).
+   Al descomprimir (`gunzip`) da un dominio por línea — el formato exacto que
+   esta herramienta espera en la etapa de Carga.
+5. Licencia CC BY-NC-SA 4.0 (no comercial, atribución obligatoria, misma
+   licencia en redistribución) — ver términos completos en el propio sitio.
+
+Cobertura confirmada por `curl` el 2026-10-28: 307 ccTLD en total, incluidos
+los 6 de LAC usados en `data/exercises/2026-10-28_dataset_6paises_cctld/`
+(`ar`: 487 515 dominios; `ec`: 35 406; `pa`: 6 483; `py`: 27 234; `do`:
+24 035; `uy`: 54 172, en el snapshot del 2026-10-26).
+
 ### 2. Carga
 100% cliente (JS del navegador): lee el archivo, calcula SHA-256
 (`crypto.subtle` — requiere HTTPS o `localhost`, degrada con un mensaje claro

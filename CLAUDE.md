@@ -158,9 +158,77 @@ falta reproducir el patrón, ver `docs/arquitectura.md`.
    `GET /ged2026/api/v1/summary` antes/después). No queda código ni ruta
    de GED2026 en este repositorio — si algo lo referencia, es una
    mención histórica de una fase anterior, no algo para editar acá.
+   **Su avance es trabajo propio, no de un tercero.** El 2026-09-23 se
+   hicieron allá la muestra (100 selected / 23 excluded sobre 366), los
+   Snapshots WEB (`GED2026-WEB-RUN-002`) y MAIL (`GED2026-MAIL-RUN-001`,
+   STARTTLS "No medido"), la fase `analysis` y el portal isoc.org.ec.
+   `mediciones.isoc.org.ec` solo expone sus 4 rutas de API
+   (`/ged2026/api/v1/{summary,results,results/web,results/mail}`), por una
+   regla exacta del túnel que va ANTES de la regla general. No tocarla desde acá.
+
+10. **Base de Conocimiento DNSSEC ("Aprender DNSSEC") — implementada y en
+    producción desde 2026-09-27** (commit `299ffc4`, desplegado y validado
+    en `https://mediciones.isoc.org.ec`). Vive dentro del tab DNSSEC como
+    sub-navegación "Analizar dominio | Aprender DNSSEC", sin tocar el
+    analizador existente. Arquitectura:
+    - `public/dnssecKb.content.js` — contenido editorial (20 guías +
+      Glosario + Referencias y estándares = 22 páginas), categorías,
+      diagramas HTML/CSS. Fuente única de verdad del contenido.
+    - `public/dnssecKb.js` — toda la lógica (landing, buscador tolerante a
+      acentos sin librería, filtros de nivel, render de guía, TOC con
+      `IntersectionObserver` para active-state, prev/next, hash-routing
+      propio `#/dnssec/aprender/<slug>`). Expone un único global,
+      `window.DnssecKb`, para no ensuciar `window`.
+    - `public/dnssecKb.css` — única regla propia: `.dnssec-kb-toc-desktop-wrap`
+      (el TOC de escritorio necesita esta clase dedicada porque
+      `.hidden{display:none!important}` del sitio le gana en cascada a
+      `hidden md:block` de Tailwind — no volver a usar esa combinación ahí).
+    - Enlaces contextuales "ⓘ" desde `renderDnssecInlineResult` (el
+      renderer del analizador, en `index.html`) hacia guías concretas —
+      vía `DnssecKb.infoLink(slug, label)`, sin tocar la lógica de datos
+      del analizador.
+    - Aislamiento de fallos: el wireup de `hashchange` al final de
+      `index.html` comprueba `if (window.DnssecKb)` antes de invocarlo —
+      si este módulo no carga, el analizador (individual y batch) sigue
+      funcionando igual.
+    - Cache-busting: los 3 assets (`dnssecKb.js`, `.content.js`, `.css`)
+      se versionan con el mismo mecanismo de `i18n.js`
+      (`logic/adapters/i18nVersion.adapter.js`, ahora generalizado a una
+      lista `VERSIONED_ASSETS` en vez de un solo archivo hardcodeado).
+    - Tests: `test/dnssecKb.content.test.js` (integridad del contenido:
+      22 guías, sin slugs duplicados, enlaces internos válidos, RFC/IANA
+      obligatorios presentes) y `test/dnssecKb.module.test.js`
+      (estructura del módulo: IIFE única, un solo global, API esperada,
+      `index.html` libre de la lógica extraída).
+    - No tocar sin razón: la taxonomía de 7 estados
+      (`config/dnssec.constants.js`), el motor (`dnssec.rules.js`/
+      `dnssec.service.js`), ni el contenido editorial de las 22 guías
+      salvo error real y reproducible.
 
 ## Archivos que NO están conectados (código muerto conocido)
 
 `routes/dnssec.routes.js` usa Express y no lo requiere nadie — `server.js`
 reimplementa esa lógica inline. No confundir al buscar dónde editar
 `/dnssec-analysis`.
+
+## Deploy — nota operativa 2026-09-27
+
+El comando de deploy en `docs/arquitectura.md` § "Cómo desplegar" quedó
+desactualizado (lista archivos a mano) — el comando **vigente** es el de
+este archivo, arriba, con `git ls-files` (más robusto, ver comentario
+2026-09-16 junto al comando).
+
+Al desplegar este día, `tar -xf -` sobre `server1` reportó errores
+(`Cannot open: File exists` / `Permission denied`) exclusivamente sobre
+`DNSLab/local/lab/zones/keys/**` — archivos de claves de un laboratorio
+DNSSEC de pruebas, con permisos restrictivos ya existentes en el
+servidor, ajenos a cualquier feature de MEDICIONES en sí. GNU tar sigue
+extrayendo el resto del stream tras un error por archivo y recién falla
+(`exit 2`) al final, así que **no** corta la transferencia de los demás
+archivos — verificado con `md5sum` que los archivos relevantes de la
+feature en curso llegaron íntegros pese al `exit 2`. Si vuelve a
+aparecer: no es necesariamente bloqueante, pero conviene confirmar por
+checksum que los archivos que sí importan llegaron bien antes de asumir
+que el deploy falló completo, y no tocar `DNSLab/local/lab/zones/keys/`
+para "arreglarlo" sin que se pida explícitamente (son fixtures de otro
+módulo, con su propio dueño).
