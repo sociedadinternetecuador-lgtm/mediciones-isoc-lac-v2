@@ -28,7 +28,7 @@ function hasStatus(value, allowed) {
 // omite (caso por defecto, análisis individual normal), el comportamiento
 // es IDÉNTICO al de antes de este cambio — no se agrega latencia ni riesgo
 // a la ruta rápida. Solo se usa cuando quien llama decidió explícitamente
-// pedir esta verificación más profunda (ver server.js, parámetro `deep=1`).
+// pedir esta validación de firma DNSSEC (ver server.js, parámetro `?dnsviz=1`).
 function computeDnssecConclusion(zones, delegations, domain, nameExistence, dnsvizSignal) {
   const zoneList = Array.isArray(zones) ? zones : [];
   const delegationList = Array.isArray(delegations) ? delegations : [];

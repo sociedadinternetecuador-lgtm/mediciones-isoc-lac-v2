@@ -4115,14 +4115,15 @@ if (parsed.pathname === "/dnssec-analysis") {
     const domain = validateDomainInput(parsed.searchParams.get("domain"));
     const raw = await getDnssecAnalysis(domain);
 
-    // Verificación profunda opcional (2026-11-04, opt-in explícito vía
-    // ?deep=1): corre dnsviz real contra el Observatorio DNSSEC v2 — toma
-    // 60-90s por dominio, por eso NUNCA es el camino por defecto. Si
+    // Validación criptográfica de firma DNSSEC opcional, vía DNSViz real
+    // (2026-11-04, opt-in explícito con ?dnsviz=1): verifica si la firma en
+    // sí es válida, no solo si DS/DNSKEY están presentes — toma 60-90s por
+    // dominio, por eso NUNCA es el camino por defecto. Si
     // DNSVIZ_OBSERVATORIO_URL no está configurada, o el servicio falla por
     // cualquier motivo, dnsvizSignal queda undefined y el resultado es
     // idéntico al de un análisis normal (ver dnssec.rules.js).
     let dnsvizSignal;
-    if (parsed.searchParams.get("deep") === "1") {
+    if (parsed.searchParams.get("dnsviz") === "1") {
       const deep = await dnsvizAdapter.runFullAnalysis(domain);
       if (deep.available) {
         dnsvizSignal = dnsvizAdapter.extractCryptoValidationSignal(deep.result);
