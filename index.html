@@ -3622,6 +3622,31 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
     // Arrancar en INICIO
     activateTab("inicio");
   })();
+// Helper genérico: muestra un modal de progreso SOLO si la operación en
+// curso todavía no terminó a los `delayMs` (30s por defecto) — en vez de
+// decidir de antemano "este tipo de análisis es lento, mostrar siempre".
+// Un análisis rápido nunca llega a ver el modal; uno que se demora más de
+// lo esperado (por la razón que sea: muchos dominios, red lenta, el
+// Observatorio DNSSEC tardando más de lo normal) lo muestra solo.
+// Uso: const p = showModalIfSlow('mi-modal'); ...trabajo asíncrono...; p.finish();
+function showModalIfSlow(modalId, delayMs = 30000) {
+  let shown = false;
+  const modal = document.getElementById(modalId);
+  const timer = setTimeout(() => {
+    if (modal) {
+      shown = true;
+      modal.classList.remove("hidden");
+    }
+  }, delayMs);
+  return {
+    finish() {
+      clearTimeout(timer);
+      if (shown && modal) modal.classList.add("hidden");
+    },
+    get isShown() { return shown; }
+  };
+}
+
 async function analyzeDnssecInline(domain, verifySignature) {
   const wrapper = document.getElementById("dnssec-inline-result");
   const loading = document.getElementById("dnssec-inline-loading");
@@ -3640,27 +3665,30 @@ async function analyzeDnssecInline(domain, verifySignature) {
   content.classList.add("hidden");
   errorBox.textContent = "";
 
-  // El modal bloqueante de progreso con botón Cancelar solo tiene sentido
-  // para la espera larga (validación real de firma) — el análisis normal
-  // ya es casi instantáneo, no necesita bloquear la pantalla.
-  const controller = verifySignature ? new AbortController() : null;
+  // El modal no se decide de antemano por tipo de análisis — aparece solo
+  // si a los 30s la solicitud todavía no terminó (ver showModalIfSlow).
+  // Así, un análisis normal que por algún motivo tarda también lo muestra,
+  // y la validación de firma (normalmente 60-90s) casi siempre lo dispara.
+  const controller = new AbortController();
   let cancelled = false;
-  if (verifySignature && modal) {
-    modalMessage.textContent = `Validando firma DNSSEC real con DNSViz para ${domain} — esto puede tardar 60-90 segundos...`;
-    modal.classList.remove("hidden");
+  if (modal) {
+    modalMessage.textContent = verifySignature
+      ? `Validando firma DNSSEC real con DNSViz para ${domain} — esto puede tardar 60-90 segundos...`
+      : `Analizando DNSSEC para ${domain}...`;
     cancelBtn.onclick = () => {
       cancelled = true;
       controller.abort();
       modal.classList.add("hidden");
     };
   }
+  const progress = showModalIfSlow("dnssec-progress-modal");
 
   try {
     const dnsvizParam = verifySignature ? "&dnsviz=1" : "";
     const res = await fetch(`/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json${dnsvizParam}`, {
       method: "GET",
       headers: { "Accept": "application/json" },
-      signal: controller ? controller.signal : undefined
+      signal: controller.signal
     });
 
     if (!res.ok) {
@@ -3677,7 +3705,7 @@ async function analyzeDnssecInline(domain, verifySignature) {
     }
   } finally {
     loading.classList.add("hidden");
-    if (modal) modal.classList.add("hidden");
+    progress.finish();
     if (cancelled) {
       wrapper.classList.add("hidden");
     } else {
@@ -5572,6 +5600,7 @@ const MAX_DOMAINS_PER_ANALYSIS = 20;
 
 let mbCheckboxes = [];
 let mbCancelled = false;
+let mbProgressModalHandle = null;
 let mbSourceMode = 'paste';
 let mbSourceFilename = null;
 
@@ -5794,7 +5823,7 @@ async function medicionesBatchStart() {
   document.getElementById('mb-progress-wrap').classList.remove('hidden');
   document.getElementById('mb-results-wrap').classList.add('hidden');
   document.getElementById('mb-report-error').classList.add('hidden');
-  document.getElementById('mb-progress-modal').classList.remove('hidden');
+  mbProgressModalHandle = showModalIfSlow('mb-progress-modal');
   mbSetProgress(0, domains.length, '');
   mbSetDnsStatus('en cola…');
 
@@ -5822,7 +5851,7 @@ async function medicionesBatchStart() {
 
   document.getElementById('mb-cancel-btn').classList.add('hidden');
   document.getElementById('mb-start-btn').classList.remove('hidden');
-  document.getElementById('mb-progress-modal').classList.add('hidden');
+  if (mbProgressModalHandle) { mbProgressModalHandle.finish(); mbProgressModalHandle = null; }
 
   if (mbCancelled) {
     document.getElementById('mb-progress-label').textContent = 'Cancelado.';
@@ -5895,7 +5924,7 @@ function medicionesBatchCancel() {
   document.getElementById('mb-progress-label').textContent = 'Cancelando…';
   document.getElementById('mb-cancel-btn').classList.add('hidden');
   document.getElementById('mb-start-btn').classList.remove('hidden');
-  document.getElementById('mb-progress-modal').classList.add('hidden');
+  if (mbProgressModalHandle) { mbProgressModalHandle.finish(); mbProgressModalHandle = null; }
 }
 
 // Vista previa en pantalla: tabla dominio × check (✓/✗), estilo similar al
