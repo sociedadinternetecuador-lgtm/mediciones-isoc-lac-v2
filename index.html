@@ -958,7 +958,7 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
           Verifica si la firma criptográfica es válida, no solo si los registros
           DS/DNSKEY están presentes. Tarda 60-90 segundos adicionales por dominio.
         </p>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap items-center gap-4">
           <label class="flex items-center gap-1.5 text-sm text-gray-700">
             <input type="radio" name="dnssec-verify-choice" value="yes" id="dnssec-verify-yes" />
             Sí, validar firma
@@ -967,6 +967,10 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
             <input type="radio" name="dnssec-verify-choice" value="no" id="dnssec-verify-no" />
             No, análisis normal
           </label>
+          <button type="button" onclick="DnssecKb.switchTopTab('aprender')"
+            class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+            ¿Qué es esto? Aprender DNSSEC →
+          </button>
         </div>
       </div>
       <div class="flex flex-col md:flex-row gap-3">
