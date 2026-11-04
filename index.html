@@ -950,6 +950,14 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       <label for="dnssec-domain-input" class="block text-sm font-medium text-gray-700 mb-2">
         Dominio a analizar
       </label>
+      <label class="mb-3 flex items-start gap-2 text-xs text-gray-600">
+        <input type="checkbox" id="dnssec-verify-signature" class="mt-0.5" />
+        <span>
+          <strong>Validar firma DNSSEC real (DNSViz)</strong> — verifica si la firma
+          criptográfica es válida, no solo si los registros DS/DNSKEY están presentes.
+          Tarda 60-90 segundos adicionales por dominio.
+        </span>
+      </label>
       <div class="flex flex-col md:flex-row gap-3">
         <input id="dnssec-domain-input" type="text" placeholder="Ejemplo: isoc.org"
           autocomplete="off" spellcheck="false"
@@ -963,14 +971,6 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       <div class="mt-3 text-xs text-gray-500">
         Ingrese solo el dominio. No es necesario escribir http://, https:// ni rutas.
       </div>
-      <label class="mt-3 flex items-start gap-2 text-xs text-gray-600">
-        <input type="checkbox" id="dnssec-verify-signature" class="mt-0.5" />
-        <span>
-          <strong>Validar firma DNSSEC real (DNSViz)</strong> — verifica si la firma
-          criptográfica es válida, no solo si los registros DS/DNSKEY están presentes.
-          Tarda 60-90 segundos adicionales por dominio.
-        </span>
-      </label>
     </form>
   </div>
 
