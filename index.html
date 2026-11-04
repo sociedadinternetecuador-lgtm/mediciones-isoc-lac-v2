@@ -541,6 +541,15 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
       EVENTOS
     </button>
 
+    <button
+      id="tabBtnAprenderDnssec"
+      type="button"
+      class="tab-btn-content px-4 py-2 rounded-lg text-sm font-semibold transition border border-blue-200 text-blue-700 hover:bg-blue-50"
+      onclick="document.querySelector('[data-tab=&quot;dnssec&quot;]').click(); if (window.DnssecKb) DnssecKb.switchTopTab('aprender');"
+    >
+      APRENDER DNSSEC
+    </button>
+
   </div>
 
 </div>
