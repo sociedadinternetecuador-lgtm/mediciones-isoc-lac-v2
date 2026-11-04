@@ -1293,6 +1293,26 @@ details[open] > summary .disclosure-chevron { transform: rotate(90deg); }
   </div><!-- /dnssec-panel-aprender -->
 
   </section>
+
+<!-- Modal de progreso para la validación larga de firma DNSSEC (DNSViz,
+     60-90s) — bloquea el resto de la pantalla a propósito, para que quede
+     claro que algo está corriendo en vez de quedar sin feedback visible. -->
+<div id="dnssec-progress-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 text-center">
+    <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <p id="dnssec-progress-modal-message" class="text-sm text-gray-700 mb-4">
+      Validando firma DNSSEC real con DNSViz — esto puede tardar 60-90 segundos...
+    </p>
+    <button type="button" id="dnssec-progress-cancel-btn"
+      class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+      Cancelar
+    </button>
+  </div>
+</div>
+
 <div id="dnssec-inline-result" class="mt-6 hidden">
   <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
@@ -3589,6 +3609,9 @@ async function analyzeDnssecInline(domain, verifySignature) {
   const loading = document.getElementById("dnssec-inline-loading");
   const errorBox = document.getElementById("dnssec-inline-error");
   const content = document.getElementById("dnssec-inline-content");
+  const modal = document.getElementById("dnssec-progress-modal");
+  const modalMessage = document.getElementById("dnssec-progress-modal-message");
+  const cancelBtn = document.getElementById("dnssec-progress-cancel-btn");
 
   wrapper.classList.remove("hidden");
   loading.classList.remove("hidden");
@@ -3599,11 +3622,27 @@ async function analyzeDnssecInline(domain, verifySignature) {
   content.classList.add("hidden");
   errorBox.textContent = "";
 
+  // El modal bloqueante de progreso con botón Cancelar solo tiene sentido
+  // para la espera larga (validación real de firma) — el análisis normal
+  // ya es casi instantáneo, no necesita bloquear la pantalla.
+  const controller = verifySignature ? new AbortController() : null;
+  let cancelled = false;
+  if (verifySignature && modal) {
+    modalMessage.textContent = `Validando firma DNSSEC real con DNSViz para ${domain} — esto puede tardar 60-90 segundos...`;
+    modal.classList.remove("hidden");
+    cancelBtn.onclick = () => {
+      cancelled = true;
+      controller.abort();
+      modal.classList.add("hidden");
+    };
+  }
+
   try {
     const dnsvizParam = verifySignature ? "&dnsviz=1" : "";
     const res = await fetch(`/dnssec-analysis?domain=${encodeURIComponent(domain)}&format=json${dnsvizParam}`, {
       method: "GET",
-      headers: { "Accept": "application/json" }
+      headers: { "Accept": "application/json" },
+      signal: controller ? controller.signal : undefined
     });
 
     if (!res.ok) {
@@ -3614,11 +3653,18 @@ async function analyzeDnssecInline(domain, verifySignature) {
     renderDnssecInlineResult(data, verifySignature);
     content.classList.remove("hidden");
   } catch (err) {
-    errorBox.textContent = `No fue posible obtener el análisis DNSSEC. ${err.message}`;
-    errorBox.classList.remove("hidden");
+    if (!cancelled) {
+      errorBox.textContent = `No fue posible obtener el análisis DNSSEC. ${err.message}`;
+      errorBox.classList.remove("hidden");
+    }
   } finally {
     loading.classList.add("hidden");
-    wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (modal) modal.classList.add("hidden");
+    if (cancelled) {
+      wrapper.classList.add("hidden");
+    } else {
+      wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   // Independiente del resultado DNSSEC de arriba: si falla, simplemente no
