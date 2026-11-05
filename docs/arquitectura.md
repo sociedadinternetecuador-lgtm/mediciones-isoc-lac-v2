@@ -3187,3 +3187,251 @@ nuevo**: probar con `curl -H "Origin: ..."` usando el dominio EXACTO tal
 como lo entrega el navegador después de cualquier redirección (revisar
 primero si el dominio raíz redirige a "www" o viceversa), no solo el
 dominio "obvio" a partir del pedido original.
+
+## DNSLab eliminado por completo — 2026-11-04
+
+El subproyecto `DNSLab/` (laboratorio educativo de DNS/DNSSEC, aislado,
+nunca parte del servicio productivo — tenía su propio `CLAUDE.md` interno)
+se eliminó a pedido explícito del usuario, tras confirmar que todas sus
+fases (0 a 8c) estaban técnicamente cerradas y que no había trabajo activo
+desde 2026-09-25.
+
+Se eliminó en tres lugares:
+- Repo local y `server1:~/projects/MEDICIONES/DNSLab/` (incluyendo los 4
+  volúmenes Docker con datos de runtime y los 7 timers `systemd --user`
+  que corrían su observabilidad/backups/reportes periódicos).
+- El historial completo de git, con `git filter-repo --path DNSLab/
+  --invert-paths` — ejecutado ANTES del primer `git push` de este
+  repositorio a GitHub, así que DNSLab nunca llegó a existir en el
+  historial público. Verificado con `git log --all -- DNSLab` (0
+  resultados) tras la reescritura.
+
+Backups de DNSLab que sí sobreviven, fuera del repo y sin tocar:
+`server1:~/backups/dnslab/*.sqlite` (snapshots diarios de la base de
+observabilidad) y `server1:~/backups/dnslab-portal/code-pre-deploy-*.tar.gz`
+(snapshots de código pre-deploy, el más reciente del 2026-09-26).
+
+## Integración con ISOC Pulse (API oficial) — 2026-11-04
+
+Qué es ISOC Pulse: la plataforma propia de Internet Society que publica
+indicadores reales de Internet por país — adopción de DNSSEC, cobertura
+de ROA/seguridad de enrutamiento, adopción de IPv6, índice de
+resiliencia. API REST oficial (`https://pulse-api.internetsociety.org`,
+distinta del sitio web `pulse.internetsociety.org`). Autenticación:
+cabecera Authorization Bearer con un token — confirmado en vivo, sin ese
+header la API responde 401/403.
+
+Por qué se hizo: el motor DNSSEC de MEDICIONES solo verifica presencia
+estructural de DS/DNSKEY, nunca validación criptográfica completa — Pulse
+ofrece el equivalente agregado a nivel país, útil como contexto para
+interpretar un resultado individual.
+
+Implementación: `logic/adapters/pulse.adapter.js` — aislado, con
+`fetchImpl` inyectable para pruebas, caché en memoria de 24h (los datos
+de Pulse llegan con varios días de rezago real, confirmado en vivo: el
+dato más reciente de ROA para Ecuador era 9 días anterior a la fecha de
+consulta — por eso la ventana de búsqueda es de 14 días, no 2). Endpoints
+usados: adopción DNSSEC por país, cobertura ROA por país, resiliencia por
+país (este último exige el código de país en mayúsculas, detalle
+encapsulado dentro del adaptador). Nueva ruta en `server.js`: GET
+/pulse-context?domain= — extrae el ccTLD del dominio, llama al
+adaptador, y devuelve disponibilidad + país + cobertura ROA + si el ccTLD
+está firmado + fecha del dato, o {available:false} ante cualquier fallo.
+En `index.html` se muestra como tarjeta adicional debajo del resultado
+DNSSEC individual, con su propio try/catch, nunca bloquea el análisis.
+
+Validado contra el dataset real de 150 dominios (6 países): los 150
+dieron available:true, con una respuesta consistente por país entre sus
+25 dominios (confirma que la caché funciona). Hallazgo real: Panamá y
+República Dominicana tienen su ccTLD sin firmar DNSSEC a nivel de país.
+
+Variables de entorno (.env.example): PULSE_API_KEY (requerida),
+PULSE_API_BASE_URL / PULSE_REQUEST_TIMEOUT_MS / PULSE_CACHE_TTL_MS
+(opcionales). Tests: test/pulseAdapter.test.js (simulado, sin red) y
+test/pulseAdapter.live.smoke.test.js (manual, red real).
+
+## Observatorio DNSSEC v2 — importado como subproyecto aislado — 2026-11-04
+
+Durante la investigación de por qué el motor DNSSEC de MEDICIONES nunca
+verifica la firma criptográfica real, se encontró un proyecto hermano ya
+existente que sí lo hace: Observatorio DNSSEC v2 (originalmente en
+C:\PROJECTS\OBSERVA\observatorio-dnssec-v2), desarrollado también por
+ISOC Ecuador/CORPECE, Flask/Python, que ejecuta el comando real dnsviz
+(CLI, no el sitio web dnsviz.net). Principio de diseño declarado del
+propio proyecto: "DNSViz es la fuente soberana. El sistema NO
+reinterpreta DNSSEC, NO crea scoring propio."
+
+Por qué necesita infraestructura aparte: dnsviz necesita IPv6 real para
+evaluar correctamente una zona — server1 no tiene IPv6 pública,
+confirmado con pruebas reales fallando por completo. Por eso el proyecto
+corre en Google Cloud Run (https://dnssec.corpece.org.ec, proyecto GCP
+observatorio-dnssec, no server1), con un nodo de Compute Engine aparte
+(dnsviz-lab) para casos con IPv6 real — ese nodo no se enciende
+automáticamente, solo vía intervención manual.
+
+Qué se hizo: se copió (no se movió) el proyecto completo a este repo, en
+observatorio-dnssec-v2/, con un commit de línea base sin modificar su
+contenido (excluyendo datos de runtime y cachés de Python). Tiene su
+propio CLAUDE.md interno con reglas de aislamiento. Respaldos antes de
+tocar nada: zip completo fuera del repo
+(C:\PROJECTS\OBSERVA\observatorio-dnssec-v2_backup_20261104T193536Z.zip,
+incluye los datos de runtime excluidos) y tag de git
+pre-import-observatorio-dnssec-v2.
+
+Auditado tras importar: 91 tests propios (pytest), todos pasan instalando
+solo dependencias Python puras. La app arranca y responde /health con
+200 localmente.
+
+Incidente real durante la reactivación (2026-11-04): la producción en
+Cloud Run daba 500/"service not available yet" — no era un bug de
+código, era la cuenta de facturación de GCP cerrada (tarjeta vencida).
+Diagnosticado con gcloud (tras resolver un problema de certificados SSL
+local causado por el antivirus AVG interceptando TLS). El usuario
+reactivó la tarjeta; Cloud Run tardó unos minutos en propagar el cambio,
+y luego respondió normal. Quedó pendiente de tramitar: créditos de
+Google Cloud para ONG (Google for Nonprofits ya tiene aprobado Workspace,
+pero NO los créditos de Cloud específicamente — son un producto aparte
+que hay que solicitar).
+
+Pendiente real, no resuelto: el último despliegue real en Cloud Run fue
+el 15 de mayo de 2026 — el rediseño completo de 6 fases documentado en
+observatorio-dnssec-v2/REPORTE-FINAL.md (de septiembre) nunca se publicó
+en producción. Para cualquier trabajo de integración, usar el código
+importado acá (más completo), no asumir que coincide con lo que está hoy
+en https://dnssec.corpece.org.ec.
+
+## Validación real de firma DNSSEC (DNSViz) conectada al motor — opt-in — 2026-11-04
+
+Con el Observatorio DNSSEC v2 ya importado y funcionando, se conectó como
+evidencia opcional al motor DNSSEC de MEDICIONES — deliberadamente NO en
+el camino por defecto, porque dnsviz real tarda 60-90s por dominio
+(medido: 74s para isoc.org) y el analizador individual de MEDICIONES
+responde en ~1s.
+
+Contrato de datos real de la API pública del Observatorio (verificado
+leyendo el código real, no asumido): el resultado público no expone el
+veredicto SECURE/INSECURE/BOGUS que el Observatorio calcula internamente
+— ese cálculo es deliberadamente no expuesto al público. Lo único
+público y útil es la vista estructurada por zona: cada zona trae si es
+la zona objetivo exacta, y una lista de errores/advertencias con un
+código real del catálogo DNSViz (ej. RRSIG_EXPIRED).
+
+logic/adapters/dnsviz.adapter.js — runFullAnalysis(domain) dispara el
+análisis, espera por polling a que termine, trae el resultado, y
+extractCryptoValidationSignal(result) reimplementa sobre esos datos
+públicos el mismo criterio de palabras clave criptográficas que usa
+internamente el Observatorio (RRSIG, DNSKEY, DS, NSEC, NSEC3, SIGNATURE,
+DIGEST, ALGORITHM, SEP, KEY, CHAIN, BOGUS, VALIDATION), filtrando solo
+errores de la zona exacta del dominio. Bug real encontrado probando en
+vivo contra isoc.org antes de dar esto por terminado: el código
+UNABLE_TO_RETRIEVE_DNSSEC_RECORDS (un problema de transporte/consulta,
+no de firma) contiene la subcadena "DS" (de RECORDS) y sin una exclusión
+de códigos operativos se clasificaba como fallo criptográfico real —
+falso positivo confirmado y corregido, con test de regresión.
+
+Conexión al motor: logic/rules/dnssec.rules.js recibió un quinto
+parámetro opcional (dnsvizSignal) — sigue siendo una función pura, sin
+I/O. Si el parámetro está presente y marca fallo criptográfico, un
+veredicto que de otro modo sería "ok" baja a "misconfigured", citando el
+código real reportado por DNSViz en el resumen. Si el parámetro se omite
+(caso por defecto), el comportamiento es idéntico al de antes — 4 tests
+nuevos en test/dnssecRules.test.js, incluyendo un caso explícito de
+no-regresión.
+
+server.js (/dnssec-analysis): el parámetro ?dnsviz=1 (antes deep=1,
+renombrado por ser más técnico y corto) dispara, de forma opt-in, la
+llamada al adaptador antes de construir la conclusión final.
+
+index.html (tab DNSSEC, Un dominio): elección Sí/No obligatoria antes de
+habilitar el botón Analizar DNSSEC — el reporte final muestra
+explícitamente qué opción se usó y qué implica. Modal de progreso
+centrado y bloqueante con botón Cancelar real (aborta la solicitud de
+verdad, no solo oculta el modal).
+
+## Modal de progreso por tiempo transcurrido, no por tipo de análisis — 2026-11-04
+
+showModalIfSlow(modalId, delayMs=30000) en index.html: arma un temporizador;
+si la operación en curso no avisó que terminó antes de que venza, recién
+ahí muestra el modal. Reemplaza la alternativa más simple e incorrecta
+como regla general de "este tipo de análisis es lento, mostrar siempre
+el modal" — con la regla por tiempo, un análisis normal rápido nunca lo
+ve, y cualquier operación que se demore más de lo esperado (dnsviz real,
+un lote grande, la red) lo dispara automáticamente sin tener que
+clasificar cada caso de antemano. Usado por el análisis DNSSEC
+individual y por el flujo batch de Mediciones, con el mismo botón
+Cancelar ya existente en ese flujo.
+
+## Bug real: falta de User-Agent en llamadas salientes causaba bloqueos reportados como falla del dominio — 2026-11-04
+
+Síntoma reportado: analizar isoc.org.ec en el módulo Mediciones daba el
+check HTTPS como "fail".
+
+Causa real, confirmada con pruebas directas: la consulta de cabeceras
+(que sigue la redirección real isoc.org.ec a www.isoc.org.ec) recibía
+429 de Cloudflare en el hop final. Comparando una petición sin
+User-Agent (429) contra la misma petición con un User-Agent normal
+(200), se confirmó que Cloudflare trataba la ausencia de User-Agent como
+señal de bot — no era un problema de configuración de isoc.org.ec, era
+un comportamiento identificable del propio cliente HTTP de MEDICIONES.
+(Nota aparte, ya correcta: un 429 se clasifica como INCONCLUSIVE, no
+como FAIL — pero igual era un bug real que ocultaba información válida
+sobre el dominio.)
+
+Corrección: logic/adapters/safeWebFetch.adapter.js, función que arma la
+petición de cabeceras (usada por los ~12 checks de seguridad HTTP:
+https, redirect, hsts, csp, xfo, xcto, referrer, permissions, xxss,
+compression, server, headers) — agregado un User-Agent por defecto,
+overridable por quien llame. Mismo default agregado a las funciones
+equivalentes en server.js (alimentan WHOIS, hosts asociados, y
+malware/URLhaus) por consistencia con la función que ya lo tenía.
+
+Auditoría del resto del sistema (cobertura completa de server.js y los
+adaptadores): ningún otro punto necesitaba el mismo fix — DNS crudo no
+aplica (no es HTTP), RIPEstat/Cymru/RDAP/PSL/Pulse/DNSViz ya tenían
+User-Agent, y URLhaus (sin UA, pero ya trataba cualquier bloqueo como
+INCONCLUSIVE, nunca como PASS falso) se corrigió solo por consistencia,
+no por necesidad real.
+
+Test de regresión: test/safeWebFetch.adapter.test.js intercepta la
+llamada HTTP real (monkey-patch temporal, restaurado al final) — a
+diferencia de los demás casos del archivo, que mockean la implementación
+inyectada y nunca ejercitan la función real — apuntando a una IP de
+rango reservado para pruebas (no bloqueada por la política interna pero
+no enrutable) para confirmar que el header se arma sin depender de una
+conexión real.
+
+## Chequeo periódico ("canario") del sistema real en producción — 2026-11-04
+
+El bug anterior (User-Agent/429) no lo detectó ningún test de npm test
+—todos corren con datos simulados, sin red real— ni ninguna alerta
+automática; lo notó el usuario manualmente. scripts/canary-check.js
+existe para que la próxima vez que algo así pase, se detecte solo.
+
+Es un script standalone (no entra a npm test, mismo principio de
+separar validación de ejecución que ya rige el proyecto): corre contra
+la API real en producción, con 6 casos de resultado esperado documentado
+explícitamente en el propio código: HTTPS de isoc.org.ec (el caso exacto
+del bug), WHOIS, hosts asociados, DNSSEC de isoc.org (dominio con
+DNSSEC real y válido conocido — si deja de dar "ok" es señal de un bug
+en el motor, no del dominio), contexto Pulse (detecta si la API key
+vence o la facturación se cierra), y salud del Observatorio DNSSEC v2
+(detecta si su facturación de GCP vuelve a cerrarse, como ya pasó una
+vez el mismo día).
+
+Si algo falla, envía un correo real reusando el adaptador de email ya
+existente (SMTP Brevo), a CANARY_ALERT_EMAIL (fallback
+SUPER_ADMIN_RECOVERY_EMAIL), asunto "ALERTA MEDICIONES — N chequeo(s)
+fallando", con el detalle técnico de cada falla. Si SMTP no está
+configurado o no hay a quién avisar, degrada de forma segura (log y
+salida con error, nunca lanza una excepción sin capturar).
+
+Programado vía systemd --user timer en server1, una vez al día a las
+22:00 hora Ecuador. Importante: server1 corre en UTC, así que el horario
+real configurado es 03:00 UTC — una confusión real durante la
+implementación (el primer intento usó 22:00 tal cual, que corría a las
+17:00 Ecuador). Un lock de archivo evita que se solape consigo mismo si
+una corrida anterior no terminó. El comando programado corre dentro del
+contenedor Docker usando las variables de entorno ya cargadas ahí, sin
+configuración separada; requiere que el contenedor esté reconstruido con
+la versión del código que incluye el script (copiar archivos sin
+reconstruir la imagen no alcanza).

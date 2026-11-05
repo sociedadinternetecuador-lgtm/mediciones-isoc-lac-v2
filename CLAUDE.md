@@ -23,7 +23,10 @@
    Núcleo de Node + `dns-packet` + `nodemailer` (únicas dos dependencias
    externas — `nodemailer` es una excepción deliberada: envío de
    contraseñas es sensible a bugs sutiles de STARTTLS/codificación como
-   para implementarlo a mano).
+   para implementarlo a mano). Esta regla es para el código de MEDICIONES
+   propiamente — `observatorio-dnssec-v2/` (ver punto 13) es un
+   subproyecto aparte, stack Python/Flask, con sus propias reglas en su
+   propio `CLAUDE.md` interno; no aplica acá.
 
 4. **Despliegue**: `server1:8700` (Tailscale, home-lab), Docker, y también
    público en `https://mediciones.isoc.org.ec` vía Cloudflare Tunnel. Ver
@@ -99,6 +102,13 @@ node test/rawDns.live.smoke.test.js
 node test/dnsDownloads.noDnsCalls.test.js
 node test/downloads.integrityGuard.test.js
 node test/dnsValidation.live.pythonCompare.js <domains.txt> <validacion_dns.csv de Python>
+PULSE_API_KEY=xxxx node test/pulseAdapter.live.smoke.test.js
+DNSVIZ_OBSERVATORIO_URL=https://dnssec.corpece.org.ec node test/dnsvizAdapter.live.smoke.test.js
+
+# Chequeo periódico (canario) contra producción real — manual, además de
+# correr solo via systemd en server1 (ver punto 17)
+node scripts/canary-check.js
+ssh server1 "docker exec mediciones node scripts/canary-check.js"
 
 # Levantar local
 PORT=3500 node server.js
@@ -218,17 +228,132 @@ desactualizado (lista archivos a mano) — el comando **vigente** es el de
 este archivo, arriba, con `git ls-files` (más robusto, ver comentario
 2026-09-16 junto al comando).
 
-Al desplegar este día, `tar -xf -` sobre `server1` reportó errores
-(`Cannot open: File exists` / `Permission denied`) exclusivamente sobre
-`DNSLab/local/lab/zones/keys/**` — archivos de claves de un laboratorio
-DNSSEC de pruebas, con permisos restrictivos ya existentes en el
-servidor, ajenos a cualquier feature de MEDICIONES en sí. GNU tar sigue
-extrayendo el resto del stream tras un error por archivo y recién falla
-(`exit 2`) al final, así que **no** corta la transferencia de los demás
-archivos — verificado con `md5sum` que los archivos relevantes de la
-feature en curso llegaron íntegros pese al `exit 2`. Si vuelve a
-aparecer: no es necesariamente bloqueante, pero conviene confirmar por
-checksum que los archivos que sí importan llegaron bien antes de asumir
-que el deploy falló completo, y no tocar `DNSLab/local/lab/zones/keys/`
-para "arreglarlo" sin que se pida explícitamente (son fixtures de otro
-módulo, con su propio dueño).
+(2026-09-27 → ya no aplica desde 2026-11-04) Durante un tiempo el deploy
+reportaba errores no bloqueantes de `tar` sobre
+`DNSLab/local/lab/zones/keys/**` (permisos restrictivos de fixtures de un
+laboratorio DNSSEC de pruebas). **DNSLab se eliminó por completo el
+2026-11-04** (ver punto 11 más abajo) — ese módulo, y por lo tanto ese
+error de deploy, ya no existen. Si alguna vez vuelve a aparecer un error
+similar de `tar` sobre otro directorio, el principio general sigue
+valiendo: GNU tar sigue extrayendo el resto del stream tras un error por
+archivo y recién falla (`exit 2`) al final, así que no corta la
+transferencia de los demás archivos — confirmar por `md5sum` los archivos
+que sí importan antes de asumir que el deploy falló completo.
+
+11. **DNSLab se eliminó por completo el 2026-11-04** — a pedido explícito
+    del usuario, tras confirmar que todas sus fases estaban técnicamente
+    cerradas y sin trabajo activo desde 2026-09-25. Se borró del repo
+    local, del directorio en `server1` (`~/projects/MEDICIONES/DNSLab/`,
+    incluyendo volúmenes Docker y los 7 timers `systemd --user` que
+    corrían su observabilidad/backups/reportes), y **del historial
+    completo de git** (reescrito con `git filter-repo` antes del primer
+    `git push` de este repo a GitHub — nunca llegó a existir públicamente).
+    Si algo en el código o en commits viejos lo menciona, es una mención
+    histórica de una fase ya cerrada, no algo para editar o recuperar acá.
+    Backup completo (con datos de runtime) fuera de este repo, por si
+    hiciera falta en el futuro: `C:\PROJECTS\OBSERVA\observatorio-dnssec-v2_backup_20261104T193536Z.zip`
+    (ese nombre es por un backup distinto, ver punto 13 — el backup real de
+    DNSLab vive en los backups de `server1:~/backups/dnslab*` que no se
+    tocaron).
+
+12. **Integración con ISOC Pulse (API oficial) — en producción desde
+    2026-11-04.** `logic/adapters/pulse.adapter.js` consulta
+    `pulse-api.internetsociety.org` (Bearer token en `PULSE_API_KEY`,
+    nunca scraping) y expone una ruta `/pulse-context?domain=` que
+    MEDICIONES usa para mostrar, junto al análisis DNSSEC, cobertura ROA
+    real del país y si el ccTLD está firmado a nivel nacional. Aislado por
+    diseño: sin `PULSE_API_KEY` configurada, o ante cualquier fallo del
+    servicio, la tarjeta simplemente no se muestra — nunca afecta el
+    análisis del dominio. Caché de 24h (los datos de Pulse tienen varios
+    días de rezago real, confirmado en vivo). Tests:
+    `test/pulseAdapter.test.js` (simulado) y
+    `test/pulseAdapter.live.smoke.test.js` (manual, red real).
+
+13. **Observatorio DNSSEC v2 — importado como subproyecto aislado el
+    2026-11-04**, en `observatorio-dnssec-v2/` (stack Python/Flask, NO
+    Node — propio `CLAUDE.md` interno con sus reglas de aislamiento).
+    Desarrollado por ISOC Ecuador/CORPECE, originalmente solo en
+    `C:\PROJECTS\OBSERVA\observatorio-dnssec-v2` (sin control de
+    versiones) y desplegado en `https://dnssec.corpece.org.ec` (Google
+    Cloud Run, proyecto `observatorio-dnssec` — **no `server1`**, porque
+    `server1` no tiene IPv6 pública real y esta herramienta la necesita
+    para que `dnsviz` evalúe correctamente). Se importó tal cual (commit
+    de línea base, sin modificar su contenido) para: (a) darle control de
+    versiones real por primera vez, y (b) poder integrarlo con el motor
+    DNSSEC de MEDICIONES — ver punto 14. Backup completo pre-importación
+    (incluye datos de runtime excluidos del repo por `.gitignore`):
+    `C:\PROJECTS\OBSERVA\observatorio-dnssec-v2_backup_20261104T193536Z.zip`.
+    Tag de git `pre-import-observatorio-dnssec-v2` marca el commit justo
+    antes de esta importación, por si hiciera falta revertir.
+    **Pendiente real, no resuelto todavía:** la producción en Cloud Run
+    sigue en el despliegue de mayo 2026; el rediseño completo (6 fases,
+    `observatorio-dnssec-v2/REPORTE-FINAL.md`) que se importó acá nunca se
+    publicó ahí — son versiones distintas del mismo subproyecto. También
+    pendiente: la cuenta de facturación de ese proyecto GCP se había
+    cerrado por tarjeta vencida (reabierta el mismo día) — los créditos de
+    Google for Nonprofits para Cloud se empezaron a tramitar pero no se
+    completaron.
+
+14. **Validación real de firma DNSSEC (DNSViz) — conectada como
+    verificación OPCIONAL, nunca por defecto.** `dnsviz` real tarda 60-90s
+    por dominio (medido: 74s para isoc.org) — conectarlo al camino rápido
+    del analizador habría sido una regresión de UX, no una mejora. Se
+    expone vía `?dnsviz=1` en `/dnssec-analysis` (ver `server.js`,
+    `logic/adapters/dnsviz.adapter.js`), que llama al Observatorio DNSSEC
+    v2 (punto 13) y extrae, de su respuesta PÚBLICA (`structured_view`,
+    no el veredicto SECURE/INSECURE/BOGUS interno, que esa API no
+    expone), si hay un fallo criptográfico real en la zona exacta del
+    dominio — replicando fielmente (incluida la exclusión de códigos
+    operativos como `UNABLE_TO_RETRIEVE_DNSSEC_RECORDS`, que si no se
+    excluye da un falso positivo por matchear la subcadena "DS") la
+    clasificación `CRYPTO_DNSSEC_HINTS` del propio Observatorio. Si esa
+    evidencia contradice un veredicto que de otro modo sería `ok`, baja a
+    `misconfigured`. **`logic/rules/dnssec.rules.js` recibió un 5º
+    parámetro opcional (`dnsvizSignal`) para esto — sigue siendo una
+    función pura, sin I/O, con no-regresión explícita probada en
+    `test/dnssecRules.test.js` cuando el parámetro se omite.** En la UI
+    (`index.html`, tab DNSSEC → "Un dominio"): elección obligatoria Sí/No
+    antes de habilitar "Analizar DNSSEC", y un modal de progreso
+    bloqueante con botón Cancelar real (`AbortController`) — ver punto 15.
+
+15. **Modal de progreso genérico, por tiempo transcurrido, no por tipo de
+    análisis.** `showModalIfSlow(modalId, delayMs=30000)` en `index.html`:
+    muestra un modal centrado y bloqueante SOLO si la operación no
+    terminó a los 30s (por defecto), en vez de decidir de antemano "este
+    tipo de análisis es lento, mostrar siempre". Usado tanto por el
+    análisis DNSSEC individual (punto 14) como por el batch de Mediciones
+    — un análisis rápido nunca lo ve; cualquiera que se demore (por el
+    motivo que sea) lo dispara solo.
+
+16. **Bug real corregido (2026-11-04): falta de `User-Agent` en llamadas
+    salientes causaba bloqueos 429 de WAFs (Cloudflare) de terceros,
+    reportados incorrectamente como falla del dominio medido.**
+    Descubierto con `isoc.org.ec` (HTTPS daba "fail" — en realidad era
+    `INCONCLUSIVE` por un 429, pero igual era un bug real: nuestro propio
+    cliente HTTP, sin User-Agent, era tratado como bot). Corregido en
+    `logic/adapters/safeWebFetch.adapter.js` (`requestPage`, afecta a los
+    ~12 checks de `handleHeaders`) y en `server.js`
+    (`fetchText`/`fetchPage`, por consistencia con `fetchJSON`, que ya
+    tenía el default). Auditado el resto del sistema (DoH/DNS crudo,
+    RIPEstat/Cymru, RDAP, Pulse/DNSViz, PSL, URLhaus, servicio interno
+    MDTOPDF) — no quedan más puntos de este mismo defecto. Test de
+    regresión en `test/safeWebFetch.adapter.test.js` que intercepta la
+    llamada real a `http.request()` (no el mock inyectado) para confirmar
+    que siempre se envía un User-Agent no vacío.
+
+17. **Chequeo periódico ("canario") del sistema real en producción —
+    `scripts/canary-check.js`, desde 2026-11-04.** No reemplaza `npm test`
+    (que valida lógica con datos simulados, sin red) — este corre contra
+    la API real en vivo, el único tipo de prueba capaz de haber detectado
+    el bug del punto 16 antes de que un usuario lo reportara. 6 casos con
+    resultado esperado documentado (HTTPS de isoc.org.ec, WHOIS, hosts
+    asociados, DNSSEC de isoc.org, contexto Pulse, salud del Observatorio
+    DNSSEC v2). Corre vía `systemd --user timer` en `server1`
+    (`mediciones-canary.timer`/`.service`), una vez al día a las 22:00
+    hora Ecuador (`03:00 UTC` — `server1` corre en UTC), con `flock` para
+    evitar solaparse consigo mismo. Si algo falla, envía un correo real
+    (reusa el SMTP de Brevo ya configurado) a `CANARY_ALERT_EMAIL`
+    (fallback: `SUPER_ADMIN_RECOVERY_EMAIL`), asunto `ALERTA MEDICIONES`.
+    Se corre `docker exec mediciones node scripts/canary-check.js` —
+    requiere que el contenedor esté construido con esta versión del
+    código (rebuild, no solo copiar archivos).
